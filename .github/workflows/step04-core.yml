@@ -1,0 +1,27 @@
+name: STEP04 Offline Two-JSON Validation (NOT Premiere Host)
+on:
+  push:
+    branches:
+      - 'sol/step04-*'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'tests/test_core*.py'
+      - '.github/workflows/step04-core.yml'
+jobs:
+  contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline JSON contract tests
+        run: python -m unittest discover -s tests -p "test_core*.py" -v
+      - name: No Premiere or edit permission
+        run: python -c "from core.contracts import validate_pair; assert validate_pair({}, {})['can_assemble'] is False; print('NO_PREMIERE_HOST_CLAIM=PASS')"

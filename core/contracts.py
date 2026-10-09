@@ -285,7 +285,7 @@ def _structure_and_pairs(edit: dict, anim: dict, issues: list[dict[str, str]]):
             _known(ev, {"cue_id", "accuracy", "word_range", "source_span",
                         "occurrence", "confidence"}, issues, f"{q}/entry_evidence")
             accuracy = ev.get("accuracy")
-            if accuracy not in EVIDENCE_ACCURACY:
+            if not isinstance(accuracy, str) or accuracy not in EVIDENCE_ACCURACY:
                 _issue(issues, "E_JSON_SCHEMA", f"{q}/entry_evidence/accuracy",
                        "Label accuracy tidak dikenal.")
             elif accuracy != "EXACT_CUE":
@@ -330,7 +330,7 @@ def _structure_and_pairs(edit: dict, anim: dict, issues: list[dict[str, str]]):
         elif direction not in registry[preset]:
             _issue(issues, "E_ANIM_PRESET", f"{p}/direction",
                    "Direction tidak terdaftar untuk preset.")
-        if speed not in SPEEDS:
+        if not isinstance(speed, str) or speed not in SPEEDS:
             _issue(issues, "E_ANIM_PRESET", f"{p}/speed",
                    "Speed bukan SLOW/MEDIUM/FAST.")
         elif speed != "MEDIUM":
@@ -379,7 +379,7 @@ def validate_pair(edit: Any, anim: Any, *, caps: Mapping[str, Any] | None = None
             "subtitles", "output_path"}, issues, "/EDIT_PLAN/render")
     _known(_object(edit_obj.get("validation"), issues, "/EDIT_PLAN/validation"),
            {"status", "issues"}, issues, "/EDIT_PLAN/validation")
-    if caps is None or caps.get("approved") is not True:
+    if not isinstance(caps, Mapping) or caps.get("approved") is not True:
         _issue(issues, "E_CONFIG_LIMITS_UNVERIFIED", "/runtime_limits",
                "Batas resource resmi belum disetujui/teruji untuk Windows 11.", "REVIEW")
     else:
