@@ -36,13 +36,28 @@ class FFProbeTests(unittest.TestCase):
     def tearDown(self):
         self.work.cleanup()
 
-    def inspect(self, *, payload=None, code=0, execute=None, exe="default"):
+    def inspect(self, *, payload=None, code=0, execute=None, exe="default",
+                include_linked=False):
         def runner(argv, **kwargs):
             self.calls.append((argv, kwargs))
             if execute:
                 raise execute
-            return subprocess.CompletedProcess(argv, code,
-                payload if payload is not None else fixture(), b"")
+            raw = payload if payload is not None else fixture()
+            # Real FFprobe returns one file's streams per invocation, not
+            # the combined streams from both narration and background.
+            if not include_linked:
+                try:
+                    decoded = json.loads(raw)
+                    if type(decoded) is dict and isinstance(decoded.get("streams"),list):
+                        role = "audio" if str(argv[-1]).endswith(".wav") else "video"
+                        decoded["streams"] = [
+                            s for s in decoded["streams"]
+                            if type(s) is dict and s.get("codec_type") == role
+                        ]
+                        raw = json.dumps(decoded).encode("utf-8")
+                except (ValueError, TypeError):
+                    pass
+            return subprocess.CompletedProcess(argv, code, raw, b"")
         return inspect_ffprobe(self.edit, self.root,
             ffprobe_exe=self.ffprobe if exe == "default" else exe,
             runner=runner)
@@ -98,7 +113,7 @@ class FFProbeTests(unittest.TestCase):
 
     def test_background_linked_audio_is_a_hard_error(self):
         mixed = fixture()
-        report = self.inspect(payload=mixed)
+        report = self.inspect(payload=mixed, include_linked=True)
         self.assertEqual(report["status"], "PREFLIGHT_FAIL")
         self.assertIn("E_BACKGROUND_AUDIO_NOT_ISOLATED", codes(report))
         self.assertFalse(report["can_assemble"])
@@ -110,7 +125,7 @@ class FFProbeTests(unittest.TestCase):
             {"codec_type":"video","codec_name":"h264","width":1920,"height":1080},
             {"codec_type":"subtitle","codec_name":"mov_text"}
         ]
-        report = self.inspect(payload=json.dumps(mixed).encode())
+        report = self.inspect(payload=json.dumps(mixed).encode(), include_linked=True)
         self.assertIn("E_BACKGROUND_STREAM_TOPOLOGY_UNKNOWN",codes(report))
         self.assertEqual(report["status"],"PREFLIGHT_FAIL")
 

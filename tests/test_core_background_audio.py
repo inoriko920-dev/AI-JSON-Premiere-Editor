@@ -43,7 +43,7 @@ class BackgroundIsolationTests(unittest.TestCase):
         self.assertFalse(options["shell"])
         self.assertTrue(options["capture_output"])
         if args[0] == str(self.ffprobe):
-            is_original=args[-1] == str(self.original)
+            is_original=not Path(args[-1]).name.startswith(".bg_work_")
             encoded=stream_data(self.input_has_audio if is_original else
                                 self.output_has_audio)
             return subprocess.CompletedProcess(args,0,encoded,b"")
