@@ -21,7 +21,7 @@ for(let i=0;i<spans.length;i++){
    start:{ticks:String(start*TB)},end:{ticks:String(end*TB)},
    inPoint:{ticks:"0"},outPoint:{ticks:String((end-start)*TB)}});
 }
-const v=[cols.V1,cols.V2,cols.V3],a=[cols.A1];
+const v=[{clips:cols.V1},{clips:cols.V2},{clips:cols.V3}],a=[{clips:cols.A1}];
 v.numTracks=3;a.numTracks=1;
 const seqs=[{sequenceID:SEQ,timebase:String(TB),videoTracks:v,audioTracks:a}];
 seqs.numSequences=1;
