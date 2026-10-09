@@ -1,0 +1,34 @@
+name: STEP11 Durable Transaction Journal (Offline, NO Adobe Host)
+on:
+  push:
+    branches:
+      - 'sol/step11-*'
+  pull_request:
+    paths:
+      - 'core/transaction_journal.py'
+      - 'tests/test_core_transaction_journal.py'
+      - '.github/workflows/step11-transaction-journal.yml'
+jobs:
+  journal:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify durable append-only journal and crash recovery
+        run: python -m unittest tests.test_core_transaction_journal -v
+      - name: Run all Python contract/media/track regressions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run all CEP and Premiere host-mock JavaScript regressions
+        run: npm test
+      - name: Guard against unauthorized live Premiere writes
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert 'transaction_journal' not in s; print('STEP11_NO_LIVE_HOST_WRITE_ROUTE=PASS')"
