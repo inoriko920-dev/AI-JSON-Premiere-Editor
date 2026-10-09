@@ -101,11 +101,11 @@ $._AIJSON_READBACK_V1=(function(){
             var seen={},out={},order=["V1","V2","V3","A1"];
             for(var i=0;i<3;i++){
                 var arr=clips(v[i],seen);
-                if(!arr){return err("TRACK_READBACK_INVALID");}
+                if(!arr){return err("TRACK_READBACK_INVALID_"+order[i]);}
                 out[order[i]]=arr;
             }
             out.A1=clips(a[0],seen);
-            if(!out.A1){return err("TRACK_READBACK_INVALID");}
+            if(!out.A1){return err("TRACK_READBACK_INVALID_A1");}
             /* Extra tracks are permitted only when empty. This avoids
              * silently declaring a match while linked clips leaked to A2/V4.
              */
