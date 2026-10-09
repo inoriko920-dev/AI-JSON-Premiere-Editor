@@ -1,0 +1,17 @@
+SCREEN_ID: UI05
+SCREEN_NAME: File PNG hilang
+UI_STATE: PREFLIGHT_FAIL
+UX_GATE: Missing file memblokir assembly tanpa dummy
+
+PROMPT DASAR:
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+DETAIL SCREEN:
+Tampilkan PREFLIGHT FAIL dengan kode E_MEDIA_MISSING: A003.png belum tersedia, Scene V002 mulai frame 192. Solusi: Tambahkan file ke assets lalu klik Periksa Proyek. Sumber file lain hanya dinyatakan terdeteksi sebagai simulasi. Tombol PERIKSA ULANG aktif; SUSUN TIMELINE OTOMATIS nonaktif. Jangan tawarkan aset pengganti.
+
+OUTPUT: Hanya satu PNG mockup statis 1920x1080 untuk layar ini; jangan generate gambar sebelum instruksi lanjutan dari pemilik.

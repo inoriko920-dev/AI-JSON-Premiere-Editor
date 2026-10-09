@@ -1,0 +1,67 @@
+ASTRA STEP02 — BATCH 01 / LIMA PROMPT REVISI LANJUTAN
+Tanggal: 9 Oktober 2026
+9 gambar terbaru telah diaudit. UI02/UI03/UI04/UI05 sesuai substansi. UI07/UI08/UI09/UI10/UI11 masih butuh revisi. UI01/UI06/UI12 tetap dari batch awal, masih perlu approval akhir.
+SEMUA GAMBAR HANYA BOLEH DIGENERATE PENGGUNA. AI ASTRA/SOL hanya menulis prompt TXT dan mengaudit, tidak membuat/mengedit PNG.
+Gunakan SATU prompt untuk SATU PNG. Total 5 prompt dalam file ini; jangan gabungkan 5 screenshot dalam satu gambar.
+
+====================================================================
+PROMPT 1 DARI 5 — UI07 — Registry baca-saja
+====================================================================
+
+INSTRUKSI GLOBAL UNTUK SETIAP LAYAR:
+Buat satu gambar PNG UI statis, bukan kolase. Target 1920x1080 landscape. AI-JSON-Premiere-Editor panel CEP dockable kanan, area Premiere 2024 gelap kiri; tema putih-biru, semua label Bahasa Indonesia, tanda SIMULASI DESAIN UI. Gunakan gambar sebelumnya sebagai referensi gaya, bukan membuat aplikasi/host fungsional. Jangan mengaku efek/host diuji. Jika generator hanya menghasilkan 1672x941, pertahankan output asli dan tandai deviasi untuk persetujuan pengguna.
+DEMO_001 adalah data contoh tetap: 2 scene V001 [0,150) dan V002 [150,330), 330 frame @30 FPS=11 detik; 3 PNG A001/A002/A003. A001 pada V2, A002 LEFT pada V2 dari frame150, A003 RIGHT pada V3 dari frame192. Video latar background.mp4 pada V1, audio narasi.wav pada A1. EDIT_PLAN.json untuk scene/timing, ANIMATION_PLAN.json untuk satu animasi BOTH (IN+OUT) per aset. BRUSH A001, PAN/FROM_LEFT A002, WIPE/RIGHT_TO_LEFT A003. Speed MEDIUM pilot; FAST/SLOW tunggu kalibrasi. Jangan menambahkan chat, mengubah preset, menimpa edit manual atau mengeluarkan MP4 via worker. Semua keberhasilan hanya SIMULASI.
+
+SPESIFIK LAYAR:
+REGISTRY ANIMASI read-only berasal dari ANIMATION_PLAN.json. Dua tab: GENERAL (15) HANYA Rise, Pan, Fade, Pop, Wipe, Blur, Succession, Breathe, Baseline, Drift, Tectonic, Tumble, Neon, Scrapbook, Stomp. REVEAL (6) HANYA Brush, Ink, Digital, Spray Paint, Sketch, Gradient. Saat tab General aktif, tidak boleh ada Brush/Ink/Digital/Spray Paint/Sketch/Gradient di daftar itu. Pilih PAN. Field inspector tepat: "Preset: PAN", "Arah: FROM_LEFT", "Kecepatan: MEDIUM", "Mode: BOTH (IN+OUT)", "IN referensi: 21 frame", "OUT referensi: 8 frame". Status host 0/21 verified, teks 'Belum diuji pada Premiere'. Tombol hanya Lihat Sumber ANIMATION_PLAN.json dan Buka Detail Keputusan (read-only); tidak ada edit preset atau simpan ke EDIT_PLAN. FAST/SLOW disabled.
+OUTPUT: SATU PNG mockup UI07_REVISI_OWNER_V3.png, target 1920x1080. Jangan kolase.
+
+====================================================================
+PROMPT 2 DARI 5 — UI08 — Dialog konfirmasi sebelum assembly
+====================================================================
+
+INSTRUKSI GLOBAL UNTUK SETIAP LAYAR:
+Buat satu gambar PNG UI statis, bukan kolase. Target 1920x1080 landscape. AI-JSON-Premiere-Editor panel CEP dockable kanan, area Premiere 2024 gelap kiri; tema putih-biru, semua label Bahasa Indonesia, tanda SIMULASI DESAIN UI. Gunakan gambar sebelumnya sebagai referensi gaya, bukan membuat aplikasi/host fungsional. Jangan mengaku efek/host diuji. Jika generator hanya menghasilkan 1672x941, pertahankan output asli dan tandai deviasi untuk persetujuan pengguna.
+DEMO_001 adalah data contoh tetap: 2 scene V001 [0,150) dan V002 [150,330), 330 frame @30 FPS=11 detik; 3 PNG A001/A002/A003. A001 pada V2, A002 LEFT pada V2 dari frame150, A003 RIGHT pada V3 dari frame192. Video latar background.mp4 pada V1, audio narasi.wav pada A1. EDIT_PLAN.json untuk scene/timing, ANIMATION_PLAN.json untuk satu animasi BOTH (IN+OUT) per aset. BRUSH A001, PAN/FROM_LEFT A002, WIPE/RIGHT_TO_LEFT A003. Speed MEDIUM pilot; FAST/SLOW tunggu kalibrasi. Jangan menambahkan chat, mengubah preset, menimpa edit manual atau mengeluarkan MP4 via worker. Semua keberhasilan hanya SIMULASI.
+
+SPESIFIK LAYAR:
+Tampilan harus benar-benar keadaan PRA-ASSEMBLY: file EDIT_PLAN.json, ANIMATION_PLAN.json dan folder media sudah dipilih, preflight READY (SIMULASI), host 24.x terverifikasi (SIMULASI). Modal tunggal 'Konfirmasi Susun Timeline' dengan mode BUAT SEQUENCE BARU, target DEMO_001_AI_JSON_R2_A1; ringkasan 2 scene, 3 PNG visual, voice A1, background V1, tombol Batal/Buat Sequence Baru. Sebelum modal dikonfirmasi, target sequence ini BELUM boleh ada di panel Project/Program Monitor/timeline. Project bin boleh menunjukkan file A001.png, A002.png, A003.png, narasi.wav, background.mp4, tetapi tidak boleh A001.mov/A002.mp4/A003.mp4. Hindari tombol assembly kedua yang memperlihatkan target sudah dibuat, jangan ada dialog ganda.
+OUTPUT: SATU PNG mockup UI08_REVISI_OWNER_V3.png, target 1920x1080. Jangan kolase.
+
+====================================================================
+PROMPT 3 DARI 5 — UI09 — Progres assembly 43 persen
+====================================================================
+
+INSTRUKSI GLOBAL UNTUK SETIAP LAYAR:
+Buat satu gambar PNG UI statis, bukan kolase. Target 1920x1080 landscape. AI-JSON-Premiere-Editor panel CEP dockable kanan, area Premiere 2024 gelap kiri; tema putih-biru, semua label Bahasa Indonesia, tanda SIMULASI DESAIN UI. Gunakan gambar sebelumnya sebagai referensi gaya, bukan membuat aplikasi/host fungsional. Jangan mengaku efek/host diuji. Jika generator hanya menghasilkan 1672x941, pertahankan output asli dan tandai deviasi untuk persetujuan pengguna.
+DEMO_001 adalah data contoh tetap: 2 scene V001 [0,150) dan V002 [150,330), 330 frame @30 FPS=11 detik; 3 PNG A001/A002/A003. A001 pada V2, A002 LEFT pada V2 dari frame150, A003 RIGHT pada V3 dari frame192. Video latar background.mp4 pada V1, audio narasi.wav pada A1. EDIT_PLAN.json untuk scene/timing, ANIMATION_PLAN.json untuk satu animasi BOTH (IN+OUT) per aset. BRUSH A001, PAN/FROM_LEFT A002, WIPE/RIGHT_TO_LEFT A003. Speed MEDIUM pilot; FAST/SLOW tunggu kalibrasi. Jangan menambahkan chat, mengubah preset, menimpa edit manual atau mengeluarkan MP4 via worker. Semua keberhasilan hanya SIMULASI.
+
+SPESIFIK LAYAR:
+Panel menyatakan 'ASSEMBLING • 43%' dan host 24.x terverifikasi SIMULASI tanpa badge bertentangan 'belum diperiksa'. Project bin kiri menunjukkan DEMO_001_AI_JSON_R2_A1 (Sequence 30.00fps) dan A001.png/A002.png/A003.png/narasi.wav/background.mp4. Timeline parsial 0–11 detik @30fps. Log selesai: Validasi hash, Impor media, Buat sequence baru, Tempatkan background.mp4 di V1, Tempatkan narasi.wav di A1, Tempatkan A001 di V2. Tugas saat ini Memasukkan A002 di V2. Tugas menunggu: Masukkan A003 di V3, Terapkan animasi BOTH, Selesaikan sequence. Timeline harus mencerminkan log: background dan narasi sudah ada, A001 sudah ada, A002 sedang masuk, A003 belum ada. Jangan tampilkan 24 FPS, 10 detik atau dua status host yang bertentangan. Tombol assembly kedua nonaktif dan tombol Batalkan dengan aman tersedia.
+OUTPUT: SATU PNG mockup UI09_REVISI_OWNER_V3.png, target 1920x1080. Jangan kolase.
+
+====================================================================
+PROMPT 4 DARI 5 — UI10 — Laporan assembled 11 detik
+====================================================================
+
+INSTRUKSI GLOBAL UNTUK SETIAP LAYAR:
+Buat satu gambar PNG UI statis, bukan kolase. Target 1920x1080 landscape. AI-JSON-Premiere-Editor panel CEP dockable kanan, area Premiere 2024 gelap kiri; tema putih-biru, semua label Bahasa Indonesia, tanda SIMULASI DESAIN UI. Gunakan gambar sebelumnya sebagai referensi gaya, bukan membuat aplikasi/host fungsional. Jangan mengaku efek/host diuji. Jika generator hanya menghasilkan 1672x941, pertahankan output asli dan tandai deviasi untuk persetujuan pengguna.
+DEMO_001 adalah data contoh tetap: 2 scene V001 [0,150) dan V002 [150,330), 330 frame @30 FPS=11 detik; 3 PNG A001/A002/A003. A001 pada V2, A002 LEFT pada V2 dari frame150, A003 RIGHT pada V3 dari frame192. Video latar background.mp4 pada V1, audio narasi.wav pada A1. EDIT_PLAN.json untuk scene/timing, ANIMATION_PLAN.json untuk satu animasi BOTH (IN+OUT) per aset. BRUSH A001, PAN/FROM_LEFT A002, WIPE/RIGHT_TO_LEFT A003. Speed MEDIUM pilot; FAST/SLOW tunggu kalibrasi. Jangan menambahkan chat, mengubah preset, menimpa edit manual atau mengeluarkan MP4 via worker. Semua keberhasilan hanya SIMULASI.
+
+SPESIFIK LAYAR:
+Gambar ASSEMBLED SUKSES SIMULASI. Ringkasan harus berbunyi persis '2 scene • 3 aset visual • 1 audio narasi • 1 background' dan 'Durasi: 00:00:11:00 (330 frame @30 FPS)'. Sequence konsisten DEMO_001_AI_JSON_R2_A1. Tabel: V001 / A001.png / V2 / BRUSH BOTH; V002 / A002.png / V2 / PAN BOTH; V002 / A003.png / V3 / WIPE BOTH. Audio narasi.wav di A1, background.mp4 di V1. Premiere Project dan timeline sebelah kiri harus menunjukkan sequence lengkap 11 detik; A001 [0,150), A002 [150,330), A003 [192,330) di V3. Jangan tulis 3 scene atau 10 detik. Tombol Buka Sequence dan Buka Laporan, catatan 'Ekspor MP4 melalui Adobe Premiere Pro'.
+OUTPUT: SATU PNG mockup UI10_REVISI_OWNER_V3.png, target 1920x1080. Jangan kolase.
+
+====================================================================
+PROMPT 5 DARI 5 — UI11 — Kegagalan parsial track V3 dan 11 detik
+====================================================================
+
+INSTRUKSI GLOBAL UNTUK SETIAP LAYAR:
+Buat satu gambar PNG UI statis, bukan kolase. Target 1920x1080 landscape. AI-JSON-Premiere-Editor panel CEP dockable kanan, area Premiere 2024 gelap kiri; tema putih-biru, semua label Bahasa Indonesia, tanda SIMULASI DESAIN UI. Gunakan gambar sebelumnya sebagai referensi gaya, bukan membuat aplikasi/host fungsional. Jangan mengaku efek/host diuji. Jika generator hanya menghasilkan 1672x941, pertahankan output asli dan tandai deviasi untuk persetujuan pengguna.
+DEMO_001 adalah data contoh tetap: 2 scene V001 [0,150) dan V002 [150,330), 330 frame @30 FPS=11 detik; 3 PNG A001/A002/A003. A001 pada V2, A002 LEFT pada V2 dari frame150, A003 RIGHT pada V3 dari frame192. Video latar background.mp4 pada V1, audio narasi.wav pada A1. EDIT_PLAN.json untuk scene/timing, ANIMATION_PLAN.json untuk satu animasi BOTH (IN+OUT) per aset. BRUSH A001, PAN/FROM_LEFT A002, WIPE/RIGHT_TO_LEFT A003. Speed MEDIUM pilot; FAST/SLOW tunggu kalibrasi. Jangan menambahkan chat, mengubah preset, menimpa edit manual atau mengeluarkan MP4 via worker. Semua keberhasilan hanya SIMULASI.
+
+SPESIFIK LAYAR:
+Gambar INCOMPLETE SIMULASI, kode E_HOST_PARTIAL Scene V002 / A003, sequence DEMO_001_AI_JSON_R2_A1_INCOMPLETE. Target 11 detik @30 FPS: A001 [0,150) di V2 OK, A002 [150,330) di V2 OK, A003 [192,330) di V3 diberi tanda EFEK GAGAL; jangan taruh A003 di V2. Background V1, voice narasi.wav A1. Program Monitor boleh menampilkan split A002 LEFT dan A003 RIGHT dengan label gagal efek A003. Panel Project berisi sequence 30 FPS, bukan 10 detik. Tiga tombol Bangun Sequence Baru, Perbaiki Cache, Batal. Jelaskan tidak menghapus cache terkait, proyek lama, edit manual. Tidak ada auto reset atau 7 dari 9 scene.
+OUTPUT: SATU PNG mockup UI11_REVISI_OWNER_V3.png, target 1920x1080. Jangan kolase.
+
+STOP: serahkan 5 PNG buatanmu kepada ASTRA untuk diperiksa. Belum boleh coding sampai G2 PASS dan seluruh 12 PNG final disetujui.

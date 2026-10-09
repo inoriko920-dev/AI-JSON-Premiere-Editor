@@ -1,0 +1,16 @@
+STEP02 — 4 PROMPT REVISI OPSIONAL (HANYA JIKA PEMILIK MEMILIH MEMPERBAIKI ILUSTRASI)
+Semua UI harus dibuat pemilik, bukan digenerate atau diedit oleh ASTRA/SOL. Target satu PNG per prompt, bukan kolase. Pertahankan panel kanan CEP Premiere Pro 2024, Bahasa Indonesia putih-biru, label SIMULASI.
+
+PROMPT 1/4 — UI08
+Revisi gambar UI08 dari referensi gambar lama. Sebelum pengguna menekan Buat Sequence Baru, Project boleh berisi sumber PNG A001 A002 A003, narasi.wav, background.mp4 tetapi TIDAK memiliki target sequence. Panel Program bertuliskan "(no sequences)" harus kosong/hitam, bukan memutar preview sampel. Panel kiri dan dialog Konfirmasi Susun Timeline konsisten, preflight READY adalah simulasi. Satu gambar UI08 saja.
+
+PROMPT 2/4 — UI09
+Revisi gambar UI09 ASSEMBLING 43%. Timeline simulasi 11 detik @30fps, A001 visual V2 tepat 0–5 detik (frame 0–150), A002 V2 mulai 5 detik (frame150), A003 V3 belum ada sampai log memasukannya. Background V1, narasi A1 sudah ditempatkan. Daftar status log harus sama dengan track yang tampak. Satu gambar UI09 saja.
+
+PROMPT 3/4 — UI10
+Revisi gambar UI10 ASSEMBLED. Ganti label header tabel "Versi" menjadi "Track". Pastikan dua scene 330frame @30fps, total 11 detik: A001.png V2 [0,150), A002.png V2 [150,330), A003.png V3 [192,330), audio A1, background V1. Hanya ilustrasi, tanpa klaim pengujian host Premiere. Satu gambar UI10 saja.
+
+PROMPT 4/4 — UI11
+Revisi gambar UI11 INCOMPLETE agar Project bin memuat A001.png, A002.png, A003.png masing-masing sekali, tidak duplikat. Sequence INCOMPLETE 11 detik 30fps: A001 dan A002 berhasil di V2; A003 V3 gagal menerapkan efek; media masih ada; tidak menghapus linked cache atau edit manual. Satu gambar UI11 saja.
+
+STOP. Kirim gambar buatanmu untuk QA. G2 tetap menunggu persetujuan final seluruh 12 UI.

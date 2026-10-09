@@ -1,0 +1,51 @@
+ASTRA STEP02 — BATCH 02 PROMPT GAMBAR UI
+Proyek: AI-JSON-Premiere-Editor / plugin CEP Premiere Pro 2024 Windows 11
+Batch 2 dari 2 | 2 gambar UI
+TOTAL PROYEK: 12 gambar UI = 2 batch (10 + 2).
+Status: PROMPT SAJA — BELUM MENGHASILKAN GAMBAR. G2 MENUNGGU DESAIN FINAL.
+
+PETUNJUK:
+Setiap blok di bawah adalah SATU prompt mandiri untuk SATU gambar PNG 1920x1080.
+Salin prompt per nomor ke pembuat gambar. Jangan meminta satu gambar berisi 10 screenshot.
+Semua gambar harus konsisten gaya panel kanan putih-biru; nomor UI01–UI12 harus tetap dipertahankan.
+Data, progres, dan tangkapan UI adalah simulasi; bukan hasil pengujian Premiere nyata.
+WAJIB STOP SETELAH PEMBUATAN PROMPT: jangan membuat PNG, menganggap UI approved, atau coding tanpa instruksi berikutnya.
+========================================================================
+PROMPT GAMBAR UI11 — Error parsial dan perbaikan
+URUTAN BATCH: 1 / 2
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI11:
+Status desain: INCOMPLETE | **QA:** Jangan hapus cache/sequence tanpa izin
+Panel status INCOMPLETE, kode E_HOST_PARTIAL Scene V002 A003, sequence contoh berakhiran _INCOMPLETE, pesan gagal memasang efek. Pilihan Bangun Sequence Baru, Perbaiki Cache dan Batal; tampilkan peringatan jangan overwrite edit manual, jangan hapus linked cache. Tidak ada retry otomatis atau tombol Hapus Semua.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI11; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI12 — Versi Premiere tidak didukung
+URUTAN BATCH: 2 / 2
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI12:
+Status desain: NO_PROJECT | **QA:** Host 25.x tidak boleh diperlakukan sebagai PPRO 24.x
+Panel status HOST TIDAK DIDUKUNG, E_HOST_UNSUPPORTED, Premiere terdeteksi 25.x hanya DATA SIMULASI; persyaratan 2024 major 24.x. Status CEP/alpha/native masih BELUM DIVERIFIKASI. Tombol Periksa Host Lagi aktif, SUSUN TIMELINE nonaktif, link Persyaratan Kompatibilitas; tidak menawarkan bypass, downgrade atau fake PASS.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI12; bukan kolase, bukan animasi, bukan UI fungsional.
+
+SELESAI BATCH 2. Tunggu semua UI direview/disetujui; tanpa coding sebelum G2 PASS.

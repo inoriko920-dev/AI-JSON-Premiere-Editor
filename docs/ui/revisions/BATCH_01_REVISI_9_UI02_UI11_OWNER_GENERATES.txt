@@ -1,0 +1,142 @@
+STEP02 — BATCH 01 REVISI 9 GAMBAR UI | OWNER GENERATES
+AI-JSON-Premiere-Editor • 9 Oktober 2026
+Jumlah gambar perlu diperbaiki: 9 (7 WAJIB/TERARAH + 2 CATATAN KECIL).
+Gambar yang tidak perlu revisi: UI01, UI06, UI12.
+Hanya PEMILIK PROYEK yang membuat gambar. ASISTEN ASTRA/SOL DILARANG GENERATE ATAU EDIT GAMBAR UI.
+File ini berisi tepat 9 prompt mandiri, satu prompt menghasilkan SATU PNG 1920x1080. Gunakan gambar asli per UI sebagai referensi bila tersedia.
+Kumpulkan kesembilan PNG buatan pemilik untuk QA ulang, lalu minta persetujuan eksplisit SELURUH 12 final; dilarang coding sebelum G2 PASS dan UI_REFERENCE_FINAL.docx dibuat dari gambar yang disetujui.
+
+==============================================================================
+PROMPT 1 dari 9 — UI02 — CATATAN KECIL
+==============================================================================
+
+Buat SATU gambar revisi untuk AI-JSON-Premiere-Editor, resolusi target 1920x1080 landscape, tampilan panel CEP Adobe Premiere Pro 2024 di KANAN, host Premiere berwarna gelap di KIRI, warna putih-biru profesional dan teks Bahasa Indonesia. Pertahankan karakter visual dari gambar UI asli yang diberikan pemilik sebagai referensi, bukan mendesain ulang seluruh aplikasi. Semua data adalah SIMULASI DESAIN UI, bukan bukti perangkat lunak berjalan.
+Gunakan DEMO_001: EDIT_PLAN.json dan ANIMATION_PLAN.json terpisah; 2 scene V001 [0,150) SINGLE dan V002 [150,330) DOUBLE, 30 FPS, 3 aset visual A001/A002/A003, mode animasi BOTH berarti IN dan OUT satu preset per pasangan scene dan aset; MEDIUM saja pada pilot, FAST/SLOW belum dikalibrasi. Media tidak boleh diganti otomatis; ekspor MP4 hanya melalui Premiere.
+Setiap prompt menghasilkan SATU gambar untuk SATU nomor UI. DILARANG membuat kolase, beberapa layar dalam satu gambar, screenshot aplikasi fungsional palsu, atau mengklaim 21/21 animasi sudah lolos Premiere.
+
+PERBAIKAN UI02 — FILES_SELECTED, BELUM VALIDASI
+Tampilkan EDIT_PLAN.json, ANIMATION_PLAN.json dan Folder Media Proyek telah DIPILIH, tetapi BELUM diperiksa. Gunakan label masing-masing "Dipilih • Belum divalidasi" atau ikon berkas netral biru, BUKAN centang hijau yang memberi kesan file sudah lulus validasi. Tampilkan ringkasan proyek DEMO_001, 2 scene, 3 kemunculan aset, 1920x1080, 30 FPS, revisi edit 2 dan animasi 1 (DATA CONTOH). SRT, audio, PNG dan background masih "Belum diperiksa". Tombol biru PERIKSA PROYEK aktif, tombol SUSUN TIMELINE OTOMATIS tidak aktif. Header status host belum diverifikasi; jangan tampilkan READY, sukses, 21 efek PASS, atau sequence jadi.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI02_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 2 dari 9 — UI03 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI READY: Pertahankan hasil preflight hijau dan tombol Susun Timeline aktif hanya setelah benar-benar READY. Ubah header host menjadi 'Premiere 24.x terverifikasi (SIMULASI)' bukan 'belum diperiksa'. Ubah semua istilah 'Tipe Output: BOTH (Video Final + Animasi)' menjadi 'Mode animasi: BOTH (IN + OUT)', dan kolom 'Ekspor video: melalui Premiere Pro'. Jangan katakan 21/21 backend efek berhasil diuji. Tampilkan sumber 2 JSON dan angka 2 scene/3 aset, 30 FPS.
+
+Output: SATU gambar baru untuk UI03, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI03_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 3 dari 9 — UI04 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI NEEDS_REVIEW: Tetap tampilkan kode E_SRT_AMBIGUOUS, dua kemunculan, EXACT_CUE berbeda dengan ESTIMATED_FROM_AUDIO, assembly nonaktif. Gunakan cue dan waktu ilustratif DI DALAM timeline DEMO_001 0–11 detik (contoh cue #2 00:00:05,000–00:00:07,000 dan cue #3 00:00:07,500–00:00:09,000), ATAU ganti nama proyek dan tandai jelas bahwa skenario error ini proyek contoh lain. Jangan menambahkan word-level timing yang tidak didukung SRT.
+
+Output: SATU gambar baru untuk UI04, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI04_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 4 dari 9 — UI05 — CATATAN KECIL
+==============================================================================
+
+Buat SATU gambar revisi untuk AI-JSON-Premiere-Editor, resolusi target 1920x1080 landscape, tampilan panel CEP Adobe Premiere Pro 2024 di KANAN, host Premiere berwarna gelap di KIRI, warna putih-biru profesional dan teks Bahasa Indonesia. Pertahankan karakter visual dari gambar UI asli yang diberikan pemilik sebagai referensi, bukan mendesain ulang seluruh aplikasi. Semua data adalah SIMULASI DESAIN UI, bukan bukti perangkat lunak berjalan.
+Gunakan DEMO_001: EDIT_PLAN.json dan ANIMATION_PLAN.json terpisah; 2 scene V001 [0,150) SINGLE dan V002 [150,330) DOUBLE, 30 FPS, 3 aset visual A001/A002/A003, mode animasi BOTH berarti IN dan OUT satu preset per pasangan scene dan aset; MEDIUM saja pada pilot, FAST/SLOW belum dikalibrasi. Media tidak boleh diganti otomatis; ekspor MP4 hanya melalui Premiere.
+Setiap prompt menghasilkan SATU gambar untuk SATU nomor UI. DILARANG membuat kolase, beberapa layar dalam satu gambar, screenshot aplikasi fungsional palsu, atau mengklaim 21/21 animasi sudah lolos Premiere.
+
+PERBAIKAN UI05 — PREFLIGHT_FAIL MEDIA HILANG
+Tampilkan panel kanan dengan status "PREFLIGHT FAIL", kode E_MEDIA_MISSING, sumber masalah Scene V002 / A003.png, mulai frame 192. Daftar berkas visual contoh harus konsisten dengan 3 kemunculan aset pada DEMO_001: A001.png TERDETEKSI, A002.png TERDETEKSI, A003.png TIDAK DITEMUKAN. HAPUS baris A004.png dan B001.png yang tidak sesuai jumlah aset contoh. Jika ada background/audio, tampilkan di seksi media TERPISAH, tidak sebagai kemunculan visual baru. Solusi: perbaiki sumber file A003.png, lalu klik PERIKSA ULANG. Tombol SUSUN TIMELINE OTOMATIS harus nonaktif. Tidak boleh ada dummy PNG, fallback gambar lain, dan tidak boleh ada klaim SUCCESS.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI05_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 5 dari 9 — UI07 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI KRITIS REGISTRY: Ini BUKAN editor animasi. Tampilkan tab GENERAL (15), REVEAL (6) dan detail INSPEKTOR BACA SAJA berdasarkan ANIMATION_PLAN.json. Contoh PAN FROM_LEFT MEDIUM BOTH IN21 OUT8 reference. Ganti tombol 'Simpan ke Rencana / Tambahkan efek ke file EDIT_PLAN.json' menjadi 'Buka Detail Keputusan (read-only)' dan 'Lihat sumber ANIMATION_PLAN.json'. HILANGKAN dropdown edit preset/direction/speed/mode, tombol untuk pratinjau host yang mengubah timeline, tombol pengacakan. Tetap FAST/SLOW disable, 0/21 host verified. Jangan menaruh animasi dalam EDIT_PLAN.
+
+Output: SATU gambar baru untuk UI07, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI07_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 6 dari 9 — UI08 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI KONFIRMASI: Modal 'Konfirmasi Susun Timeline' tetap CREATE_NEW_SEQUENCE only dan aman bagi edit manual. Namun UBAH panel belakang yang semula NO_PROJECT: tampilkan EDIT_PLAN.json/ANIMATION_PLAN.json dan folder media SUDAH TERPILIH, hasil preflight READY (SIMULASI), host versi 24.x telah diverifikasi secara simulasi; bukan semua input kosong dan tombol Periksa Proyek nonaktif. Nama sequence DEMO_001_AI_JSON_R2_A1; 2 scene/3 visual assets/1 narasi. Batal dan Buat Sequence Baru.
+
+Output: SATU gambar baru untuk UI08, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI08_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 7 dari 9 — UI09 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI PROGRESS: ASSEMBLING 43%, log hash, impor, CREATE_NEW_SEQUENCE, posisi A002. Host di header harus menunjukkan 'Premiere 24.x terverifikasi (SIMULASI)', bukan 'belum diperiksa'. Di timeline Premiere kiri tampilkan setidaknya sequence DEMO_001_AI_JSON_R2_A1 yang baru dibuat dan klip parsial A001/A002, bukan 'no sequences'. Progres simulasi tidak mengklaim aplikasi benar-benar dijalankan; Batalkan dengan aman, tombol assembly ganda nonaktif.
+
+Output: SATU gambar baru untuk UI09, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI09_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 8 dari 9 — UI10 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI SELESAI: ASSEMBLED hanya pada SIMULASI. Di layar Premiere kiri tampilkan sequence DEMO_001_AI_JSON yang berisi track dengan klip visual A001/A002/A003, background V1 dan audio A1 (semua ilustrasi), JANGAN timeline 'no sequences'. Header host simulasi terverifikasi. Ubah tabel menjadi kolom 'Scene', 'Asset visual', 'Track', 'Preset / Mode' dan baris V002/A002/PAN BOTH, V002/A003/WIPE BOTH; audio A1 pada ringkasan terpisah. Final MP4 ekspor melalui Premiere. Jangan klaim host nyata sudah lulus.
+
+Output: SATU gambar baru untuk UI10, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI10_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+==============================================================================
+PROMPT 9 dari 9 — UI11 — REVISI
+==============================================================================
+
+Buat ulang SATU mockup gambar UI 1920x1080 landscape sebagai revisi dari gambar referensi UI yang sudah dibuat. Tetap panel CEP Premiere Pro 2024 di kanan (putih/biru, Bahasa Indonesia), konteks host dark di kiri, watermark SIMULASI DESAIN UI. Jangan mengganti gaya seluruh rangkaian 12 layar. Gunakan data sample DEMO_001: total 2 scene [0,150) dan [150,330) pada 30 FPS, 3 asset occurrences (A001, A002, A003); animasi mode BOTH (IN dan OUT satu preset per aset), MEDIUM pilot; FAST/SLOW belum kalibrasi.
+UI adalah mockup **bukan** bukti aplikasi atau host nyata, tidak ada AI chat atau tombol MP4 melalui FFmpeg. Jangan tulis ke file JSON lain secara diam-diam. Final MP4 diekspor dari Premiere. Tidak ada asset pengganti atau fallback preset.
+Jika perbedaan ilustrasi atau data lain perlu dibuat, label DATA SIMULASI dan hindari kontradiksi antar-layar. Satu prompt menghasilkan satu gambar, bukan kolase.
+
+REVISI INCOMPLETE: Error E_HOST_PARTIAL tetap Scene V002 A003, sequence DEMO_001_AI_JSON_INCOMPLETE. Konsisten dengan demo 2 scene/3 aset: V001 berhasil; V002 sebagian, A003 efek gagal. Jangan tampilkan '7 dari 9 scene' atau '28 dari 32 media'. Area Premiere kiri menampilkan sequence baru parsial _INCOMPLETE, tidak lagi 'no sequences'. Tampilkan tombol Bangun Sequence Baru, Perbaiki Cache, Batal; hindari cleanup destructive; watermark SIMULASI.
+
+Output: SATU gambar baru untuk UI11, 1920x1080 landscape, tetap mockup statis berlabel SIMULASI DESAIN UI.
+
+OUTPUT WAJIB: 1 PNG saja bernama UI11_REVISI_OWNER.png, landscape 1920x1080. Jangan kolase.
+STATUS: MENUNGGU PEMILIK GENERATE; asisten hanya menyiapkan teks.
+
+STOP: setelah prompt diberikan, JANGAN generate/edit PNG oleh AI asisten. Tunggu PNG buatan pemilik untuk audit.

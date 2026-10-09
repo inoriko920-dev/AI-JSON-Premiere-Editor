@@ -1,20 +1,11 @@
-# Status proyek
+# Status proyek — 9 Oktober 2026 WIB
 
-- Tanggal baseline: 9 Oktober 2026 WIB.
-- Tahap sekarang: STEP00 ASTRA planning.
-- Hasil dokumen: COMPLETE_WITH_OPEN_PREREQUISITES.
-- G0 kesiapan penuh: BLOCKED pada kelengkapan sumber dan jalur host nyata.
-- STEP01: NOT_STARTED; berikutnya adalah perencanaan kontrak, bukan coding.
-- G1A spesifikasi: NOT_STARTED. G1B schema tests: NOT_STARTED, dijalankan STEP04.
-- G2 UI approval: NOT_STARTED. Coding: BLOCKED.
-- G3–G10: NOT_STARTED. P0–P6: NOT_TESTED.
-- AC01–AC30: 0/30 diuji. Preset backend: 0/21 tersertifikasi.
-- Implementasi produk, CI produk, installer dan release: belum ada.
+## G2 UI FINAL — PASS
 
-## Kelengkapan handoff
-
-Master V3 asli dan transkrip, rencana ASTRA DOCX/Markdown, audit sumber, acceptance matrix 30 baris, preset matrix 21 baris, blocker list, README, AGENTS dan 00_START_HERE tersedia dalam paket ini. Hash dokumen di CHECKSUMS.sha256.
-
-## Aturan perubahan status
-
-Catat commit yang diuji, bukti, tanggal dan reviewer sebelum gate PASS. Jangan menyalin PASS dari simulasi ke host. Persetujuan UI harus eksplisit dan mengacu gambar final. STEP berikut hanya setelah gate masuk terpenuhi serta instruksi pengguna sesuai workflow.
+- **G1A SPEC PASS** (owner B02 approval, MEDIUM-first pilot, V6 21-effect planning registry).
+- **G2 UI FINAL PASS**: 12 owner-approved PNGs + exactly one `UI_REFERENCE_FINAL.docx` now present on [GitHub development branch](ui/final/README.md). All **13 Git blobs SHA-1 + byte sizes matched** the locally verified, unmodified approved binaries; all 12 PNG SHA256 manifest matches; local DOCX 12 embedded originals verified, rendered to 13 pages.
+- Owner expressly accepts UI08–UI11 illustration discrepancies and original 1672×941 image sizes (10 PNGs), with SOL required to follow original JSON/frame rules over mockup content.
+- [Formal PASS audit](ui/ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md), [binary crosswalk](ui/final/STEP02_G2_GITHUB_BIN_INTEGRITY_2026-10-09.csv), [UI final DOCX](ui/final/UI_REFERENCE_FINAL.docx).
+- STEP02 closed. **NEXT: STEP03 implementation handoff to SOL**, *not started in this gate verification turn*.
+- **G1B executable schema and tests NOT_STARTED**; host Premiere 24.x, AC01–AC30, 21-preset actual effects all NOT_TESTED. G2 PASS is not a runtime pass.
+- `main` remains `e28e08f818d92f01996ce6a6db52606728bfb` and PR #1 Draft/unmerged. No coding, installer, ZIP portable, or MP4 claim from this gate verification turn.

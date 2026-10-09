@@ -1,33 +1,7 @@
-# Mulai di sini untuk ASTRA dan SOL
+# Mulai di sini — AI-JSON-Premiere-Editor
 
-Repo ini adalah handoff planning. Baca [STATUS](STATUS.md) dahulu. **Belum boleh coding.**
+**G1A SPEC PASS, G2 UI FINAL PASS.** All final UI artwork owner-approved and archived on GitHub: [12 PNG + UI_REFERENCE_FINAL.docx](ui/final/README.md), [G2 pass evidence](ui/ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md) and [SHA/git-blob check](ui/final/STEP02_G2_GITHUB_BIN_INTEGRITY_2026-10-09.csv).
 
-## Urutan baca
+**Next workflow: STEP03 SOL**, use separate implementation branch, first read `AGENTS.md`, Master V3, STEP00 and STEP01 planning, ADR-002, PRESET_MATRIX/21 V6 direction policy, acceptance and 91 fixture plans, and **approved 13 binary UI reference artifacts**. Implement native Premiere editable sequences, CEP/ExtendScript/FFmpeg helper with real host and parser tests; do not assume unverified features work. Owner image-generation-only rule still holds for future UI changes.
 
-1. [Instruksi agent](../AGENTS.md).
-2. [Master V3 asli](source/MASTER_PLAN_V3_PLUGIN_ADOBE_PREMIERE_PRO_2024_JSON_BOTH.docx) atau [transkrip lengkap](source/MASTER_PLAN_V3_TRANSCRIPT.md).
-3. [Rencana ASTRA A1 DOCX](planning/ASTRA_STEP00_RENCANA_IMPLEMENTASI_SOL_V3_A1_2026-10-09.docx) dan [Markdown](planning/ASTRA_STEP00_RENCANA_IMPLEMENTASI_SOL_V3_A1_2026-10-09.md).
-4. [Blocker](planning/BLOCKERS.md) dan [audit sumber](planning/SOURCE_AUDIT.md).
-5. [Acceptance 30 AC](planning/ACCEPTANCE_MATRIX.csv) dan [21 preset](planning/PRESET_MATRIX.csv).
-
-## Instruksi siap pakai untuk AI penerus
-
-Anda melanjutkan AI-JSON-Premiere-Editor. Baca semua dokumen di atas. Jangan memulai kode karena G2 UI belum PASS. Tugas terdekat adalah STEP01 ASTRA: lengkapi sumber kontrak V2/layout/animasi/prompt atau minta keputusan penggantinya, lalu buat DOCX spesifikasi rinci. Laporkan kebutuhan berkas secara spesifik, jangan mengarang nilai yang belum tersedia. Pada STEP02 buat prompt UI lalu berhenti sampai seluruh gambar final disetujui, dimasukkan ke satu DOCX referensi UI, dan disimpan di repo. SOL mulai STEP03 hanya sesudah semua prasyarat PASS. Ikuti backlog STEP03–STEP10 dalam plan A1, satu STEP per giliran. Bedakan planning, CI dan bukti host nyata. Jangan merge kode atau release tanpa izin yang sesuai.
-
-## Roadmap singkat
-
-| STEP | Hasil | Gate |
-| --- | --- | --- |
-| 00 | Audit dan handoff | Planning lengkap; kesiapan masih blocked |
-| 01 | Kontrak dan arsitektur detail DOCX | G1A SPEC; bukan executable tests |
-| 02 | Prompt lalu UI final dan DOCX | STOP untuk approval; G2 |
-| 03 | Panel minimal di Premiere | G3 real host P0 |
-| 04 | Validator dan dry run | G1B serta G4 |
-| 05 | Timeline SINGLE/DOUBLE | G5 P1/P2 |
-| 06 | Fade/Pan native, probe Wipe | G6 native subset, P3 |
-| 07 | Brush alpha dan cache | G7 P4; tutup P3 Wipe jika baked |
-| 08 | Semua 21 preset | G8 P5 seluruh kombinasi advertised |
-| 09 | Stress, manual edit, reopen, export | G9 P6 AC01–AC30 |
-| 10 | Paket plugin dan install test | G10 release |
-
-Semua status implementasi sekarang NOT_STARTED. Dokumen roadmap bukan bukti bahwa tahap tersebut telah dijalankan.
+**G1B runnable schema/test NOT_STARTED**; real Premiere Pro 2024 tests NOT_STARTED; 0/30 acceptance cases verified and 0/21 effects host-certified. `main` unchanged, PR #1 Draft, no merge/coding/release in G2 verification turn.

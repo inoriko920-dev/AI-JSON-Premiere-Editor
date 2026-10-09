@@ -1,16 +1,12 @@
-# Prasyarat terbuka
+# Gate and blockers — 9 October 2026
 
-Status ini merupakan fakta saat paket STEP00 dibuat. Jangan mengubahnya menjadi PASS hanya karena dokumen plan selesai.
+| ID | Status | Evidence / next |
+|---|---|---|
+| B01 | CLOSED_SOURCE_DISCOVERY | 7 historic sources recovered and SHA indexed |
+| B02 | APPROVED | Owner chose MEDIUM pilot and V6 directions planning baseline |
+| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 fail-closed schema/preflight |
+| B03 | HOST_FUTURE | Real Premiere Pro 2024 24.x, CEP, keyframes, alpha proof after implementation |
+| B04 | **G2 PASS / CLOSED** | 12 approved PNG + 1 approved DOCX verified by exact GitHub git-blob SHA, byte length and source SHA-256; see [gate audit](../ui/ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md) |
+| B05 | DEPENDENCIES_FUTURE | Licensing, helper version, FFmpeg and packaging proof later |
 
-| ID | Yang belum tersedia | Pemilik tindakan berikut | Menutup dengan | Menghalangi |
-| --- | --- | --- | --- | --- |
-| B01 | Master V2, Layout Zoom/Crop, Animation Engine General Reveal, durasi 21 efek, Prompt 1 dan Prompt_panel, Prompt 4 | ASTRA meminta sumber spesifik kepada pengguna | Berkas dibaca dan hash dicatat, atau spesifikasi pengganti disetujui eksplisit | Kontrak produksi STEP01 |
-| B02 | FAST/SLOW, direction allowed, easing dan visual final tiap preset | ASTRA bersama pengguna | Registry specification dan sumber visual disetujui | STEP01 dan sertifikasi STEP08 |
-| B03 | Exact build Premiere 24.x, CEP, locale dan mesin pengujian | Pengguna atau operator host, SOL merekam | Inventaris host dan akses pengujian nyata | Kesiapan G0 dan G3 serta semua host gate |
-| B04 | Prompt UI, gambar final, approval, UI_REFERENCE_FINAL.docx | ASTRA bersama pengguna | G2 PASS dengan semua gambar dan approval hash | Seluruh coding |
-| B05 | Dependency version/runtime, lisensi file reuse, build FFmpeg untuk distribusi | ASTRA merencanakan, SOL membuktikan | ADR dependency, notices, SBOM dan build flags final | Adopsi dependency dan G10 |
-| B06 | Schema penuh V2, mapping catalog ID/preset key, unknown fields, rounding, ticks, transform, short clip policy, limits | ASTRA STEP01 | DOCX kontrak tanpa ambiguity; hal yang host-dependent punya prosedur probe dan runtime block | G1A dan implementasi kontrak |
-
-Missing file proyek runtime berbeda dari missing referensi planning. Untuk proyek nyata: dua JSON, audio/SRT dan PNG yang diwajibkan, serta background required harus ada dan terbaca; jika tidak, hentikan proses sebelum mutasi Premiere. Fixture sintetis hanya untuk tes dan tidak menggantikan file pengguna.
-
-Perencanaan dapat menjelaskan backlog meskipun sumber belum lengkap. Implementasi tidak boleh mengarang nilai yang belum ditetapkan. Tidak ada blocker yang ditutup dalam paket ini selain tersedianya Master V3 asli dan handoff STEP00.
+**G1A PASS, G2 PASS, G1B NOT_STARTED** (executable schema tests). **Next authorized task:** STEP03 SOL implementation preparation on separate branch per AGENTS/master factory; no code or merge was performed in this G2 gate-check.
