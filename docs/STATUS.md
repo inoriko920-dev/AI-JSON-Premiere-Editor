@@ -1,9 +1,9 @@
-# Status — 9 Oktober 2026 WIB
+# Status proyek — 9 Oktober 2026 WIB
 
-**G1A SPEC PASS · STEP02 12/12 candidate images re-audited · G2 WAIT_OWNER_FINAL_APPROVAL_AND_ARCHIVE · G1B NOT_STARTED.**
+**STEP01 G1A SPEC PASS. STEP02 12/12 UI FINAL EXPLICITLY APPROVED. G2 BLOCKED_BY_BINARY_ARCHIVE.**
 
-- Audit terbaru [12 gambar](ui/STEP02_12_UI_CANDIDATE_FINAL_QA_2026-10-09.md): 8 SESUAI_SUBSTANSI, 4 CATATAN_ILUSTRASI UI08/UI09/UI10/UI11; tidak ditemukan masalah kontrak baru pada lima gambar terakhir.
-- Dimensi input asli: UI01/UI06 1920x1080; sepuluh lainnya 1672x941, tanpa image edits/upscaling oleh assistant pada giliran audit ini.
-- [SHA256 exact 12 PNG](ui/STEP02_12_UI_PRE_APPROVAL_SHA256.csv) telah dicek terhadap ZIP review yang hanya ada di percakapan; file PNG **belum diupload ke GitHub** dan **belum disetujui final**.
-- Jika owner memilih memperbaiki ketidaksesuaian ilustrasi: [4 optional prompts TXT](ui/revisions/BATCH_01_OPSIONAL_4_UI08_UI11.txt). Jika menerima perbedaan visual, minta pernyataan **eksplisit** yang juga menerima perbedaan resolusi sebelum UI final DOCX/archive.
-- Tidak boleh membuat UI_REFERENCE_FINAL.docx atau PASS G2 sebelum approval dan archival 12 PNG; SOL tidak boleh coding. Actual host 0/21 animation presets verified, AC 0/30, G1B schema tests NOT_STARTED; PR still Draft and main unchanged.
+- Persetujuan final pemilik diterima: 12 desain UI disetujui, 4 perbedaan ilustrasi UI08–UI11 diterima, 10 PNG native 1672×941 diterima; implementasi SOL harus mengikuti JSON/timing normatif.
+- `UI_REFERENCE_FINAL.docx` **SUDAH DIBUAT DI CONTAINER**: 13 halaman dirender/diperiksa; mengandung 12 PNG original tanpa perubahan, SHA cocok. ZIP berisi 12 PNG + 1 DOCX telah diverifikasi.
+- [Audit G2](ui/ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md) dan [manifest resmi](ui/final/UI_FINAL_SHA256.csv) sudah ada dalam GitHub PR. **PNG & DOCX binary belum diunggah ke repository**.
+- G2 bukan PASS sampai 13 binary berkas diverifikasi di GitHub; folder tujuan [docs/ui/final](ui/final/README.md).
+- G1B executable schemas/tests NOT_STARTED; host Premiere 24.x, AC01–AC30 dan 21 animasi nyata belum tested. SOL coding, merge dan release tetap DILARANG sampai G2 PASS.
