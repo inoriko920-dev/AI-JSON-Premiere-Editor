@@ -1,0 +1,203 @@
+ASTRA STEP02 — BATCH 01 PROMPT GAMBAR UI
+Proyek: AI-JSON-Premiere-Editor / plugin CEP Premiere Pro 2024 Windows 11
+Batch 1 dari 2 | 10 gambar UI
+TOTAL PROYEK: 12 gambar UI = 2 batch (10 + 2).
+Status: PROMPT SAJA — BELUM MENGHASILKAN GAMBAR. G2 MENUNGGU DESAIN FINAL.
+
+PETUNJUK:
+Setiap blok di bawah adalah SATU prompt mandiri untuk SATU gambar PNG 1920x1080.
+Salin prompt per nomor ke pembuat gambar. Jangan meminta satu gambar berisi 10 screenshot.
+Semua gambar harus konsisten gaya panel kanan putih-biru; nomor UI01–UI12 harus tetap dipertahankan.
+Data, progres, dan tangkapan UI adalah simulasi; bukan hasil pengujian Premiere nyata.
+WAJIB STOP SETELAH PEMBUATAN PROMPT: jangan membuat PNG, menganggap UI approved, atau coding tanpa instruksi berikutnya.
+========================================================================
+PROMPT GAMBAR UI01 — Panel awal
+URUTAN BATCH: 1 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI01:
+Status desain: NO_PROJECT | **QA:** Header host belum diperiksa; tiga pilihan file kosong; tombol tidak aktif
+Panel CEP kanan dengan header AI JSON Premiere Editor, label BOTH, status Host belum diperiksa. Tiga pemilih terpisah EDIT_PLAN.json, ANIMATION_PLAN.json, Folder Media Proyek masih kosong. Ringkasan proyek kosong. PERIKSA PROYEK dan SUSUN TIMELINE OTOMATIS dinonaktifkan. Instruksi: Pilih dua JSON dan folder media. Tidak ada perubahan timeline.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI01; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI02 — Berkas dipilih
+URUTAN BATCH: 2 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI02:
+Status desain: FILES_SELECTED | **QA:** JSON dan media masih belum divalidasi
+Tampilkan tiga input telah dipilih (EDIT_PLAN.json, ANIMATION_PLAN.json, folder media contoh). Ringkasan DEMO_001, revisi edit 2, animasi 1, 2 scene, 3 kemunculan aset, 1920x1080 30 FPS; label DATA CONTOH. SRT, audio, PNG, background status Belum diperiksa. Tombol PERIKSA PROYEK aktif, SUSUN TIMELINE OTOMATIS dinonaktifkan.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI02; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI03 — Preflight siap
+URUTAN BATCH: 3 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI03:
+Status desain: READY | **QA:** Assembly aktif hanya jika seluruh preflight lulus
+Tampilkan state READY besar dengan tanda SIMULASI. Kartu cek dua JSON cocok, media lengkap, timing valid, registry relevan tersedia (seluruhnya data contoh, bukan uji host). Ringkasan 2 scene, 3 aset, 30 FPS, BOTH dan MEDIUM. Tombol SUSUN TIMELINE OTOMATIS aktif, sublabel Sequence baru, edit manual aman. Tersedia Buka Laporan.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI03; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI04 — Review bukti SRT
+URUTAN BATCH: 4 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI04:
+Status desain: NEEDS_REVIEW | **QA:** Jangan mengarang timestamp kata
+Tampilkan NEEDS_REVIEW. Kartu Scene V002 A003: kutipan muncul dua kali, SRT hanya timestamp cue, kode E_SRT_AMBIGUOUS; bedakan EXACT_CUE dari ESTIMATED_FROM_AUDIO. Tombol Lihat Bukti SRT dan Buka Laporan aktif. SUSUN TIMELINE OTOMATIS nonaktif; instruksi memperbaiki occurrence dan konfirmasi bukti.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI04; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI05 — File PNG hilang
+URUTAN BATCH: 5 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI05:
+Status desain: PREFLIGHT_FAIL | **QA:** Missing file memblokir assembly tanpa dummy
+Tampilkan PREFLIGHT FAIL dengan kode E_MEDIA_MISSING: A003.png belum tersedia, Scene V002 mulai frame 192. Solusi: Tambahkan file ke assets lalu klik Periksa Proyek. Sumber file lain hanya dinyatakan terdeteksi sebagai simulasi. Tombol PERIKSA ULANG aktif; SUSUN TIMELINE OTOMATIS nonaktif. Jangan tawarkan aset pengganti.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI05; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI06 — Inspektor scene DOUBLE
+URUTAN BATCH: 6 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI06:
+Status desain: FILES_SELECTED | **QA:** Timing/preset read-only dari JSON terpisah
+Tampilkan scene V001 SINGLE dan V002 DOUBLE, pilih V002. Rentang scene [150,330) 30 FPS. Dua kartu independen: LEFT A002 [150,330), PAN FROM_LEFT MEDIUM BOTH; RIGHT A003 [192,330), WIPE RIGHT_TO_LEFT MEDIUM BOTH. Cue 2 dan cue 3 masing-masing, identitas PNG dan status Backend belum diverifikasi. Diagram kecil LEFT/RIGHT. Tidak ada edit timing/preset langsung dari UI.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI06; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI07 — Registry 21 efek
+URUTAN BATCH: 7 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI07:
+Status desain: FILES_SELECTED | **QA:** MEDIUM awal; FAST/SLOW menunggu kalibrasi
+Panel Registry Animasi dua tab GENERAL (15) dan REVEAL (6), daftar gulir efek Rise, Pan, Fade, Pop, Wipe, Blur, Breathe, Brush, Ink, Digital, Spray Paint, Sketch, Gradient. Card contoh PAN FROM_LEFT MEDIUM BOTH IN 21 frame OUT 8 frame, label Durasi referensi, belum diuji di host. FAST dan SLOW disable dengan teks Menunggu kalibrasi. Tulisan Host 0/21 terverifikasi; jangan tampilkan 21 PASS atau tombol Acak.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI07; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI08 — Konfirmasi sequence baru
+URUTAN BATCH: 8 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI08:
+Status desain: READY | **QA:** Jangan overwrite sequence lama
+Modal Konfirmasi Susun Timeline, mode wajib BUAT SEQUENCE BARU, nama contoh DEMO_001_AI_JSON_R2_A1. Ringkasan 2 scene, 3 klip visual, background V1, SINGLE/LEFT V2, RIGHT V3 dan narasi A1. Notice Timeline yang sudah ada dan edit manual tidak akan diubah. Tombol Batal dan Buat Sequence Baru. Jangan tawarkan overwrite atau ekspor MP4 FFmpeg.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI08; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI09 — Progress assembly
+URUTAN BATCH: 9 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI09:
+Status desain: ASSEMBLING | **QA:** Cegah pekerjaan ganda dan simpan log
+Panel status ASSEMBLING, simulasi progress 43%, tahap Memasukkan A002 di V2. Daftar log ringkas verifikasi hash, impor media, buat sequence baru, tempatkan audio/background, terapkan animasi. SUSUN TIMELINE nonaktif saat berjalan, tombol Batalkan dengan aman. Info: jika gagal, tandai INCOMPLETE, jangan hapus hasil atau media.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI09; bukan kolase, bukan animasi, bukan UI fungsional.
+
+========================================================================
+PROMPT GAMBAR UI10 — Laporan selesai
+URUTAN BATCH: 10 / 10
+========================================================================
+
+INSTRUKSI VISUAL GLOBAL (HARUS BERLAKU UNTUK GAMBAR INI):
+Buat SATU gambar statis berupa screenshot mockup UI profesional 1920x1080 landscape untuk Windows 11; BUKAN aplikasi atau source code yang dapat dijalankan.
+Adobe Premiere Pro 2024 berada di area kiri sekitar 1360 piksel, workspace gelap netral. Panel ekstensi CEP dockable berada di sisi KANAN, lebar sekitar 560 piksel, putih dan biru (#FFFFFF, #F6FAFF, #1268C7) dengan teks navy, hierarki sangat rapi, font sans-serif compact 12-15px tetapi jelas dibaca.
+Semua teks panel menggunakan Bahasa Indonesia. Header AI JSON Premiere Editor, Mode BOTH, status host, dan label kecil SIMULASI DESAIN UI wajib terlihat. Data proyek DEMO_001 adalah MOCKUP; jangan mengklaim hasil host atau Premiere teruji.
+Panel harus menghormati input dua JSON terpisah dan folder media; satu preset BOTH per pasangan scene/aset. Kecepatan awal hanya MEDIUM; FAST/SLOW menunggu kalibrasi. Timeline dan preview utama tetap milik Premiere; MP4 final diekspor menggunakan Premiere.
+Jangan membuat AI chat, meniru Filmora, merancang landing page, membuat thumbnail, menampilkan 21 efek PASS, menawarkan aset otomatis saat file hilang, mengganti preset menjadi Fade diam-diam, atau membuat tombol ekspor MP4 via FFmpeg.
+Pertahankan whitespace, scroll list, ikon garis sederhana, state enabled/disabled tombol yang jelas, dan tanda watermark SIMULASI. Tidak perlu menampilkan kumpulan 12 layar: hanya satu UI sesuai prompt ini.
+
+INSTRUKSI SPESIFIK UI10:
+Status desain: ASSEMBLED | **QA:** Edit manual dan ekspor dilakukan di Premiere
+Panel status ASSEMBLED dengan watermark SIMULASI: 2 scene, 3 klip visual, 1 narasi, 1 background, sequence DEMO_001_AI_JSON. Kartu mapping V002/A002 dan V002/A003, BOTH. Tombol Buka Sequence di Premiere, Buka Laporan. Catatan: Edit manual dan ekspor MP4 dilakukan melalui Adobe Premiere Pro. Jangan tawarkan ekspor MP4 langsung dari plugin.
+
+OUTPUT WAJIB: Satu PNG landscape 1920x1080 hanya untuk UI10; bukan kolase, bukan animasi, bukan UI fungsional.
+
+SELESAI BATCH 1. Tunggu semua UI direview/disetujui; tanpa coding sebelum G2 PASS.

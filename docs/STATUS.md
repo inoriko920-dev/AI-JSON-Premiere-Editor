@@ -10,3 +10,4 @@
 - AC01–AC30 0/30, host presets 0/21. Tidak ada aplikasi, installer, ZIP portable, atau MP4. Main tidak di-merge.
 
 **STOP WAJIB** setelah prompt jadi. Tunggu instruksi baru pengguna untuk gambar UI/revisi/approval; jangan coding.
+**Kemasan prompt per batch:** [BATCH 01 — 10 UI](ui/batches/BATCH_01_UI01-UI10.txt) dan [BATCH 02 — 2 UI](ui/batches/BATCH_02_UI11-UI12.txt). Setiap prompt sudah mencantumkan instruksi global secara lengkap sehingga bisa dipakai sendiri. Total tetap 12 UI; 0 PNG dihasilkan, G2 WAIT_IMAGES dan STOP UI tetap berlaku.
