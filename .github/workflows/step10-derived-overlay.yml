@@ -1,0 +1,36 @@
+name: STEP10 Background Derived Overlay (Offline, NO Premiere Host)
+on:
+  push:
+    branches:
+      - 'sol/step10-*'
+  pull_request:
+    paths:
+      - 'core/background_overlay.py'
+      - 'tests/test_core_background_overlay.py'
+      - 'core/background_audio.py'
+      - '.github/workflows/step10-derived-overlay.yml'
+jobs:
+  overlay:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify real SHA and simulated FFprobe stream topology
+        run: python -m unittest tests.test_core_background_overlay tests.test_core_background_audio -v
+      - name: Run all Python regression tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run JavaScript CEP and mocked host regression tests
+        run: npm test
+      - name: Confirm no host mutation route in production panel
+        run: |
+          python -c "from pathlib import Path; c=Path('core/background_overlay.py').read_text(); assert 'can_import' in c and 'can_assemble' in c; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP10_NO_LIVE_PREMIERE_WRITE_ROUTE=PASS')"
