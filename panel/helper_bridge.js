@@ -91,7 +91,7 @@
                 // The Python interpreter path is explicitly set via environment
                 // for DEVELOPMENT ONLY, never sourced from either user JSON.
                 child=execFile(py,["-I","-B",script,"--probe"],{
-                    cwd:realRoot,windowsHide:true,shell:false,timeout:5000,
+                    cwd:realRoot,windowsHide:true,shell:false,timeout:15000,
                     maxBuffer:MAX_STDOUT,encoding:"utf8"
                 },function(err,stdout) {
                     if (err) { finish({status:"error",code:err.killed?"HELPER_TIMEOUT":"HELPER_EXEC_FAILED"}); }
