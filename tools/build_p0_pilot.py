@@ -25,6 +25,8 @@ REQUIRED = (
     "helper/validate_request.py",
     "core/__init__.py",
     "core/contracts.py",
+    "core/animation_phases.py",
+    "core/animation_timings_b02.json",
     "core/draft_compiler.py",
     "core/ffprobe.py",
     "core/import_snapshot.py",
