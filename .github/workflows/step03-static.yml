@@ -33,13 +33,17 @@ jobs:
       - run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Build deterministic unsigned P0 development test ZIP
         run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Prepare self-contained Windows pilot artifact
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: Copy-Item -LiteralPath "tools/windows/P0_Windows_Pilot.ps1" -Destination "dist/P0_Windows_Pilot.ps1"
       - name: Verify PowerShell P0 inspector and explicit stage on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          $script = "./tools/windows/P0_Windows_Pilot.ps1"
+          $script = "./dist/P0_Windows_Pilot.ps1"
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
-          $check = & $script -Mode Inspect -ZipPath $zip
+          $check = & $script -Mode Inspect
           if ($check -notcontains "P0_INSPECT=PASS") { throw "Read-only pilot inspector failed" }
           $sandbox = Join-Path $env:RUNNER_TEMP "safe-cep-p0-test"
           try {
@@ -70,6 +74,6 @@ jobs:
           name: AI_JSON_Premiere_STEP03_P0_TEST_ONLY_Windows
           path: |
             dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
-            tools/windows/P0_Windows_Pilot.ps1
+            dist/P0_Windows_Pilot.ps1
           retention-days: 7
           if-no-files-found: error
