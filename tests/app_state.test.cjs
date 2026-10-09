@@ -10,9 +10,9 @@ function boot(nativeResponse, extra={}) {
     const elements=new Map();
     for(const id of ["btn-host","host-status","host-detail","log-entry",
                      "btn-preflight","btn-assemble","btn-helper",
-                     "helper-status","helper-detail"]){
+                     "helper-status","helper-detail","btn-report","p0-report"]){
         elements.set(id,{id,disabled:id==="btn-helper"||id==="btn-preflight"||id==="btn-assemble",
-            textContent:"",className:"status",events:{},
+            textContent:"",value:"",className:"status",events:{},
             addEventListener(event,cb){this.events[event]=cb;}});
     }
     let evalCalls=[];
@@ -31,6 +31,7 @@ function boot(nativeResponse, extra={}) {
     return {el:id=>elements.get(id),evalCalls,
             clickHost(){elements.get("btn-host").events.click();},
             clickHelper(){elements.get("btn-helper").events.click();},
+            clickReport(){elements.get("btn-report").events.click();},
             unload(){if(lifecycle.unload) lifecycle.unload();},
             pagehide(){if(lifecycle.pagehide) lifecycle.pagehide();}};
 }
@@ -124,4 +125,37 @@ test("panel pagehide kills running Python helper; stale result does not update U
  assert.notEqual(p.el("helper-status").textContent,"HELPER P0 • HANDSHAKE OK");
  p.clickHelper();
  assert.equal(spawnCount,1);
+});
+
+test("P0 report shows sanitized host version without personal paths or G3 PASS",()=>{
+ const p=boot("P0|1|OK|24.3");
+ p.clickHost();p.clickReport();
+ const r=p.el("p0-report").value;
+ assert.match(r,/AI_JSON_PREMIERE_P0_DIAGNOSTIK_V1/);
+ assert.match(r,/HOST_STATUS=SUPPORTED/);
+ assert.match(r,/HOST_CODE=HOST_24/);
+ assert.match(r,/HOST_VERSION=24.3/);
+ assert.match(r,/HELPER_STATUS=NOT_CHECKED/);
+ assert.match(r,/G3=BLOCKED_HOST/);
+ assert.doesNotMatch(r,/C:\\|\/Users\/|python\.exe|AIJSON_P0_PYTHON_EXE/);
+ assert.equal(p.el("btn-assemble").disabled,true);
+});
+test("P0 report preserves unsupported host and browser fallback",()=>{
+ const p=boot("P0|1|OK|25.2");
+ p.clickHost();p.clickReport();
+ assert.match(p.el("p0-report").value,/HOST_STATUS=UNSUPPORTED/);
+ assert.match(p.el("p0-report").value,/HOST_CODE=E_HOST_UNSUPPORTED/);
+ const browser=boot(null);
+ browser.clickReport();
+ assert.match(browser.el("p0-report").value,/HOST_CODE=CEP_NOT_AVAILABLE/);
+ assert.match(browser.el("p0-report").value,/HOST_STATUS=ERROR/);
+});
+test("Diagnostic report button is disabled when panel is unloaded",()=>{
+ const p=boot("P0|1|OK|24.4");
+ p.clickHost();p.clickReport();
+ const before=p.el("p0-report").value;
+ p.unload();
+ assert.equal(p.el("btn-report").disabled,true);
+ p.clickReport();
+ assert.equal(p.el("p0-report").value,before);
 });

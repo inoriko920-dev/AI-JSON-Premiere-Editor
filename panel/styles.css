@@ -25,3 +25,5 @@ dt{font-weight:bold;color:#4c5f74}
 dd{margin:0;overflow-wrap:anywhere}
 footer{font-size:11px;color:#62758b;padding:15px 3px}
 @media(max-width:440px){.app{padding:6px}.surface{padding:10px}.summary{grid-template-columns:minmax(72px,1fr) 2fr}.file-field{gap:5px}}
+
+#p0-report{display:block;width:100%;margin-top:10px;padding:8px;border:1px solid #ccdbea;border-radius:5px;background:#f9fcff;color:#29445c;font:11px/1.5 Consolas,"Courier New",monospace;resize:vertical;min-height:120px;white-space:pre;overflow:auto}

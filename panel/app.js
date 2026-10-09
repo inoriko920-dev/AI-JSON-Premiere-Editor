@@ -11,6 +11,8 @@
         var helperBtn = document.getElementById("btn-helper");
         var helperStatus = document.getElementById("helper-status");
         var helperDetail = document.getElementById("helper-detail");
+        var reportBtn = document.getElementById("btn-report");
+        var reportBox = document.getElementById("p0-report");
         var cep = root.__adobe_cep__;
         var evalScript = cep && typeof cep.evalScript === "function" ?
             function (script, callback) { cep.evalScript(script,callback); } : null;
@@ -19,6 +21,36 @@
         var helperBridge = null;
         var hostSupported = false;
         var closed = false;
+        var lastHost = {status:"not_checked",code:"HOST_NOT_CHECKED"};
+        var lastHelper = {status:"not_checked",code:"HELPER_NOT_CHECKED"};
+        function safeCode(input, fallback) {
+            return typeof input === "string" && /^[A-Z][A-Z0-9_]{0,48}$/.test(input) ?
+                input : fallback;
+        }
+        function safeVersion(input) {
+            return typeof input === "string" && /^[0-9]+(?:\.[0-9]+){1,3}$/.test(input) ?
+                input : "TIDAK_TERSEDIA";
+        }
+        function makeReport() {
+            var hs = lastHost.status === "supported" ? "SUPPORTED" :
+                lastHost.status === "unsupported" ? "UNSUPPORTED" :
+                lastHost.status === "not_checked" ? "NOT_CHECKED" : "ERROR";
+            var hp = lastHelper.status === "supported" ? "SUPPORTED" :
+                lastHelper.status === "not_checked" ? "NOT_CHECKED" : "ERROR";
+            return [
+                "AI_JSON_PREMIERE_P0_DIAGNOSTIK_V1",
+                "JENIS=LAPORAN_LOKAL_BELUM_DIVERIFIKASI",
+                "HOST_STATUS="+hs,
+                "HOST_CODE="+safeCode(lastHost.code,"HOST_UNKNOWN"),
+                "HOST_VERSION="+safeVersion(lastHost.version),
+                "HELPER_STATUS="+hp,
+                "HELPER_CODE="+safeCode(lastHelper.code,"HELPER_UNKNOWN"),
+                "HELPER_VERSION="+safeVersion(lastHelper.version),
+                "G3=BLOCKED_HOST_SAMPAI_UJI_PREMIERE_ASLI",
+                "UI_IMPORT_PREFLIGHT_ASSEMBLY=DINONAKTIFKAN",
+                "BUKTI_DOCKING_REOPEN=PERLU_PEMERIKSAAN_MANUAL"
+            ].join("\n");
+        }
 
         function teardown() {
             if (closed) { return; }
@@ -28,6 +60,7 @@
             if (helperBridge) { helperBridge.cancel(); }
             btn.disabled = true;
             helperBtn.disabled = true;
+            reportBtn.disabled = true;
         }
         if (typeof root.addEventListener === "function") {
             root.addEventListener("pagehide", teardown);
@@ -36,6 +69,7 @@
 
         function reportHelper(result) {
             if (closed) { return; }
+            lastHelper = result;
             helperStatus.className = "status bad";
             var text = "Helper belum dapat diperiksa.";
             if (result.status === "supported") {
@@ -58,6 +92,8 @@
         }
         function renderHost(result) {
             if (closed) { return; }
+            lastHost = result;
+            lastHelper = {status:"not_checked",code:"HELPER_NOT_CHECKED"};
             var label="Gagal memeriksa host",message="Pemeriksaan host tidak berhasil.";
             hostSupported = result.status === "supported";
             helperBtn.disabled = !hostSupported;
@@ -89,6 +125,8 @@
             if (closed) { return; }
             if (bridge.isBusy()) { return; }
             hostSupported=false;
+            lastHost={status:"error",code:"HOST_CHECK_PENDING"};
+            lastHelper={status:"not_checked",code:"HELPER_NOT_CHECKED"};
             helperBtn.disabled=true;
             if (helperBridge) { helperBridge.cancel(); }
             btn.disabled=true;
@@ -125,6 +163,7 @@
                 }
                 if (helperBridge.isBusy()) { return; }
                 helperBtn.disabled=true;
+                lastHelper={status:"error",code:"HELPER_CHECK_PENDING"};
                 helperStatus.className="status wait";
                 helperStatus.textContent="Memeriksa helper…";
                 helperDetail.textContent="Menunggu respons proses Python lokal yang dikonfigurasi.";
@@ -139,6 +178,9 @@
                 helperBtn.disabled=!hostSupported;
                 reportHelper({status:"error",code:"HELPER_NODE_UNAVAILABLE"});
             }
+        });
+        reportBtn.addEventListener("click",function () {
+            if (!closed) { reportBox.value = makeReport(); }
         });
         if (!evalScript) { renderHost({status:"error",code:"CEP_NOT_AVAILABLE"}); }
     }

@@ -31,6 +31,14 @@
       <p class="hint">Untuk pengembang Windows saja: Python lokal yang disetujui harus tersedia
       melalui environment AIJSON_P0_PYTHON_EXE. Tidak ada instalasi otomatis.</p>
     </section>
+    <section aria-labelledby="report-title" class="surface">
+      <h2 id="report-title">Laporan diagnostik P0</h2>
+      <p class="hint">Klik PERIKSA HOST dan PERIKSA HELPER jika tersedia, lalu buat laporan.
+      Teks ini tidak menyertakan nama file atau alamat pribadi, dan bukan pengesahan G3.</p>
+      <button type="button" id="btn-report">TAMPILKAN LAPORAN P0</button>
+      <textarea id="p0-report" aria-label="Laporan diagnostik P0" rows="10" readonly
+        placeholder="Klik TAMPILKAN LAPORAN P0, lalu salin isinya."></textarea>
+    </section>
     <section aria-labelledby="input-title" class="surface">
       <h2 id="input-title">Sumber proyek</h2>
       <div class="file-field"><span>EDIT_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
