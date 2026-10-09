@@ -18,6 +18,7 @@ from .contracts import loads_strict, validate_pair
 from .media import inspect_media
 from .ffprobe import inspect_ffprobe
 from .draft_compiler import build_draft, DraftCompileError
+from .import_snapshot import prepare_media_snapshot, ImportSnapshotError
 
 
 def error(code: str, message: str) -> dict:
@@ -55,6 +56,10 @@ def run(argv=None):
     parser.add_argument("--max-srt-cues", type=int, help="Required when auditing media")
     parser.add_argument("--ffprobe-exe", type=Path,
                         help="Optional explicitly configured local FFprobe binary")
+    parser.add_argument("--include-import-snapshot", action="store_true",
+                        help="Audit pinned media import candidate, never import or authorize Premiere")
+    parser.add_argument("--max-import-items", type=int,
+                        help="Explicit developer limit for item inventory; not production cap")
     parser.add_argument("--include-draft", action="store_true",
                         help="Show deterministic non-executable timeline intent if structurally valid")
     args = parser.parse_args(argv)
@@ -102,6 +107,45 @@ def run(argv=None):
                             "message":"FFprobe menunggu file dan hash media valid."})
                 result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
                 result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
+                result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
+                result["can_assemble"] = False
+            if args.include_import_snapshot:
+                if (args.media_root is None or
+                    type(args.max_import_items) is not int or
+                    args.max_import_items <= 0 or
+                    type(args.max_media_bytes) is not int or
+                    args.max_media_bytes <= 0):
+                    result["issues"].append({
+                        "code":"E_CONFIG_LIMITS_UNVERIFIED","severity":"ERROR",
+                        "pointer":"/import_snapshot",
+                        "message":"Audit impor butuh media root dan batas sumber yang eksplisit."})
+                elif result["error_count"]:
+                    result["issues"].append({
+                        "code":"E_IMPORT_SNAPSHOT_SKIPPED","severity":"REVIEW",
+                        "pointer":"/import_snapshot",
+                        "message":"Audit impor dilewati sampai seluruh error media/kontrak terselesaikan."})
+                else:
+                    try:
+                        snapshot = prepare_media_snapshot(
+                            edit, args.media_root,
+                            max_file_bytes=args.max_media_bytes,
+                            max_import_items=args.max_import_items)
+                        # NEVER return absolute paths, mtimes or full inventory
+                        # through the user-facing CEP CLI report.
+                        result["import_snapshot"] = {
+                            "status": "CANDIDATE_NOT_AUTHORIZED",
+                            "can_import": False,
+                            "item_count": snapshot["item_count"],
+                            "import_count": snapshot["import_count"],
+                            "inventory_sha256": snapshot["inventory_sha256"]
+                        }
+                    except ImportSnapshotError as exc:
+                        result["issues"].append({
+                            "code":exc.code,"severity":"ERROR",
+                            "pointer":"/import_snapshot",
+                            "message":"Audit sumber impor gagal; file proyek tidak diubah."})
+                result["error_count"] = sum(x["severity"] == "ERROR" for x in result["issues"])
+                result["review_count"] = sum(x["severity"] == "REVIEW" for x in result["issues"])
                 result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
                 result["can_assemble"] = False
             if args.include_draft and result["error_count"] == 0:
