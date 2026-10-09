@@ -1,7 +1,9 @@
-# Start Here — AI-JSON-Premiere-Editor
+# Mulai di sini — ASTRA/SOL
 
-**ASTRA STEP01**. B01 source CLOSED, B06 validator SPEC_CLOSED_BY_ASTRA; B02 is only spec blocker. G1A BLOCKED; G1B/G2 NOT_STARTED; NO CODING.
+**STEP01 B02 technical draft V6 ready, explicit user approval pending. G1A BLOCKED; G2 NOT_STARTED; no coding.**
 
-Read AGENTS.md, Master V3 source, STEP00 plan, STEP01 V1–V5 DOCX, [ADR-002](planning/ADR_002_B06_SPEC_FREEZE_2026-10-09.md), [83 planned fixtures](planning/STEP01_FIXTURE_CATALOG.csv), [B02 direction evidence](planning/STEP01_DIRECTION_EVIDENCE_V5.csv), review queue and blockers.
+Read AGENTS.md > Master V3 original > STEP00 > STEP01 V1–V5 > [V6 B02 plan](planning/STEP01_B02_DIRECTION_SCOPE_V6_2026-10-09.md) > [21 direction-policy CSV](planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv) > [91 fixture plans](planning/STEP01_FIXTURE_CATALOG.csv) > ADR-002 B06 and blockers.
 
-No input JSON rewrite, preset fallback, fabricated resource cap, plugin host proof, or auto-merge. User approval to adopt MEDIUM-first MVP has not been given. After B02/G1A, STEP02 generates UI prompt and must STOP pending final approved screenshots and one UI_REFERENCE_FINAL.docx in repo.
+The V6 table distinguishes 4 exact direction tokens in original V2/V3, 6 inferred NONE, and 11 enum proposals. All 21 still need Premiere 24.x effect QA and certified NATIVE/PRERENDER backend, independent of plan approval. Initial MEDIUM host pilot (FAST/SLOW deferred until calibration) and registry policy need user explicit signoff.
+
+Do not infer signoff from 'lanjutkan'. After G1A PASS, STEP02 UI prompts then MUST STOP until final UI images approved and 1 UI_REFERENCE_FINAL.docx stored in repo; no SOL code until G2.

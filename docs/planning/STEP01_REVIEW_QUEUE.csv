@@ -1,6 +1,6 @@
 "id","topic","recommendation","status","source"
-"Q01","MVP speed scope","For first host pilot accept only MEDIUM, emit E_ANIM_PRESET for FAST/SLOW until per-preset profiles validated","USER_APPROVAL_REQUIRED","Do not infer from 'lanjutkan'"
-"Q02","Direction registry","Adopt 10 source-supported anchor tokens; review proposed 11 keys + alternate tokens; never rewrite JSON direction without migration","DIRECTION_REVIEW_PENDING","See 21-presets matrix"
+"Q01","Initial MEDIUM-only pilot (not final product scope)","Request approval: use MEDIUM first while FAST/SLOW await calibrated per-preset frames","EXPLICIT_USER_APPROVAL_REQUIRED","Master V2 5.5-5.6 prioritizes MEDIUM; V3 7.2 preserves long-term speeds"
+"Q02","21 canonical direction policy V6","Request approval to use full V6 21-row technical proposal as SOL baseline (no host certification implied)","EXPLICIT_USER_APPROVAL_REQUIRED","V6 has 4 literal anchors, 6 NONE inferences and 11 candidate enum rules"
 "Q03","Unknown fields","Root EDIT_PLAN/ANIMATION_PLAN require V2 fields; reject forbidden animation fields; allow only documented legacy render/validation/provenance; freeze nested allowlist before schema code","ASTRA_SPEC_DECIDED","Do not use example-only shape to reject valid legacy"
 "Q04","locked=false","Keep value unchanged; mark NEEDS_REVIEW if false and require a confirmed lock decision before assembly","ASTRA_SPEC_DECIDED","Do not change false to true"
 "Q05","SRT evidence alias","APPROX_REVIEW and ESTIMATED_FROM_AUDIO both require review; do not upgrade to EXACT_WORD","ASTRA_SPEC_DECIDED","When material, block READY until evidence reviewed"

@@ -1,12 +1,10 @@
-# Status — 9 October 2026 WIB
+# Status proyek — 9 Oktober 2026 WIB
 
-STEP01 ASTRA still active in Draft PR #1; main unchanged.
-
-- B01 CLOSED_SOURCE_DISCOVERY: seven historical source files recovered/read/hash-inventoried; originals remain private.
-- B06 **SPEC_CLOSED_BY_ASTRA**: [ADR-002](planning/ADR_002_B06_SPEC_FREEZE_2026-10-09.md) sets unknown key handling, locked=false, SRT review labels, required production limits manifest and error mapping. Host numeric caps remain to be measured later, not guessed.
-- **B02 is sole remaining STEP01 SPEC blocker**: MEDIUM-first scope still needs user approval; full 21 direction tokens not signed off. Do not interpret lanjutkan as scope approval.
-- Fixture catalog now **83 planned** cases, including F069–F083. No executable test runner or host proof.
-- G1A BLOCKED by B02, G1B NOT_STARTED, G2 NOT_STARTED, CODING PROHIBITED. AC 0/30, host-certified preset 0/21.
-- B03 Premiere host, B04 UI, B05 dependency proof remain future gates. STEP02 UI prompt STOP after G1A approval until all final images and one UI_REFERENCE_FINAL.docx saved.
-
-[Review queue](planning/STEP01_REVIEW_QUEUE.csv) · [B06 tech decisions](planning/STEP01_B06_TECH_DECISIONS.csv) · [Blockers](planning/BLOCKERS.md).
+- **STEP01 ASTRA**, PR #1 Draft, main unchanged.
+- B01 CLOSED_SOURCE_DISCOVERY. B06 SPEC_CLOSED_BY_ASTRA.
+- B02 **TECHNICAL_PROPOSAL_COMPLETE / EXPLICIT_APPROVAL_PENDING**: [V6 direction & scope plan](planning/STEP01_B02_DIRECTION_SCOPE_V6_2026-10-09.md), [21-row registry policy](planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv) and 8 planned directional fixtures F084–F091.
+- Exactly **4 literal preset-direction anchors** in V2/V3; six non-spatial NONE values inferred from Engine S03; 11 proposed naming policies. Prior '10 source verified' wording must not be treated as 10 literal source examples. All direction allowed lists remain *proposed*.
+- **91 planned fixtures** total, zero executable tests. Historic DEMO_001 18/18 static checks only.
+- **Only remaining G1A blocker: user approval of initial MEDIUM pilot and V6 21-direction baseline**. FAST/SLOW remain in product long-term scope; no numeric timings invented. Generic 'lanjutkan' is not approval.
+- **G1A BLOCKED, G1B NOT_STARTED, G2 NOT_STARTED, coding prohibited**. Real host 24.x, UI and dependency gates later; AC 0/30, 21 host-certified presets 0/21.
+- After G1A PASS, STEP02 creates UI prompts then STOP for all final images and single UI_REFERENCE_FINAL.docx archived in repo; SOL code after G2.
