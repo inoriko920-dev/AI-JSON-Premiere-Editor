@@ -1,0 +1,115 @@
+{
+  "schema_version": "proposed-medium-both-phase-reference-v1",
+  "source_path": "docs/planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv",
+  "source_status": "B02_REFERENCE_TIMING_NOT_HOST_CALIBRATED",
+  "note": "MEDIUM reference frame counts transcribed exactly from STEP01 B02 CSV. Not a visual animation implementation or approved backend.",
+  "fps_num": 30,
+  "fps_den": 1,
+  "entries": {
+    "BRUSH": {
+      "in_frames": 39,
+      "out_frames": 9,
+      "evidence_level": "V3_EXACT_LITERAL"
+    },
+    "INK": {
+      "in_frames": 40,
+      "out_frames": 9,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "DIGITAL": {
+      "in_frames": 24,
+      "out_frames": 7,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "SPRAY_PAINT": {
+      "in_frames": 42,
+      "out_frames": 9,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "SKETCH": {
+      "in_frames": 42,
+      "out_frames": 10,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "GRADIENT": {
+      "in_frames": 33,
+      "out_frames": 8,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "RISE": {
+      "in_frames": 21,
+      "out_frames": 8,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "PAN": {
+      "in_frames": 21,
+      "out_frames": 8,
+      "evidence_level": "V3_EXACT_LITERAL"
+    },
+    "FADE": {
+      "in_frames": 15,
+      "out_frames": 7,
+      "evidence_level": "V2_EXACT_LITERAL"
+    },
+    "POP": {
+      "in_frames": 16,
+      "out_frames": 7,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    },
+    "WIPE": {
+      "in_frames": 21,
+      "out_frames": 8,
+      "evidence_level": "V3_EXACT_LITERAL"
+    },
+    "BLUR": {
+      "in_frames": 21,
+      "out_frames": 8,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    },
+    "SUCCESSION": {
+      "in_frames": 25,
+      "out_frames": 9,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    },
+    "BREATHE": {
+      "in_frames": 30,
+      "out_frames": 9,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    },
+    "BASELINE": {
+      "in_frames": 14,
+      "out_frames": 7,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "DRIFT": {
+      "in_frames": 33,
+      "out_frames": 9,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "TECTONIC": {
+      "in_frames": 22,
+      "out_frames": 8,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "TUMBLE": {
+      "in_frames": 24,
+      "out_frames": 9,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "NEON": {
+      "in_frames": 20,
+      "out_frames": 7,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    },
+    "SCRAPBOOK": {
+      "in_frames": 22,
+      "out_frames": 9,
+      "evidence_level": "PROPOSAL_SOURCE_SEMANTICS"
+    },
+    "STOMP": {
+      "in_frames": 17,
+      "out_frames": 7,
+      "evidence_level": "INFERRED_NONE_FROM_ENGINE"
+    }
+  }
+}
