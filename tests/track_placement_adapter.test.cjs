@@ -148,7 +148,11 @@ test("readback correct origin on V2 is preserved with fixed track index",()=>{
  const h=mock();
  h.op.track="V2";h.op.zero_based_track_index=1;
  // Inject a different target track writer in our mocked sequence.
- h.v2.overwriteClip=h.v3.overwriteClip.bind(h.v2);
+ h.v2.overwriteClip=function(item,ticks){
+   this.clips.push({nodeId:"new-trackitem-1",projectItem:item,
+     start:{ticks},end:{ticks:END},mediaType:"Video"});
+   return true;
+ };
  assert.equal(h.place(),"S7|1|PLACED_STILL|new-trackitem-1");
  assert.equal(h.v2.clips.length,1);
  assert.equal(h.v3.clips.length,0);
