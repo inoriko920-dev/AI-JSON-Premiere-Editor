@@ -270,6 +270,22 @@ $._AIJSON_PLACEMENT_V1=(function(){
                 if(audio!==expectedAudio){
                     return "S7|1|INCOMPLETE|UNEXPECTED_LINKED_AUDIO";
                 }
+                /* Premiere may auto-link a visual when narration is inserted
+                 * or duplicate a clip on another video track. Detect this
+                 * immediately; never remove the unexpected item automatically.
+                 */
+                var expectedVideo=[0,0,0],vc;
+                for(var b=0;b<=j;b++){
+                    var intended=plan.placements[b].target_track;
+                    if(intended==="V1"){expectedVideo[0]++;}
+                    if(intended==="V2"){expectedVideo[1]++;}
+                    if(intended==="V3"){expectedVideo[2]++;}
+                }
+                for(vc=0;vc<3;vc++){
+                    if(count(seq.videoTracks[vc].clips)!==expectedVideo[vc]){
+                        return "S7|1|INCOMPLETE|UNEXPECTED_LINKED_VIDEO";
+                    }
+                }
             }
             return "S7|1|PLACED_IN_NEW_SEQUENCE|"+String(touched);
         }catch(e){

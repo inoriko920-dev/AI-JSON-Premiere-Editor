@@ -64,6 +64,9 @@ function setup(options={}){
     if(options.linkedAudio&&name==="V1"){
       a[0].clips.push({projectItem:item,start:{ticks:stamp},end:{ticks:"999"}});
     }
+    if(options.linkedVideo&&name==="A1"){
+      v[0].clips.push({projectItem:item,start:{ticks:stamp},end:{ticks:"999"}});
+    }
     return true;
   }};
   return t;
@@ -222,4 +225,13 @@ test("source frame bounds are validated before first host write",()=>{
    assert.equal(x.run(),"S7|1|BLOCKED|PLAN_INVALID");
    assert.equal(x.writes(),0);
  }
+});
+
+test("unexpected linked video from narration stops before further operations",()=>{
+ const x=setup({linkedVideo:true});
+ assert.equal(x.run(),"S7|1|INCOMPLETE|UNEXPECTED_LINKED_VIDEO");
+ assert.equal(x.writes(),3);
+ assert.equal(x.v[0].clips.length,2);
+ assert.equal(x.userBin.name,"User Originals");
+ assert.equal(x.run(),"S7|1|BLOCKED|TARGET_NOT_EMPTY");
 });
