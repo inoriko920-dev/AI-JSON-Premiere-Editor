@@ -23,7 +23,7 @@ def cases():
         "audio":{"path":"audio/narasi.wav"},
         "background":{"path":"video/background.mp4","required":True,"audio_policy":"MUTE"}},
       "assets":{"A001":{"path":"assets/A001.png"}},
-      "scenes":[{"assets":[{"asset_id":"A001","entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}
+      "scenes":[{"assets":[{"asset_id":"A001","entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}]
     }
 
 
@@ -85,7 +85,7 @@ class MediaTests(unittest.TestCase):
 
     def test_missing_media_blocks(self):
         (self.root/"audio/narasi.wav").unlink()
-        self.assertIn("E_MEDIA_PATH",codes(self.inspect()))
+        self.assertIn("E_MEDIA_MISSING",codes(self.inspect()))
 
     def test_hash_mismatch_blocks(self):
         self.edit["sources"]["audio"]["sha256"]="f"*64
