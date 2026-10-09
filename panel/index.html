@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI JSON Premiere Editor — P0</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="bridge.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="heading">
+      <h1>AI JSON Premiere Editor</h1>
+      <span class="subtitle">Panel Premiere Pro 2024 • mode animasi BOTH (IN + OUT)</span>
+      <span class="stamp">STEP 03 — PILOT P0 · belum diuji di Premiere</span>
+    </header>
+    <section aria-labelledby="host-title" class="surface">
+      <h2 id="host-title">Pemeriksaan host</h2>
+      <p id="host-status" class="status" role="status" aria-live="polite">Belum diperiksa</p>
+      <p id="host-detail" class="detail">Fitur penyusunan timeline belum tersedia.</p>
+      <button id="btn-host" type="button" class="primary">PERIKSA HOST</button>
+      <p class="hint">Host yang diizinkan: Adobe Premiere Pro 2024 (24.x). Versi lain ditolak.</p>
+    </section>
+    <section aria-labelledby="input-title" class="surface">
+      <h2 id="input-title">Sumber proyek</h2>
+      <div class="file-field"><span>EDIT_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
+      <div class="file-field"><span>ANIMATION_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
+      <div class="file-field"><span>Folder media proyek</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
+      <p class="hint">Belum ada file yang dibuka atau dimodifikasi.</p>
+    </section>
+    <section aria-labelledby="summary-title" class="surface">
+      <h2 id="summary-title">Ringkasan dan inspeksi</h2>
+      <dl class="summary">
+        <dt>Scene</dt><dd>—</dd>
+        <dt>Aset visual</dt><dd>—</dd>
+        <dt>Registry</dt><dd>21 preset baseline; belum diuji host</dd>
+        <dt>Kecepatan pilot</dt><dd>MEDIUM (FAST/SLOW menunggu kalibrasi)</dd>
+      </dl>
+    </section>
+    <section aria-labelledby="action-title" class="surface">
+      <h2 id="action-title">Validasi dan penyusunan</h2>
+      <button type="button" disabled id="btn-preflight">PERIKSA PROYEK</button>
+      <button type="button" disabled id="btn-assemble" class="primary">SUSUN TIMELINE OTOMATIS</button>
+      <p class="hint">Status READY hanya dari validasi lengkap pada STEP04. Default selalu sequence baru.</p>
+    </section>
+    <section aria-labelledby="log-title" class="surface">
+      <h2 id="log-title">Laporan</h2>
+      <p id="log-entry" class="detail" aria-live="polite">Menunggu pemeriksaan host.</p>
+      <button type="button" disabled>Buka laporan</button>
+    </section>
+    <footer>Versi pengembangan P0 • Tidak menjalankan ekspor MP4 • Timeline tetap milik Premiere</footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "ai-json-premiere-editor-step03-p0",
+  "version": "0.0.3",
+  "private": true,
+  "description": "STEP03 CEP P0 panel skeleton, NOT a release",
+  "scripts": {
+    "test": "node --test tests/bridge.test.cjs",
+    "check": "npm test"
+  },
+  "engines": {"node": ">=18"}
+}

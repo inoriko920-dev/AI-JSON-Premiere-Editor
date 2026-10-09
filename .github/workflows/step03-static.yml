@@ -1,0 +1,28 @@
+name: STEP03 static bridge checks (not Premiere runtime)
+on:
+  push:
+    branches:
+      - 'sol/step03-*'
+  pull_request:
+    paths:
+      - 'CSXS/**'
+      - 'panel/**'
+      - 'host/**'
+      - 'helper/**'
+      - 'tests/**'
+      - 'package.json'
+      - '.github/workflows/step03-static.yml'
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm test
+      - run: python -m unittest discover -s tests -p "test_*.py" -v

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0"
+  ExtensionBundleId="dev.inoriko920.aijsonpremiere"
+  ExtensionBundleName="AI JSON Premiere Editor"
+  ExtensionBundleVersion="0.0.3">
+  <ExtensionList>
+    <Extension Id="dev.inoriko920.aijsonpremiere.panel" Version="0.0.3"/>
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="PPRO" Version="[24.0,24.99]"/>
+    </HostList>
+    <LocaleList><Locale Code="All"/></LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="11.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="dev.inoriko920.aijsonpremiere.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./panel/index.html</MainPath>
+          <ScriptPath>./host/step03.jsx</ScriptPath>
+        </Resources>
+        <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>AI JSON Premiere Editor (P0)</Menu>
+          <Geometry><Size><Width>560</Width><Height>760</Height></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>
