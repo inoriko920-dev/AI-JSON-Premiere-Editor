@@ -1,16 +1,18 @@
 # SOL STEP03 status — 9 Oktober 2026
 
-## P0 code and helper bridge — implemented and CI-tested
+**G1A SPEC PASS · G2 UI FINAL PASS · SOL STEP03 P0 code advanced · G3 BLOCKED_HOST**.
 
-SOL implementation on branch `sol/step03-cep-p0-20261009`; Draft PR #3 targets ASTRA planning branch, not main.
+### Implemented in development branch
 
-- CEP manifest candidate PPRO 24.x, Node enabled/mixed-context, Indonesian white/blue UI. UI source art unchanged from owner-approved 12 images.
-- Fixed read-only ExtendScript host probe, timeout/replay safe response parser, unsupported host reject.
-- **Dev-only** guarded helper button enabled after host 24.x version detected; local Python interpreter must be explicitly configured via `AIJSON_P0_PYTHON_EXE`. Fixed helper script and argument list, shell disabled, narrow timeout/output cap; no JSON-supplied commands.
-- No GUI-level import/assembly/preflight; buttons remain disabled. No FFmpeg, animation, export or Premiere mutation.
-- **CI push run [#37959967055 SUCCESS](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/actions/runs/37959967055)** for source commit `e9ad7d3d`: **Windows 23 Node + 3 Python tests PASS**, including actual no-shell subprocess Python handshake; Ubuntu **22 Node PASS, 1 Windows-only skipped + 3 Python PASS**.
-- [CI proof](evidence/STEP03/CI_WINDOWS_HELPER_P0_2026-10-09.md) and [security/test procedure](evidence/STEP03/HELPER_DIAGNOSTIC.md).
+- CEP 24.x-only manifest, Indonesian white/blue diagnostic panel, safe fixed JSX host version probe, Windows helper Python handshake via strict no-shell `execFile`; unsupported host, stale callback, timeout and malformed response fail closed.
+- Fixed CEP mixed-context global export and Windows URI paths with Unicode/spaces/#. The source and 12 owner-approved UI image artifacts remain unchanged by this work.
+- New allowlisted **deterministic TEST-ONLY CEP ZIP build**; contains only 8 required runtime files, warning/readme and 9-file SHA manifest. This is not an installer, production portable or Release.
+- **[Windows/Linux CI #37960954035 SUCCESS](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/actions/runs/37960954035)** on SHA `88010b40`. Windows: 24/24 JS + 6/6 Python PASS. Ubuntu: 23 JS PASS, 1 Windows-only SKIP, 6 Python PASS.
+- [Artifact evidence](evidence/STEP03/P0_PILOT_PACKAGE_AND_CI_2026-10-09.md); downloaded ZIP inner hash `655838bfb8d1e3a1766c7052f53f4a246b8167e126ad8f0b4f4730a9e3a00f95`, all 9 entries checked.
+- All file picker/preflight/assembly buttons remain disabled; no JSON parser, effects, timeline mutation, FFmpeg final export or user project changes.
 
-## Blocking remainder
-**G3 = BLOCKED_HOST**: no actual Windows 11 Premiere Pro 2024 24.x runtime in this session, therefore panel loading, PPRO host evaluation, docking and lifecycle and real CEP-to-Python communication unverified. Need host actual screenshot/log/version and manual tester review to close G3.
-G1A SPEC PASS, G2 UI PASS; G1B executable schema tests NOT_STARTED; real AC 0/30 and host-verified effects 0/21. No release/portable/installer and no merge to main. STEP04 cannot be marked started/completed until G3 PASS.
+### Blocker
+
+**G3 = BLOCKED_HOST** because no licensed Windows 11 Adobe Premiere Pro 2024 24.x runtime in this session; no real CEP panel load, actual JSX probe, docking, close/reopen, helper bridge, host logs or screenshots. User/tester host evidence is required before G3 PASS. No fabricated host test.
+
+G1B executable schema tests and STEP04 NOT_STARTED. Host AC01–AC30 0/30 confirmed, animations 0/21 host-verified. Separate Draft PR #3, no merge into main.
