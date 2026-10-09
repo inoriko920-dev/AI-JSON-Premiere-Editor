@@ -7,13 +7,9 @@
     <Extension Id="dev.inoriko920.aijsonpremiere.panel" Version="0.0.3"/>
   </ExtensionList>
   <ExecutionEnvironment>
-    <HostList>
-      <Host Name="PPRO" Version="[24.0,24.99]"/>
-    </HostList>
+    <HostList><Host Name="PPRO" Version="[24.0,24.99]"/></HostList>
     <LocaleList><Locale Code="All"/></LocaleList>
-    <RequiredRuntimeList>
-      <RequiredRuntime Name="CSXS" Version="11.0"/>
-    </RequiredRuntimeList>
+    <RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList>
   </ExecutionEnvironment>
   <DispatchInfoList>
     <Extension Id="dev.inoriko920.aijsonpremiere.panel">
@@ -21,12 +17,18 @@
         <Resources>
           <MainPath>./panel/index.html</MainPath>
           <ScriptPath>./host/step03.jsx</ScriptPath>
+          <!-- CEP Node is opt-in. Mixed context is required by our browser-facing bridge. -->
+          <CEFCommandLine>
+            <Parameter>--enable-nodejs</Parameter>
+            <Parameter>--mixed-context</Parameter>
+          </CEFCommandLine>
         </Resources>
         <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
         <UI>
-          <Type>Panel</Type>
-          <Menu>AI JSON Premiere Editor (P0)</Menu>
-          <Geometry><Size><Width>560</Width><Height>760</Height></Size>
+          <Type>Panel</Type><Menu>AI JSON Premiere Editor (P0)</Menu>
+          <Geometry>
+            <Size><Width>560</Width><Height>760</Height></Size>
+            <MinSize><Width>350</Width><Height>520</Height></MinSize>
           </Geometry>
         </UI>
       </DispatchInfo>

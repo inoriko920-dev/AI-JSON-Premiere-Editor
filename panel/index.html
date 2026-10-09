@@ -6,6 +6,7 @@
   <title>AI JSON Premiere Editor — P0</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="bridge.js"></script>
+  <script defer src="helper_bridge.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -22,6 +23,14 @@
       <button id="btn-host" type="button" class="primary">PERIKSA HOST</button>
       <p class="hint">Host yang diizinkan: Adobe Premiere Pro 2024 (24.x). Versi lain ditolak.</p>
     </section>
+    <section aria-labelledby="helper-title" class="surface">
+      <h2 id="helper-title">Diagnostik helper lokal (P0)</h2>
+      <p id="helper-status" class="status" aria-live="polite">Belum diuji</p>
+      <p id="helper-detail" class="detail">Aktif setelah host Premiere 24.x terdeteksi.</p>
+      <button id="btn-helper" type="button" disabled>PERIKSA HELPER</button>
+      <p class="hint">Untuk pengembang Windows saja: Python lokal yang disetujui harus tersedia
+      melalui environment AIJSON_P0_PYTHON_EXE. Tidak ada instalasi otomatis.</p>
+    </section>
     <section aria-labelledby="input-title" class="surface">
       <h2 id="input-title">Sumber proyek</h2>
       <div class="file-field"><span>EDIT_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
@@ -32,8 +41,7 @@
     <section aria-labelledby="summary-title" class="surface">
       <h2 id="summary-title">Ringkasan dan inspeksi</h2>
       <dl class="summary">
-        <dt>Scene</dt><dd>—</dd>
-        <dt>Aset visual</dt><dd>—</dd>
+        <dt>Scene</dt><dd>—</dd><dt>Aset visual</dt><dd>—</dd>
         <dt>Registry</dt><dd>21 preset baseline; belum diuji host</dd>
         <dt>Kecepatan pilot</dt><dd>MEDIUM (FAST/SLOW menunggu kalibrasi)</dd>
       </dl>

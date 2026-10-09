@@ -1,11 +1,9 @@
-/* Minimal audited CEP transport. Never interpolates file names or JSON in ExtendScript. */
+/* CEP P0 fixed host probe; exports API in BOTH CEP mixed Node and Node unit tests. */
 (function (root, factory) {
     "use strict";
-    if (typeof module === "object" && module.exports) {
-        module.exports = factory();
-    } else {
-        root.AIJSONP0Bridge = factory();
-    }
+    var api = factory();
+    if (root && root.document) { root.AIJSONP0Bridge = api; }
+    if (typeof module === "object" && module.exports) { module.exports = api; }
 }(this, function () {
     "use strict";
     var PROBE_CALL = '$._AIJSON_P0.probe()';
