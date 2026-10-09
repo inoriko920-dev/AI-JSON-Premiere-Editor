@@ -106,9 +106,15 @@
                 var importLine=result.import_snapshot ?
                     " · "+result.import_snapshot.import_count+
                     " media tercatat (HANYA KANDIDAT, belum izin impor)" : "";
+                var trackLine=result.track_candidate ?
+                    " · V1:"+result.track_candidate.counts.V1+
+                    " V2:"+result.track_candidate.counts.V2+
+                    " V3:"+result.track_candidate.counts.V3+
+                    " A1:"+result.track_candidate.counts.A1+
+                    " (KANDIDAT BELUM DAPAT DIEKSEKUSI)" : "";
                 status.textContent="Validasi offline "+result.status+
                     " · error "+result.error_count+" · review "+result.review_count+
-                    " · kode: "+(codes.join(", ")||"—")+draftLine+importLine+
+                    " · kode: "+(codes.join(", ")||"—")+draftLine+importLine+trackLine+
                     ". Timeline tetap terkunci.";
             });
             if(!started){refresh();}

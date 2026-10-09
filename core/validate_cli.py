@@ -19,6 +19,7 @@ from .media import inspect_media
 from .ffprobe import inspect_ffprobe
 from .draft_compiler import build_draft, DraftCompileError
 from .import_snapshot import prepare_media_snapshot, ImportSnapshotError
+from .track_preflight import prepare_track_preflight
 
 
 def error(code: str, message: str) -> dict:
@@ -60,6 +61,10 @@ def run(argv=None):
                         help="Audit pinned media import candidate, never import or authorize Premiere")
     parser.add_argument("--max-import-items", type=int,
                         help="Explicit developer limit for item inventory; not production cap")
+    parser.add_argument("--include-track-preflight", action="store_true",
+                        help="Read-only four-track source preflight (never production READY)")
+    parser.add_argument("--candidate-timebase-ticks", type=str,
+                        help="Optional UNVERIFIED candidate host ticks, only for offline planning")
     parser.add_argument("--include-draft", action="store_true",
                         help="Show deterministic non-executable timeline intent if structurally valid")
     args = parser.parse_args(argv)
@@ -146,6 +151,38 @@ def run(argv=None):
                             "message":"Audit sumber impor gagal; file proyek tidak diubah."})
                 result["error_count"] = sum(x["severity"] == "ERROR" for x in result["issues"])
                 result["review_count"] = sum(x["severity"] == "REVIEW" for x in result["issues"])
+                result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
+                result["can_assemble"] = False
+            if args.include_track_preflight:
+                if (args.media_root is None or args.max_media_bytes is None or
+                    args.max_srt_cues is None or args.max_import_items is None):
+                    result["issues"].append({
+                        "code":"E_CONFIG_LIMITS_UNVERIFIED", "severity":"ERROR",
+                        "pointer":"/four_track_preflight",
+                        "message":"Preflight 4-track butuh folder media dan batas yang eksplisit."})
+                elif result["error_count"]:
+                    result["issues"].append({
+                        "code":"E_TRACK_PREFLIGHT_SKIPPED", "severity":"REVIEW",
+                        "pointer":"/four_track_preflight",
+                        "message":"Audit empat track menunggu JSON dan file media bebas kesalahan."})
+                else:
+                    report = prepare_track_preflight(
+                        edit, animation, args.media_root,
+                        ffprobe_exe=args.ffprobe_exe,
+                        ticks_per_frame=args.candidate_timebase_ticks,
+                        max_media_bytes=args.max_media_bytes,
+                        max_srt_cues=args.max_srt_cues,
+                        max_import_items=args.max_import_items
+                    )
+                    for item in report["issues"]:
+                        result["issues"].append({
+                            "code":item["code"], "severity":item["severity"],
+                            "pointer":"/four_track_preflight/"+item["stage"],
+                            "message":"Preflight offline empat track; tidak mengizinkan mutasi Premiere."})
+                    if report["track_candidate"] is not None:
+                        result["track_candidate"] = report["track_candidate"]
+                result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
+                result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
                 result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
                 result["can_assemble"] = False
             if args.include_draft and result["error_count"] == 0:

@@ -103,6 +103,22 @@ class CoreCLIProcessTests(unittest.TestCase):
         self.assertIn("E_FFPROBE_SKIPPED",
                       [x["code"] for x in result["issues"]])
 
+    def test_four_track_preflight_requires_explicit_media_budgets(self):
+        code,r=self.run_cli("--include-track-preflight")
+        self.assertEqual(code,2)
+        self.assertFalse(r["can_assemble"])
+        self.assertIn("E_CONFIG_LIMITS_UNVERIFIED",
+                      [x["code"] for x in r["issues"]])
+
+    def test_four_track_preflight_skips_if_media_missing(self):
+        code,r=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","10",
+            "--max-import-items","20","--include-track-preflight")
+        self.assertEqual(code,2)
+        self.assertFalse(r["can_assemble"])
+        self.assertIn("E_TRACK_PREFLIGHT_SKIPPED",
+                      [x["code"] for x in r["issues"]])
+
     def test_draft_timeline_is_non_executable_and_deterministic(self):
         code,result=self.run_cli("--include-draft")
         self.assertEqual(code,3)
