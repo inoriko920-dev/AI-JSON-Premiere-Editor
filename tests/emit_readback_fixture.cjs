@@ -28,5 +28,5 @@ seqs.numSequences=1;
 const ctx={$:{},app:{version:"24.4",project:{sequences:seqs}}};
 vm.runInNewContext(source,ctx,{timeout:1500});
 const result=ctx.$._AIJSON_READBACK_V1.capture(SEQ);
-if(!result.startsWith('{"schema_version":'))throw Error("Unexpected observer error");
+if(!result.startsWith('{"schema_version":'))throw Error("Unexpected observer error: "+result);
 process.stdout.write(result);
