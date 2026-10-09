@@ -72,8 +72,8 @@ class PilotPackageTests(unittest.TestCase):
                 self.assertNotIn("importFiles(", script)
                 self.assertIn('disabled id="btn-assemble"', html)
                 self.assertIn('disabled id="btn-preflight"', html)
-                self.assertIn("TEST_ONLY", z.read(
-                    f"{PILOT}/P0_TEST_ONLY_README.txt").decode("utf-8").replace("TEST ONLY", "TEST_ONLY"))
+                self.assertIn("NOT AN INSTALLER", z.read(
+                    f"{PILOT}/P0_TEST_ONLY_README.txt").decode("utf-8"))
 
 
 if __name__ == "__main__":

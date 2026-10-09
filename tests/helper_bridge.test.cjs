@@ -54,6 +54,10 @@ test("fixed Python invocation uses no shell and no user JSON",()=>{
  assert.equal(result.status,"supported");
  assert.equal(o.bridge.isBusy(),false);
 });
+test("encoded Windows extension path preserves Unicode, spaces and hash characters",()=>{
+ const url="file:///C:/Users/Jos%C3%A9%20A/%23Panel%20CEP";
+ assert.equal(helper.decodeExtensionPath(url,path),"C:\\\\Users\\\\José A\\\\#Panel CEP");
+});
 test("helper refuses missing or malformed configuration without spawn",()=>{
  for(const [overrides,code] of [
   [{pythonExe:null},"HELPER_PYTHON_NOT_CONFIGURED"],

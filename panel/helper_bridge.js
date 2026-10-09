@@ -36,7 +36,7 @@
     function decodeExtensionPath(raw, path) {
         if (typeof raw !== "string") { return null; }
         var decoded;
-        try { decoded = decodeURI(raw); } catch (e) { return null; }
+        try { decoded = decodeURIComponent(raw); } catch (e) { return null; }
         if (/^file:\/\/\/[A-Za-z]:\//i.test(decoded)) { decoded=decoded.slice(8); }
         if (!/^[A-Za-z]:[\/\\]/.test(decoded)) { return null; }
         return path.win32.resolve(decoded);
