@@ -35,7 +35,7 @@ function setup(options={}){
  const userBin={name:"User Originals",nodeId:"user-owned",children:[]};
  const rootChildren=[userBin,bin];
  Object.defineProperty(rootChildren,"numItems",{get(){return this.length;}});
- let writes=0,trims=0;
+ let writes=0,trims=0,sourceTrims=0;
  const track=(name)=>{
   const clips=[];
   Object.defineProperty(clips,"numItems",{get(){return this.length;}});
@@ -43,15 +43,29 @@ function setup(options={}){
     writes++;
     if(options.failAt===writes){return false;}
     if(options.throwAt===writes){throw Error("simulated Adobe throw after host mutation");}
-    const value={projectItem:item,start:{ticks:options.mismatchStart&&writes===1?"1":stamp},end:{ticks:"999"},};
+    const value={projectItem:item,start:{ticks:options.mismatchStart&&writes===1?"1":stamp},
+      end:{ticks:"999"}};
     Object.defineProperty(value,"end",{
       get(){return this._end;},
       set(v){trims++;this._end=options.badTrim?{ticks:"999"}:v;}
     });
+    Object.defineProperty(value,"inPoint",{
+      get(){return this._in;},
+      set(v){sourceTrims++;this._in=options.badSourceIn?{ticks:"999"}:v;}
+    });
+    Object.defineProperty(value,"outPoint",{
+      get(){return this._out;},
+      set(v){sourceTrims++;this._out=options.badSourceOut?{ticks:"999"}:v;}
+    });
+    value._in=options.missingSourceTrim?null:{ticks:"0"};
+    value._out=options.missingSourceTrim?null:{ticks:"999"};
     value._end={ticks:"999"};
     clips.push(value);
     if(options.linkedAudio&&name==="V1"){
       a[0].clips.push({projectItem:item,start:{ticks:stamp},end:{ticks:"999"}});
+    }
+    if(options.linkedVideo&&name==="A1"){
+      v[0].clips.push({projectItem:item,start:{ticks:stamp},end:{ticks:"999"}});
     }
     return true;
   }};
@@ -79,7 +93,7 @@ function setup(options={}){
    operationDigest:p.operation_sha256,managedSequenceId:SEQ};
  return {adapter:context.$._AIJSON_PLACEMENT_V1,plan:p,seq,v,a,auth,media,
    refs:imports.map((id,i)=>({item_id:id,node_id:media[i].nodeId})),
-   writes:()=>writes,trims:()=>trims,run(){
+   writes:()=>writes,trims:()=>trims,sourceTrims:()=>sourceTrims,run(){
      return this.adapter.commitCandidate(this.plan,this.refs,SEQ,BIN,this.auth);
    },userBin};
 }
@@ -92,6 +106,12 @@ test("writes 6 planned placements only onto EMPTY managed sequence; trims each b
  assert.equal(x.v[1].clips[1].end.ticks,String(330*Number(TB)));
  assert.equal(x.writes(),6);
  assert.equal(x.trims(),6);
+ assert.equal(x.sourceTrims(),12);
+ assert.equal(x.v[0].clips[0].inPoint.ticks,"0");
+ assert.equal(x.v[0].clips[0].outPoint.ticks,String(180*Number(TB)));
+ assert.equal(x.v[0].clips[1].inPoint.ticks,"0");
+ assert.equal(x.v[0].clips[1].outPoint.ticks,String(150*Number(TB)));
+ assert.equal(x.a[0].clips[0].outPoint.ticks,String(330*Number(TB)));
  assert.equal(x.userBin.name,"User Originals");
 });
 test("no owner approval or verified host/profile can write",()=>{
@@ -179,4 +199,39 @@ test("static safety check: no ripple insert, remove, save, export or project mut
    "exportAsMediaDirect(", "app.enableQE", "eval("]){
    assert.equal(code.includes(forbidden),false,forbidden);
  }
+});
+
+test("source trim readback failures stop immediately and preserve incomplete edits",()=>{
+ for(const [option,codeExpected] of [
+   [{badSourceIn:true},"SOURCE_TRIM_READBACK_FAILED"],
+   [{badSourceOut:true},"SOURCE_TRIM_READBACK_FAILED"],
+   [{missingSourceTrim:true},"SOURCE_TRIM_API_UNAVAILABLE"]
+ ]){
+   const x=setup(option);
+   assert.equal(x.run(),"S7|1|INCOMPLETE|"+codeExpected);
+   assert.equal(x.writes(),1);
+   assert.equal(x.userBin.name,"User Originals");
+   assert.equal(x.run(),"S7|1|BLOCKED|TARGET_NOT_EMPTY");
+ }
+});
+test("source frame bounds are validated before first host write",()=>{
+ for(const corrupt of [
+   x=>x.plan.placements[0].source_in_frame=1,
+   x=>x.plan.placements[0].source_out_frame=0,
+   x=>x.plan.placements[0].source_out_frame=10000001,
+   x=>x.plan.placements[0].source_out_frame="180",
+ ]){
+   const x=setup();corrupt(x);
+   assert.equal(x.run(),"S7|1|BLOCKED|PLAN_INVALID");
+   assert.equal(x.writes(),0);
+ }
+});
+
+test("unexpected linked video from narration stops before further operations",()=>{
+ const x=setup({linkedVideo:true});
+ assert.equal(x.run(),"S7|1|INCOMPLETE|UNEXPECTED_LINKED_VIDEO");
+ assert.equal(x.writes(),3);
+ assert.equal(x.v[0].clips.length,2);
+ assert.equal(x.userBin.name,"User Originals");
+ assert.equal(x.run(),"S7|1|BLOCKED|TARGET_NOT_EMPTY");
 });
