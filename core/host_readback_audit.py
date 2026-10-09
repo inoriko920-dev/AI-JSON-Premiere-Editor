@@ -72,7 +72,8 @@ def _expected(candidate: dict, refs: dict[str, str], index: int,
         _require(type(row) is dict and
                  type(row.get("instance_key")) is str and row["instance_key"]
                  and row["instance_key"] not in keys
-                 and row.get("target_track") in TRACKS
+                 and type(row.get("target_track")) is str
+                 and row["target_track"] in TRACKS
                  and _id(row.get("item_id"))
                  and row["item_id"] in refs,
                  "E_READBACK_PLAN_INVALID")
@@ -82,7 +83,8 @@ def _expected(candidate: dict, refs: dict[str, str], index: int,
         _require(all(_frame(x) for x in (start, end, source_in, source_out))
                  and start < end and source_in < source_out
                  and source_out - source_in == end - start
-                 and row.get("zero_based_track_index") == TRACKS[row["target_track"]]
+                 and type(row.get("zero_based_track_index")) is int
+                 and row["zero_based_track_index"] == TRACKS[row["target_track"]]
                  and row.get("start_ticks") == str(start * timebase)
                  and row.get("end_ticks") == str(end * timebase),
                  "E_READBACK_PLAN_TIMING_INVALID")

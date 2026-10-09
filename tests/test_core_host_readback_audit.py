@@ -137,6 +137,19 @@ class ReadbackAuditTests(unittest.TestCase):
         self.assertEqual(self.run_audit(plan=p)["code"],
                          "E_READBACK_PLAN_INVALID")
 
+    def test_malicious_unhashable_track_is_structured_mismatch_not_crash(self):
+        p=candidate()
+        p["placements"][0]["target_track"]=["V1"]
+        result=self.run_audit(plan=p)
+        self.assertEqual(result["status"],"READBACK_MISMATCH")
+        self.assertEqual(result["code"],"E_READBACK_PLAN_INVALID")
+
+    def test_boolean_track_index_is_not_zero(self):
+        p=candidate()
+        p["placements"][0]["zero_based_track_index"]=False
+        result=self.run_audit(plan=p)
+        self.assertEqual(result["code"],"E_READBACK_PLAN_TIMING_INVALID")
+
     def test_no_evidence_or_overly_many_operations_refused(self):
         self.assertEqual(self.run_audit(ref={"SOURCE_AUDIO":"node-audio"})["code"],
                          "E_READBACK_PLAN_INVALID")
