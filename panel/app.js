@@ -32,7 +32,7 @@
                 if (result.code === "HELPER_PYTHON_NOT_CONFIGURED") {
                     text = "Python development belum dikonfigurasi pada AIJSON_P0_PYTHON_EXE.";
                 } else if (result.code === "HELPER_NODE_UNAVAILABLE") {
-                    text = "Node.js CEP belum tersedia; periksa CEFCommandLine dan runtime CEP.";
+                    text = "HELPER_NODE_UNAVAILABLE: Node.js CEP belum tersedia; periksa CEFCommandLine dan runtime CEP.";
                 } else {
                     text = "Kode: "+result.code+". Tidak ada perintah timeline dijalankan.";
                 }
