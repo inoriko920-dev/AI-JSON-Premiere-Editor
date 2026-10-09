@@ -1,0 +1,11 @@
+{
+  "name": "ai-json-premiere-editor-step03-p0",
+  "version": "0.0.3",
+  "private": true,
+  "description": "STEP03 CEP P0 shell / guarded development helper probe; NOT A RELEASE",
+  "scripts": {
+    "test": "node --test",
+    "check": "npm test"
+  },
+  "engines": {"node": ">=20"}
+}
