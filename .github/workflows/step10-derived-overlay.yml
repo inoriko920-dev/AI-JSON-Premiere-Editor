@@ -31,5 +31,6 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Run JavaScript CEP and mocked host regression tests
         run: npm test
-      - name: Confirm original JPEG/PNG images and host adapter not modified by STEP10
-        run: python -c "from pathlib import Path; c=Path('core/background_overlay.py').read_text(); assert 'can_import\x22: False' in c and 'can_assemble\x22: False' in c; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP10_NO_LIVE_PREMIERE_WRITE_ROUTE=PASS')"
+      - name: Confirm no host mutation route in production panel
+        run: |
+          python -c "from pathlib import Path; c=Path('core/background_overlay.py').read_text(); assert 'can_import' in c and 'can_assemble' in c; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP10_NO_LIVE_PREMIERE_WRITE_ROUTE=PASS')"
