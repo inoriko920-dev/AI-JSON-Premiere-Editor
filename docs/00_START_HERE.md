@@ -1,9 +1,11 @@
-# Mulai di sini — ASTRA dan SOL
+# Mulai di sini — ASTRA / SOL
 
-**Tahap terbaru: STEP01 gate review V4, masih BLOCKED.** Baca [STATUS](STATUS.md). Jangan coding, merge, rilis, atau menandai host PASS tanpa bukti.
+**STEP01 ASTRA — G1A BLOCKED; G1B NOT_STARTED; G2 NOT_STARTED; CODING PROHIBITED.**
 
-Urutan: AGENTS.md → Master V3 di docs/source → ASTRA STEP00 → STEP01 kontrak V1 → pemulihan tujuh sumber V2 → STEP01 review V3 → **STEP01 Gate Closure Proposal V4** ([Markdown](planning/ASTRA_STEP01_GATE_CLOSURE_PROPOSAL_V4_2026-10-09.md) / [DOCX](planning/ASTRA_STEP01_GATE_CLOSURE_PROPOSAL_V4_2026-10-09.docx)) → [10 keputusan](planning/STEP01_REVIEW_QUEUE.csv) → [BLOCKERS](planning/BLOCKERS.md).
+Urutan baca: [AGENTS](../AGENTS.md) → [STATUS](STATUS.md) → Master V3 DOCX/transkrip dalam docs/source → STEP00 plan → STEP01 kontrak V1 → pemulihan 7 sumber V2 → Gate Closure Review V4 DOCX/MD → [audit statis JSON DEMO_001](planning/STEP01_V3_DEMO_STATIC_AUDIT.md) → [68 fixture rencana](planning/STEP01_FIXTURE_CATALOG.csv) → [10 keputusan](planning/STEP01_REVIEW_QUEUE.csv) dan [blockers](planning/BLOCKERS.md).
 
-Q01 speed MEDIUM-only merupakan rekomendasi berbasis sumber dan belum disetujui pengguna. Q02 direction 21 preset belum dibekukan. Q03/Q04/Q08 compatibility/safety serta Q10 source handoff juga masih memerlukan keputusan. Tidak boleh menganggap perintah 'lanjutkan' sebagai approval otomatis.
+AUDIT JSON DEMO_001: 18/18 cek struktur dan durasi referensi PASS; **tidak membuktikan** source media asli, registry allowed direction, implementasi codec, host Premiere, UI ataupun AC. Semua checksum media contoh adalah placeholder.
 
-Setelah reviewer menutup G1A dengan evidence, baru STEP02 menyiapkan prompt UI, lalu STOP sampai gambar final disetujui dan satu UI_REFERENCE_FINAL.docx beserta semua PNG/hash ada di repo. SOL baru boleh memulai STEP03 jika G2 PASS dan host nyata tersedia.
+F026 pada fixture 48 awal stale: half-frame rounding kini source-supported, diperbaiki menjadi 50ms@30FPS→frame2. Fixtures diperluas menjadi 68; belum ada test code.
+
+MEDIUM-only untuk MVP tetap opsi yang direkomendasikan, bukan keputusan user yang sudah eksplisit. B01 source archive dan Q02 directions/Q03 schema masih membutuhkan keputusan. Jangan infer approval dari chat 'lanjutkan'. Setelah G1A PASS, STEP02 prompt UI lalu STOP wajib sampai gambar+approval+UI_REFERENCE_FINAL.docx di repo.
