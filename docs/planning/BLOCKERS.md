@@ -1,12 +1,12 @@
-# BLOCKERS — STEP01 Update 9 Oktober 2026 WIB
+# BLOCKERS — Update review G1A V4 (9 Oktober 2026)
 
-| ID | Status | Syarat untuk tutup |
+| ID | Status | Kondisi penutupan |
 | --- | --- | --- |
-| B01 | SOURCE_LOCATED / DECISION_PENDING | 7 dokumen historis ditemukan dan diringkas beserta SHA. Putuskan apakah turunan kontrak cukup atau perlu sumber asli tersedia untuk SOL; jangan upload raw Library tanpa izin. |
-| B02 | REVIEW_PENDING | Pilih MEDIUM-only MVP atau tetapkan FAST/SLOW untuk masing-masing 21 preset; setujui JSON direction allowlist per preset berdasarkan kandidat. |
-| B03 | OPEN_HOST | Host Premiere Pro 2024 exact 24.x/locale/CEP/ticks/alpha belum diuji. |
-| B04 | OPEN_UI | Prompt STEP02, STOP, seluruh gambar final approval, satu UI_REFERENCE_FINAL.docx belum ada. |
-| B05 | OPEN_DEPENDENCIES | Pilihan helper, lisensi/runtime distribusi/FFmpeg notices dan SBOM belum lengkap. |
-| B06 | REVIEW_PENDING | Validasi tambahan properti tanpa memutus V2, alias SRT, min HOLD, clip collisions, frozen numeric caps, locked=false, host ticks probe. |
+| B01 | SOURCE_LOCATED / HANDOFF_DECISION_PENDING | 7 dokumen pribadi ditemukan dan hash tercatat; sumber mentah belum diunggah publik. |
+| B02 | REVIEW_PENDING | MEDIUM-only opsi Q01; 21 allowlist direction belum disahkan, FAST/SLOW belum calibrated. |
+| B03 | HOST_PENDING | PPRO 24.x exact build, locale/CEP/ticks/alpha belum diuji. |
+| B04 | UI_NOT_STARTED | STEP02 prompts -> STOP -> approved PNG -> one UI_REFERENCE_FINAL.docx. |
+| B05 | DEPENDENCIES_PENDING | Worker version, FFmpeg licensing, SBOM dan packaging. |
+| B06 | REVIEW_PENDING | Unknown fields, locked=false, parser limits, SRT alias dan edge policy. |
 
-Aturan yang didukung sumber dirinci di [Contract Freeze V3](ASTRA_STEP01_CONTRACT_FREEZE_REVIEW_V3_2026-10-09.md), 20 keputusan di CSV, 21 kandidat arah terpisah. **G1A BLOCKED, G2 NOT_STARTED, CODING PROHIBITED.**
+Lihat [daftar 10 keputusan](STEP01_REVIEW_QUEUE.csv) dan [Gate Closure V4](ASTRA_STEP01_GATE_CLOSURE_PROPOSAL_V4_2026-10-09.md). Q01 MEDIUM-only adalah **rekomendasi, belum persetujuan eksplisit pengguna**. Tidak ada kode aplikasi, UI final atau host certification. **G1A BLOCKED, G2 NOT_STARTED, coding dilarang**.
