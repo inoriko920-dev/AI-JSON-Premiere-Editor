@@ -47,8 +47,8 @@ jobs:
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
           $inspect = & $script -Mode Inspect -ZipPath $zip
           if ($inspect -notcontains "P0_INSPECT=PASS") { throw "ZIP validation failed" }
-          if ($inspect -notcontains "P0_FILES=19") { throw "Incomplete STEP04 runtime ZIP" }
-          if ($inspect -notcontains "P0_SHA256_ENTRIES=18") { throw "Incorrect SHA256 manifest" }
+          if ($inspect -notcontains "P0_FILES=20") { throw "Incomplete STEP04 runtime ZIP" }
+          if ($inspect -notcontains "P0_SHA256_ENTRIES=19") { throw "Incorrect SHA256 manifest" }
           $safeDir = Join-Path $env:RUNNER_TEMP "step04-cep-test"
           try {
             & $script -Mode Stage -ZipPath $zip -ExtensionDirectory $safeDir | Out-Null
@@ -60,7 +60,7 @@ jobs:
           $staged = & $script -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $safeDir
           if ($staged -notcontains "P0_STAGE=PASS_USER_APPROVED") { throw "Approved staging did not succeed" }
           $root = Join-Path $safeDir "AI_JSON_Premiere_P0_Pilot"
-          foreach ($rel in @("core/contracts.py","core/draft_compiler.py","core/media.py","core/validate_cli.py","helper/validate_request.py","panel/validation_ui.js","panel/validation_bridge.js")) {
+          foreach ($rel in @("core/contracts.py","core/draft_compiler.py","core/ffprobe.py","core/media.py","core/validate_cli.py","helper/validate_request.py","panel/validation_ui.js","panel/validation_bridge.js")) {
             if (-not (Test-Path (Join-Path $root $rel))) { throw "Missing packaged STEP04 file $rel" }
           }
           try {

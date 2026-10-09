@@ -26,6 +26,7 @@ REQUIRED = (
     "core/__init__.py",
     "core/contracts.py",
     "core/draft_compiler.py",
+    "core/ffprobe.py",
     "core/media.py",
     "core/validate_cli.py",
     "core/direction_registry.json",
