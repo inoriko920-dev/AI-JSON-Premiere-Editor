@@ -49,7 +49,7 @@ test("fixed Python invocation uses no shell and no user JSON",()=>{
  assert.equal(o.calls[0].options.shell,false);
  assert.equal(o.calls[0].options.windowsHide,true);
  assert.equal(o.calls[0].options.maxBuffer,8192);
- assert.equal(o.calls[0].options.timeout,5000);
+ assert.equal(o.calls[0].options.timeout,15000);
  o.complete(null,response);
  assert.equal(result.status,"supported");
  assert.equal(o.bridge.isBusy(),false);

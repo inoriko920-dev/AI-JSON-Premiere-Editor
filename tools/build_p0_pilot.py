@@ -29,6 +29,9 @@ REQUIRED = (
     "core/ffprobe.py",
     "core/import_snapshot.py",
     "core/media.py",
+    "core/host_ticks.py",
+    "core/track_plan.py",
+    "core/track_preflight.py",
     "core/validate_cli.py",
     "core/direction_registry.json",
 )

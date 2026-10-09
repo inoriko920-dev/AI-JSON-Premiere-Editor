@@ -43,8 +43,8 @@ jobs:
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
           $inspect = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
           if ($inspect -notcontains "P0_INSPECT=PASS" -or
-              $inspect -notcontains "P0_FILES=21" -or
-              $inspect -notcontains "P0_SHA256_ENTRIES=20") { throw "Invalid STEP06 P0 package" }
+              $inspect -notcontains "P0_FILES=24" -or
+              $inspect -notcontains "P0_SHA256_ENTRIES=23") { throw "Invalid STEP06 P0 package" }
           $temp = Join-Path $env:RUNNER_TEMP "p0-step06-test"
           try {
             & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Stage -ZipPath $zip -ExtensionDirectory $temp | Out-Null
@@ -56,7 +56,9 @@ jobs:
           $result = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $temp
           if ($result -notcontains "P0_STAGE=PASS_USER_APPROVED") { throw "Approved staging failed" }
           $root = Join-Path $temp "AI_JSON_Premiere_P0_Pilot"
-          if (-not (Test-Path (Join-Path $root "core/import_snapshot.py"))) { throw "Missing runtime dependency" }
+          foreach ($item in @("core/import_snapshot.py","core/host_ticks.py","core/track_plan.py","core/track_preflight.py")) {
+            if (-not (Test-Path (Join-Path $root $item))) { throw "Missing offline runtime dependency $item" }
+          }
           if (Test-Path (Join-Path $root "host/media_import_adapter.jsx")) { throw "Unapproved host write adapter packaged" }
       - name: Reject malicious ZIP test cases
         if: ${{ matrix.os == 'windows-latest' }}

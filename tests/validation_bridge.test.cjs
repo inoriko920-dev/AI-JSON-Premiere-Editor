@@ -188,3 +188,24 @@ test("sanitized import snapshot is not host approval and rejects forged readines
  }));
  assert.equal(changed.code,"VALIDATOR_RESPONSE_INVALID");
 });
+
+test("read-only 4-track candidate parser drops paths and refuses fabricated READY",()=>{
+ const counts={V1:2,V2:2,V3:1,A1:1};
+ const track={status:"CANDIDATE_NOT_EXECUTABLE",can_assemble:false,
+   total_frames:330,track_counts:counts,
+   operation_sha256:"a".repeat(64),private_path:"C:\\Users\\secret"};
+ const parsed=api.parseReport(JSON.stringify({...VALID,track_candidate:track}));
+ assert.equal(parsed.status,"NEEDS_REVIEW");
+ assert.equal(parsed.track_candidate.counts.V1,2);
+ assert.equal(parsed.track_candidate.can_assemble,false);
+ assert.equal(JSON.stringify(parsed).includes("secret"),false);
+ for(const changed of [
+   {...track,can_assemble:true},
+   {...track,status:"READY"},
+   {...track,track_counts:{...counts,V1:-1}},
+   {...track,operation_sha256:"malformed"},
+ ]) {
+   assert.equal(api.parseReport(JSON.stringify({...VALID,track_candidate:changed})).code,
+     "VALIDATOR_RESPONSE_INVALID");
+ }
+});

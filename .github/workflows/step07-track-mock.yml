@@ -43,5 +43,5 @@ jobs:
         run: |
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
           $result = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
-          if ($result -notcontains "P0_INSPECT=PASS" -or $result -notcontains "P0_FILES=21" -or $result -notcontains "P0_SHA256_ENTRIES=20") { throw "ZIP package changed unexpectedly" }
+          if ($result -notcontains "P0_INSPECT=PASS" -or $result -notcontains "P0_FILES=24" -or $result -notcontains "P0_SHA256_ENTRIES=23") { throw "ZIP package changed unexpectedly" }
           & "./tools/windows/Test_P0_Negative.ps1" -ZipPath $zip -InspectorPath "./tools/windows/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "step07-negative")

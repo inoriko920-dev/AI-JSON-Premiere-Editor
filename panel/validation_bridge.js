@@ -100,9 +100,29 @@
             importSummary={item_count:snap.item_count,import_count:snap.import_count,
                 digest:snap.inventory_sha256,can_import:false};
         }
+        var track=null;
+        if(Object.prototype.hasOwnProperty.call(obj,"track_candidate")){
+            var c=obj.track_candidate;
+            var counts=c && c.track_counts;
+            if(!c || c.status!=="CANDIDATE_NOT_EXECUTABLE" ||
+                c.can_assemble!==false ||
+                !Number.isSafeInteger(c.total_frames) || c.total_frames<1 ||
+                !counts || typeof counts!=="object" ||
+                !/^[a-f0-9]{64}$/.test(c.operation_sha256||"") ||
+                !["V1","V2","V3","A1"].every(function(key){
+                    return Number.isSafeInteger(counts[key]) &&
+                        counts[key]>=1 && counts[key]<=10000;
+                })){
+                return {status:"error",code:"VALIDATOR_RESPONSE_INVALID"};
+            }
+            track={total_frames:c.total_frames,
+                counts:{V1:counts.V1,V2:counts.V2,V3:counts.V3,A1:counts.A1},
+                digest:c.operation_sha256,can_assemble:false};
+        }
         return {status:obj.status,can_assemble:false,
             error_count:obj.error_count,review_count:obj.review_count,
-            issues:sanitized,draft:draft,import_snapshot:importSummary};
+            issues:sanitized,draft:draft,import_snapshot:importSummary,
+            track_candidate:track};
     }
     function createValidator(deps){
         var active=false,generation=0,child=null;
@@ -179,6 +199,7 @@
                     "--max-media-bytes",READ_BUDGETS.media,
                     "--max-srt-cues",READ_BUDGETS.cues,
                     "--include-draft","--include-import-snapshot",
+                    "--include-track-preflight",
                     "--max-import-items","256"];
                 if(ffprobe){args.push("--ffprobe-exe",ffprobe);}
                 child=execFile(py,args,{

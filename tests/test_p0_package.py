@@ -32,7 +32,9 @@ class PilotPackageTests(unittest.TestCase):
                         "panel/app.js", "host/step03.jsx", "helper/handshake.py",
                         "helper/validate_request.py", "core/__init__.py",
                         "core/contracts.py", "core/draft_compiler.py", "core/ffprobe.py", "core/import_snapshot.py", "core/media.py",
-                        "core/validate_cli.py", "core/direction_registry.json"
+                        "core/validate_cli.py", "core/direction_registry.json",
+                        "core/host_ticks.py","core/track_plan.py",
+                        "core/track_preflight.py"
                     )
                 }
                 self.assertEqual(names, expected | {
@@ -43,7 +45,7 @@ class PilotPackageTests(unittest.TestCase):
                     self.assertEqual(z.read(file), original)
                 sums = z.read(f"{PILOT}/P0_SHA256SUMS.txt").decode("ascii")
                 lines = sums.splitlines()
-                self.assertEqual(len(lines), 20)
+                self.assertEqual(len(lines), 23)
                 for line in lines:
                     digest, rel = line.split("  ", 1)
                     self.assertEqual(hashlib.sha256(z.read(f"{PILOT}/{rel}")).hexdigest(), digest)
@@ -53,6 +55,7 @@ class PilotPackageTests(unittest.TestCase):
                 self.assertNotIn("UI_REFERENCE_FINAL", "\n".join(names))
                 self.assertNotIn("host/media_import_adapter.jsx", "\n".join(names))
                 self.assertNotIn("host/sequence_adapter.jsx", "\n".join(names))
+                self.assertNotIn("host/track_placement_adapter.jsx", "\n".join(names))
 
     def test_build_reproducible_bytes(self):
         with tempfile.TemporaryDirectory() as folder:
