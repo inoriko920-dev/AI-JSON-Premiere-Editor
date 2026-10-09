@@ -1,14 +1,12 @@
-# BLOCKERS — STEP01 V6 (2026-10-09)
+# Blockers / gates — 9 Oktober 2026 WIB
 
-| ID | Status | Next action |
+| ID | Status | Exit / next evidence |
 | --- | --- | --- |
-| B01 | CLOSED_SOURCE_DISCOVERY | 7 source references read/SHA-indexed; private originals not published. |
-| B02 | **TECHNICAL_PROPOSAL_COMPLETE / EXPLICIT_APPROVAL_PENDING** | [V6 complete 21-direction matrix](STEP01_B02_DIRECTION_SCOPE_V6_2026-10-09.md) is ready. User approves initial MEDIUM pilot (FAST/SLOW deferred, not removed) AND candidate 21-direction policy as SOL planning baseline. |
-| B03 | DEFER_HOST_PROOF | Premiere 24.x, CEP, keyframe ticks and alpha proof on real Windows. |
-| B04 | WAIT_STEP02 | UI prompts then STOP for all final image approval + UI_REFERENCE_FINAL.docx. |
-| B05 | DEFER_DEPENDENCIES | Worker/FFmpeg version/license/SBOM before build. |
-| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 technical validator frozen; host numeric/resource proof deferred to host gates. |
+| B01 | CLOSED_SOURCE_DISCOVERY | 7 historic sources read+SHA indexed |
+| B02 | **APPROVED_2026_10_09** | [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) closed: MEDIUM-first, V6 21 directions planning baseline; FAST/SLOW calibrated later |
+| B03 | FUTURE_HOST_PROOF | Actual Premiere Pro 2024 24.x, CEP ticks/keyframe/alpha/API |
+| B04 | STEP02_UI_STOP | Generate UI prompts first and stop until final PNGs user approved and one UI_REFERENCE_FINAL.docx in repo |
+| B05 | FUTURE_DEPENDENCIES | FFmpeg/worker licenses, notices, SBOM before packaging |
+| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002; tested resource caps/host probe later |
 
-**G1A BLOCKED by B02 approval only; G1B and G2 NOT_STARTED.** No executable code, Premiere test, merge or release.
-
-**Action tracker:** [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) is open and contains the only outstanding user approval. B02 remains PENDING_USER_DECISION; don't mark G1A PASS or start STEP02 solely because the issue exists. Existing B03/B04/B05 host/UI/dependency gates remain.
+**G1A PASS SPEC**, [formal report](ASTRA_STEP01_G1A_PASS_2026-10-09.md). **G1B NOT_STARTED, G2 NOT_STARTED, CODING/MAIN MERGE/RELEASE PROHIBITED** pending UI approval.

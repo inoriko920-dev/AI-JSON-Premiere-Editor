@@ -1,3 +1,4 @@
+> **Approval update (2026-10-09):** Owner explicitly APPROVED pilot MEDIUM-first and all 21 V6 proposed direction enums as SOL planning baseline in [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2). Legacy sections below preserve pre-approval drafting context for audit. This is NOT 21/21 effect or Premiere host QA certification.
 # ASTRA STEP01 — B02 Final Technical Direction Proposal V6
 
 > **9 Oktober 2026 WIB · review required · planning only**

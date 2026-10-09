@@ -1,13 +1,9 @@
-# Mulai di sini — ASTRA/SOL
+# Mulai di sini — handoff ASTRA/SOL
 
-**STEP01 B02 technical draft V6 ready, explicit user approval pending. G1A BLOCKED; G2 NOT_STARTED; no coding.**
+**STEP01 G1A SPEC PASS**, owner-approved 2026-10-09 ([Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2)). B01 source CLOSED, B02 MEDIUM-first + 21 V6 directions APPROVED as planning, B06 validator SPEC CLOSED.
 
-Read AGENTS.md > Master V3 original > STEP00 > STEP01 V1–V5 > [V6 B02 plan](planning/STEP01_B02_DIRECTION_SCOPE_V6_2026-10-09.md) > [21 direction-policy CSV](planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv) > [91 fixture plans](planning/STEP01_FIXTURE_CATALOG.csv) > ADR-002 B06 and blockers.
+Read: AGENTS.md → Master V3 (source + transcript) → STEP00 master DOCX → STEP01 V1–V6 DOCX/Markdown → [G1A closure](planning/ASTRA_STEP01_G1A_PASS_2026-10-09.md) → ADR-002 → [21 directions](planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv) → [91 planned fixtures](planning/STEP01_FIXTURE_CATALOG.csv) → AC matrix.
 
-The V6 table distinguishes 4 exact direction tokens in original V2/V3, 6 inferred NONE, and 11 enum proposals. All 21 still need Premiere 24.x effect QA and certified NATIVE/PRERENDER backend, independent of plan approval. Initial MEDIUM host pilot (FAST/SLOW deferred until calibration) and registry policy need user explicit signoff.
+Now ASTRA may do **STEP02 UI PROMPTS** and MUST STOP after prompt deliverables. UI mock screens are simulations, not Premiere host proof. Do not generate/approve images automatically and do not code CEP/ExtendScript before all UI PNGs approved and single UI_REFERENCE_FINAL.docx committed to repo with planning.
 
-Do not infer signoff from 'lanjutkan'. After G1A PASS, STEP02 UI prompts then MUST STOP until final UI images approved and 1 UI_REFERENCE_FINAL.docx stored in repo; no SOL code until G2.
-
-[Latest static B02 consistency audit](planning/STEP01_B02_CROSSFILE_AUDIT_2026-10-09.md): 21 preset IDs, keys and MEDIUM frame pairs cross-checked against PRESET_MATRIX (all match). This is neither signoff nor Premiere proof.
-
-**Owner signoff request:** [GitHub Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) is the single B02 decision tracker (speed pilot scope + V6 direction matrix); OPEN, not approved. Stop generating new STEP01 audit revisions unless concrete contradictions appear. After approval, record formal G1A evidence before STEP02 UI-prompt STOP.
+**G1B executable validator/test NOT_STARTED; G2 UI NOT_STARTED; AC 0/30, presets 0/21 host verified.** Main not merged; installer/release unavailable.
