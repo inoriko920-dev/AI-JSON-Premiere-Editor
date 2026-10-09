@@ -49,7 +49,7 @@ def _source_metadata(path: Path, ffprobe: Path, runner: Callable[..., Any]) -> d
             raise OverlayError("E_OVERLAY_FFPROBE_FAILED")
         data = json.loads(proc.stdout, parse_constant=lambda x: (_ for _ in ()).throw(
             ValueError("nonfinite JSON constant")))
-    except (OSError, subprocess.SubprocessError, ValueError, TypeError) as exc:
+    except (OSError, UnicodeError, subprocess.SubprocessError, ValueError, TypeError) as exc:
         if isinstance(exc, OverlayError):
             raise
         raise OverlayError("E_OVERLAY_FFPROBE_FAILED") from exc
@@ -128,9 +128,11 @@ def prepare_background_overlay(
             raise ValueError("invalid dirs or ffprobe")
     except (OSError, ValueError, TypeError) as exc:
         raise OverlayError("E_OVERLAY_PATH_OR_TOOL_INVALID") from exc
-    if not isinstance(edit, dict) or not isinstance(isolation_report, dict):
+    if (type(edit) is not dict or type(isolation_report) is not dict or
+            type(original_snapshot) is not dict or
+            type(edit.get("sources")) is not dict):
         raise OverlayError("E_OVERLAY_REQUEST_INVALID")
-    bg = edit.get("sources", {}).get("background", {})
+    bg = edit["sources"].get("background", {})
     if type(bg) is not dict or type(bg.get("path")) is not str or (
             type(bg.get("sha256")) is not str or
             HEX64.fullmatch(bg["sha256"].lower()) is None):
@@ -165,8 +167,7 @@ def prepare_background_overlay(
         expected_name = "BG_NO_AUDIO_" + entries[0]["sha256"][:24] + ".mp4"
         if (not candidate_input.is_absolute() or candidate_input.is_symlink()
                 or not candidate.is_file() or candidate.parent != cache
-                or candidate.name != expected_name or
-                candidate.stat().st_nlink > 1 and candidate.is_symlink()):
+                or candidate.name != expected_name):
             raise ValueError("unsafe candidate")
         pre = candidate.stat()
         digest, length, _ = _bounded_hash(candidate, max_media_bytes)

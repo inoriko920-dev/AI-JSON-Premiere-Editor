@@ -59,6 +59,8 @@ def bind_derived_v1_candidate(
             or overlay.get("can_assemble") is not False
             or type(overlay.get("overlay_sha256")) is not str or
             SHA.fullmatch(overlay["overlay_sha256"]) is None
+            or type(track_candidate.get("operation_sha256")) is not str
+            or SHA.fullmatch(track_candidate["operation_sha256"]) is None
             or track_candidate.get("media_digest") !=
                overlay.get("original_inventory_sha256")):
         raise DerivedTrackError("E_DERIVED_BINDING_INPUT_INVALID")

@@ -115,6 +115,16 @@ class OverlayTests(unittest.TestCase):
         self.assertEqual(a["original_inventory_sha256"],
                          self.snapshot["inventory_sha256"])
 
+    def test_malformed_untrusted_snapshot_is_structured_error(self):
+        self.snapshot=None
+        with self.assertRaises(OverlayError) as ex:self.verify()
+        self.assertEqual(ex.exception.code,"E_OVERLAY_REQUEST_INVALID")
+
+    def test_unreadable_ffprobe_utf8_is_structured_error(self):
+        self.derived_metadata=b"\xff\xfe"
+        with self.assertRaises(OverlayError) as ex:self.verify()
+        self.assertEqual(ex.exception.code,"E_OVERLAY_FFPROBE_FAILED")
+
     def test_wrong_derived_sha_must_fail_before_probing(self):
         self.report["sha256"]="f"*64
         with self.assertRaises(OverlayError) as ex:self.verify()
