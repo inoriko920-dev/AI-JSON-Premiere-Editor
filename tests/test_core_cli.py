@@ -1,4 +1,5 @@
 """CLI read-only process smoke cases, no real Premiere."""
+import hashlib
 import json
 from pathlib import Path
 import runpy
@@ -32,6 +33,67 @@ class CoreCLIProcessTests(unittest.TestCase):
                             timeout=15)
         self.assertTrue(done.stdout,done.stderr)
         return done.returncode,json.loads(done.stdout)
+
+    def _create_real_import_fixture(self):
+        from tests.test_core_import_snapshot import PNG, WAV, MP4
+        edit=json.loads(self.edit.read_text(encoding="utf-8"))
+        sources={
+            "srt": b"1\\n00:00:00,000 --> 00:00:01,000\\nFirst\\n\\n2\\n00:00:01,000 --> 00:00:02,000\\nSecond\\n\\n3\\n00:00:02,000 --> 00:00:03,000\\nThird\\n",
+            "audio": WAV,
+            "background": MP4,
+        }
+        # Unescape the literal newline escapes once; cue text is test-only.
+        sources["srt"]=sources["srt"].replace(b"\\n",b"\n")
+        for key,data in sources.items():
+            rel=edit["sources"][key]["path"]
+            path=self.root/rel
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(data)
+            edit["sources"][key]["sha256"]=hashlib.sha256(data).hexdigest()
+        for aid,record in edit["assets"].items():
+            path=self.root/record["path"]
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(PNG)
+            record["sha256"]=hashlib.sha256(PNG).hexdigest()
+        self.edit.write_text(json.dumps(edit),encoding="utf-8")
+
+    def test_import_snapshot_cli_returns_only_non_authorizing_counts(self):
+        self._create_real_import_fixture()
+        code,r=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","10",
+            "--include-import-snapshot","--max-import-items","8")
+        self.assertEqual(code,3,r)
+        snap=r["import_snapshot"]
+        self.assertEqual(snap["status"],"CANDIDATE_NOT_AUTHORIZED")
+        self.assertFalse(snap["can_import"])
+        self.assertEqual(snap["item_count"],6)
+        self.assertEqual(snap["import_count"],5)
+        self.assertEqual(len(snap["inventory_sha256"]),64)
+        self.assertNotIn(str(self.root),json.dumps(r))
+        self.assertNotIn("absolute_path",json.dumps(r))
+        self.assertFalse(r["can_assemble"])
+
+    def test_import_snapshot_detects_alias_of_two_assets(self):
+        self._create_real_import_fixture()
+        edit=json.loads(self.edit.read_text(encoding="utf-8"))
+        edit["assets"]["A003"]["path"]=edit["assets"]["A001"]["path"]
+        self.edit.write_text(json.dumps(edit),encoding="utf-8")
+        code,r=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","10",
+            "--include-import-snapshot","--max-import-items","8")
+        self.assertEqual(code,2)
+        self.assertIn("E_MEDIA_ALIAS_AMBIGUOUS",
+                      [x["code"] for x in r["issues"]])
+        self.assertNotIn("import_snapshot",r)
+
+    def test_import_snapshot_requires_explicit_development_item_limit(self):
+        self._create_real_import_fixture()
+        code,r=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","10",
+            "--include-import-snapshot")
+        self.assertEqual(code,2)
+        self.assertIn("E_CONFIG_LIMITS_UNVERIFIED",
+                      [x["code"] for x in r["issues"]])
 
     def test_missing_optional_ffprobe_stays_review_not_ready(self):
         code,result=self.run_cli("--media-root",str(self.root),
