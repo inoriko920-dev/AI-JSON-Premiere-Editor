@@ -95,6 +95,17 @@ test("no insertion on nonempty managed track even when baseline matches",()=>{
    "S7|1|BLOCKED|TRACK_NOT_EMPTY");
  assert.equal(h.calls(),0);
 });
+test("reject wrong exact tick duration or backwards bounds BEFORE host writes",()=>{
+ const h=ctx();
+ h.request.sourceDurationTicks="101";h.auth.expectedSourceDurationTicks="101";
+ assert.equal(h.adapter.placeOne(h.request,h.auth),
+   "S7|1|BLOCKED|PLACEMENT_INVALID");
+ h.request.sourceDurationTicks="100";h.auth.expectedSourceDurationTicks="100";
+ h.request.startTicks="201";
+ assert.equal(h.adapter.placeOne(h.request,h.auth),
+   "S7|1|BLOCKED|PLACEMENT_INVALID");
+ assert.equal(h.calls(),0);
+});
 test("mismatched duration and source identity stop before any write",()=>{
  const h=ctx();
  h.auth.expectedSourceDurationTicks="101";
@@ -163,8 +174,10 @@ test("read-only sequence snapshot is safe and detects malformed clip IDs",()=>{
  assert.equal(h.adapter.inspectSequence(GUID),null);
 });
 test("candidate host code never exports, deletes, ripples or calls QE",()=>{
+ const executable=source.replace(/\/\*[\s\S]*?\*\//g,"")
+    .replace(/^\s*\/\/.*$/gm,"");
  for(const forbidden of ["insertClip(","app.enableQE","deleteSequence(","remove(",
    "setInPoint(","setOutPoint(","exportAsMediaDirect(","eval("]){
-   assert.equal(source.includes(forbidden),false,forbidden);
+   assert.equal(executable.includes(forbidden),false,forbidden);
  }
 });

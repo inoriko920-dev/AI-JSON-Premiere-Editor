@@ -17,6 +17,23 @@ $._AIJSON_PLACEMENT_V1 = (function () {
     function ticks(x) {
         return typeof x === "string" && /^(0|[1-9][0-9]{0,32})$/.test(x);
     }
+    function difference(end,start) {
+        /* Exact nonnegative decimal subtraction in ES3 (no BigInt/Number). */
+        if(!ticks(end)||!ticks(start) ||
+           end.length<start.length ||
+           (end.length===start.length && end<start)) {return null;}
+        var i=end.length-1,j=start.length-1,borrow=0,out="";
+        while(i>=0){
+            var a=end.charCodeAt(i)-48;
+            var b=j>=0?start.charCodeAt(j)-48:0;
+            var n=a-b-borrow;
+            if(n<0){n+=10;borrow=1;}else{borrow=0;}
+            out=String(n)+out;i--;j--;
+        }
+        if(borrow){return null;}
+        out=out.replace(/^0+/,"");
+        return out.length?out:"0";
+    }
     function validName(x) {
         return typeof x === "string" && /^AIJSON_[a-zA-Z0-9_ -]{1,70}$/.test(x);
     }
@@ -150,10 +167,13 @@ $._AIJSON_PLACEMENT_V1 = (function () {
                !ticks(request.startTicks) || !ticks(request.endTicks) ||
                !ticks(request.sourceDurationTicks) ||
                !request.expectedBefore ||
-               ["V1","V2","V3","A1"].indexOf(request.track)===-1 ||
+               (request.track!=="V1" && request.track!=="V2" &&
+                request.track!=="V3" && request.track!=="A1") ||
                request.expectedType!==(request.track==="A1"?"Audio":"Video") ||
                request.sourceDurationTicks==="0" ||
-               request.startTicks===request.endTicks) {
+               request.startTicks===request.endTicks ||
+               difference(request.endTicks,request.startTicks)!==
+                   request.sourceDurationTicks) {
                 return "S7|1|BLOCKED|PLACEMENT_INVALID";
             }
             /* ES3 host has no native BigInt. Exact duration/interval equality
