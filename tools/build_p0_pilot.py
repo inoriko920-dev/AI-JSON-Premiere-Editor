@@ -25,6 +25,7 @@ REQUIRED = (
     "helper/validate_request.py",
     "core/__init__.py",
     "core/contracts.py",
+    "core/draft_compiler.py",
     "core/media.py",
     "core/validate_cli.py",
     "core/direction_registry.json",
