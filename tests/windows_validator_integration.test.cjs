@@ -79,6 +79,10 @@ test("Windows uses real isolated Python runner and real media to produce NEEDS_R
   assert.equal(result.draft.scene_count,1);
   assert.equal(result.draft.asset_instance_count,1);
   assert.equal(result.draft.total_frames,90);
+  assert.ok(result.animation_phases);
+  assert.equal(result.animation_phases.instance_count,1);
+  assert.equal(result.animation_phases.zero_hold_count,0);
+  assert.equal(result.animation_phases.can_render,false);
   assert.ok(result.import_snapshot,"real Windows Python should yield local import inventory");
   assert.equal(result.import_snapshot.item_count,4);
   assert.equal(result.import_snapshot.import_count,3);

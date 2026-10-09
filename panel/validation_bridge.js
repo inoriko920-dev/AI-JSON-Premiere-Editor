@@ -119,10 +119,28 @@
                 counts:{V1:counts.V1,V2:counts.V2,V3:counts.V3,A1:counts.A1},
                 digest:c.operation_sha256,can_assemble:false};
         }
+        var phases=null;
+        if(Object.prototype.hasOwnProperty.call(obj,"animation_phases")){
+            var fx=obj.animation_phases;
+            if(!fx || typeof fx!=="object" ||
+                fx.status!=="REFERENCE_SCHEDULE_ONLY" ||
+                fx.can_render!==false || fx.can_assemble!==false ||
+                !Number.isSafeInteger(fx.instance_count) || fx.instance_count<1 ||
+                fx.instance_count>100000 ||
+                !Number.isSafeInteger(fx.zero_hold_count) ||
+                fx.zero_hold_count<0 ||
+                fx.zero_hold_count>fx.instance_count ||
+                !/^[a-f0-9]{64}$/.test(fx.operation_sha256||"")){
+                return {status:"error",code:"VALIDATOR_RESPONSE_INVALID"};
+            }
+            phases={instance_count:fx.instance_count,
+                zero_hold_count:fx.zero_hold_count,
+                digest:fx.operation_sha256,can_render:false};
+        }
         return {status:obj.status,can_assemble:false,
             error_count:obj.error_count,review_count:obj.review_count,
             issues:sanitized,draft:draft,import_snapshot:importSummary,
-            track_candidate:track};
+            track_candidate:track,animation_phases:phases};
     }
     function createValidator(deps){
         var active=false,generation=0,child=null;
@@ -200,6 +218,8 @@
                     "--max-srt-cues",READ_BUDGETS.cues,
                     "--include-draft","--include-import-snapshot",
                     "--include-track-preflight",
+                    "--include-animation-phases",
+                    "--max-animation-instances","256",
                     "--max-import-items","256"];
                 if(ffprobe){args.push("--ffprobe-exe",ffprobe);}
                 child=execFile(py,args,{

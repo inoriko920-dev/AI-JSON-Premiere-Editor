@@ -112,10 +112,16 @@
                     " V3:"+result.track_candidate.counts.V3+
                     " A1:"+result.track_candidate.counts.A1+
                     " (KANDIDAT BELUM DAPAT DIEKSEKUSI)" : "";
+                var phaseLine=result.animation_phases ?
+                    " · BOTH "+result.animation_phases.instance_count+
+                    " visual (fase referensi, 0 efek dibuat)" +
+                    (result.animation_phases.zero_hold_count ?
+                     ", "+result.animation_phases.zero_hold_count+" tanpa HOLD" : "") :
+                    "";
                 status.textContent="Validasi offline "+result.status+
                     " · error "+result.error_count+" · review "+result.review_count+
-                    " · kode: "+(codes.join(", ")||"—")+draftLine+importLine+trackLine+
-                    ". Timeline tetap terkunci.";
+                    " · kode: "+(codes.join(", ")||"—")+draftLine+importLine+
+                    trackLine+phaseLine+". Timeline tetap terkunci.";
             });
             if(!started){refresh();}
         });
