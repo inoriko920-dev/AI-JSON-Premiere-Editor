@@ -75,6 +75,10 @@ test("Windows uses real isolated Python runner and real media to produce NEEDS_R
   assert.equal(result.can_assemble,false);
   assert.equal(result.error_count,0);
   assert.ok(result.review_count>=3);
+  assert.ok(result.draft);
+  assert.equal(result.draft.scene_count,1);
+  assert.equal(result.draft.asset_instance_count,1);
+  assert.equal(result.draft.total_frames,90);
   assert.ok(result.issues.some(x=>x.code==="E_HOST_UNVERIFIED"));
   assert.equal(fs.existsSync(path.join(home,"DO_NOT_RENDER.mp4")),false);
   assert.equal(v.isBusy(),false);

@@ -33,6 +33,15 @@ class CoreCLIProcessTests(unittest.TestCase):
         self.assertTrue(done.stdout,done.stderr)
         return done.returncode,json.loads(done.stdout)
 
+    def test_draft_timeline_is_non_executable_and_deterministic(self):
+        code,result=self.run_cli("--include-draft")
+        self.assertEqual(code,3)
+        self.assertEqual(result["draft"]["status"],"DRAFT_NOT_EXECUTABLE")
+        self.assertFalse(result["draft"]["can_assemble"])
+        self.assertEqual(result["draft"]["total_frames"],330)
+        self.assertEqual(result["draft"]["asset_instance_count"],3)
+        self.assertEqual(len(result["draft"]["operation_digest_sha256"]),64)
+
     def test_structural_candidate_is_review_not_ready(self):
         code,result=self.run_cli()
         self.assertEqual(code,3)

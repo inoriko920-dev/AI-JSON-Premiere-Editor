@@ -148,3 +148,15 @@ test("bridge exports to both window and CommonJS under CEP mixed Node",()=>{
  assert.equal(typeof context.AIJSONValidationBridge.createValidator,"function");
  assert.equal(typeof context.module.exports.createValidator,"function");
 });
+
+test("sanitized read-only draft summary is accepted; executable draft is refused",()=>{
+ const draft={status:"DRAFT_NOT_EXECUTABLE",can_assemble:false,
+   scene_count:2,asset_instance_count:3,total_frames:330,
+   operation_digest_sha256:"a".repeat(64)};
+ let data=api.parseReport(JSON.stringify({...VALID,draft}));
+ assert.equal(data.status,"NEEDS_REVIEW");
+ assert.equal(data.draft.total_frames,330);
+ assert.equal(data.draft.digest,"a".repeat(64));
+ data=api.parseReport(JSON.stringify({...VALID,draft:{...draft,can_assemble:true}}));
+ assert.equal(data.code,"VALIDATOR_RESPONSE_INVALID");
+});

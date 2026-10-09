@@ -16,6 +16,7 @@ import sys
 
 from .contracts import loads_strict, validate_pair
 from .media import inspect_media
+from .draft_compiler import build_draft, DraftCompileError
 
 
 def error(code: str, message: str) -> dict:
@@ -51,6 +52,8 @@ def run(argv=None):
     parser.add_argument("--media-root", type=Path, help="Optional explicit media project root")
     parser.add_argument("--max-media-bytes", type=int, help="Required when auditing media")
     parser.add_argument("--max-srt-cues", type=int, help="Required when auditing media")
+    parser.add_argument("--include-draft", action="store_true",
+                        help="Show deterministic non-executable timeline intent if structurally valid")
     args = parser.parse_args(argv)
     if args.max_json_bytes <= 0:
         result = error("E_CONFIG_LIMITS_UNVERIFIED",
@@ -87,6 +90,19 @@ def run(argv=None):
                 result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
                 result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
                 result["can_assemble"] = False
+            if args.include_draft and result["error_count"] == 0:
+                try:
+                    draft = build_draft(edit, animation)
+                    result["draft"] = {
+                        "status": "DRAFT_NOT_EXECUTABLE", "can_assemble": False,
+                        "scene_count": draft["scene_count"],
+                        "asset_instance_count": draft["asset_instance_count"],
+                        "total_frames": draft["total_frames"],
+                        "operation_digest_sha256": draft["operation_digest_sha256"]
+                    }
+                except DraftCompileError:
+                    # Missing creative policy/uncertain timing still blocks draft.
+                    result["draft_status"] = "BLOCKED_CONTRACT_REVIEW"
         except (OSError, UnicodeError, ValueError, TypeError, OverflowError) as ex:
             # Never print untrusted file content or absolute paths in reports.
             code = "E_RESOURCE_LIMIT" if str(ex) == "E_RESOURCE_LIMIT" else "E_JSON_SCHEMA"

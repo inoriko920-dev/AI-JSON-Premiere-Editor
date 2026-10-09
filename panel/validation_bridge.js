@@ -71,9 +71,23 @@
             sanitized.push({code:item.code,severity:item.severity});
         }
         // No untrusted path/message or arbitrary JSON is forwarded to the UI.
+        var draft=null;
+        if(Object.prototype.hasOwnProperty.call(obj,"draft")){
+            var d=obj.draft;
+            if(!d || typeof d!=="object" ||
+                d.status!=="DRAFT_NOT_EXECUTABLE" || d.can_assemble!==false ||
+                !Number.isSafeInteger(d.scene_count) || d.scene_count<1 ||
+                !Number.isSafeInteger(d.asset_instance_count) || d.asset_instance_count<1 ||
+                !Number.isSafeInteger(d.total_frames) || d.total_frames<1 ||
+                !/^[a-f0-9]{64}$/.test(d.operation_digest_sha256||"")){
+                return {status:"error",code:"VALIDATOR_RESPONSE_INVALID"};
+            }
+            draft={scene_count:d.scene_count,asset_instance_count:d.asset_instance_count,
+                total_frames:d.total_frames,digest:d.operation_digest_sha256};
+        }
         return {status:obj.status,can_assemble:false,
             error_count:obj.error_count,review_count:obj.review_count,
-            issues:sanitized};
+            issues:sanitized,draft:draft};
     }
     function createValidator(deps){
         var active=false,generation=0,child=null;
@@ -139,7 +153,8 @@
                     "--max-json-bytes",READ_BUDGETS.json,
                     "--media-root",media,
                     "--max-media-bytes",READ_BUDGETS.media,
-                    "--max-srt-cues",READ_BUDGETS.cues];
+                    "--max-srt-cues",READ_BUDGETS.cues,
+                    "--include-draft"];
                 child=execFile(py,args,{
                     cwd:realRoot,shell:false,windowsHide:true,timeout:30000,
                     maxBuffer:MAX_OUTPUT,encoding:"utf8"

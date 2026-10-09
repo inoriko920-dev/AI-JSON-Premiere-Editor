@@ -98,9 +98,13 @@
                     codes.push(result.issues[j].code);
                 }
                 status.className=result.status==="PREFLIGHT_FAIL"?"status bad":"status wait";
+                var draftLine=result.draft ?
+                    " · draft "+result.draft.scene_count+" scene / "+
+                        result.draft.asset_instance_count+" visual / "+
+                        result.draft.total_frames+" frame (belum dapat dieksekusi)" : "";
                 status.textContent="Validasi offline "+result.status+
                     " · error "+result.error_count+" · review "+result.review_count+
-                    " · kode: "+(codes.join(", ")||"—")+
+                    " · kode: "+(codes.join(", ")||"—")+draftLine+
                     ". Timeline tetap terkunci.";
             });
             if(!started){refresh();}
