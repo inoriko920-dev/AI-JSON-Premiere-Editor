@@ -1,0 +1,36 @@
+name: STEP14 Host Readback Audit (Mocked Host Only)
+on:
+  push:
+    branches:
+      - 'sol/step14-*'
+  pull_request:
+    paths:
+      - 'core/host_readback_audit.py'
+      - 'host/readback_observer.jsx'
+      - 'tests/test_core_host_readback_audit.py'
+      - 'tests/readback_observer.test.cjs'
+      - '.github/workflows/step14-readback-audit.yml'
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: STEP14 exact prefix audit tests
+        run: python -m unittest tests.test_core_host_readback_audit -v
+      - name: Regression all Python tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Regression all Node/CEP/ES3 mock tests
+        run: npm test
+      - name: Keep real host unavailable and mutation disconnected
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert 'readback_observer.jsx' not in s and 'track_placement_adapter.jsx' not in s; print('G3_REAL_HOST_UNVERIFIED=PASS')"
