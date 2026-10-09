@@ -62,14 +62,14 @@ test("unknown sequence, unknown host version and malformed timebase fail closed"
 test("untrusted clip ID, tick or duplicate readback is not serialized",()=>{
  const x=create();
  x.addClip(x.v[1],"bad/id","node-1","0",TB,"0",TB);
- assert.equal(x.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID");
+ assert.equal(x.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID_V2");
  const y=create();
  y.addClip(y.v[0],"clip-1","node-1","0",TB,"0",TB);
  y.addClip(y.v[2],"clip-1","node-1","0",TB,"0",TB);
- assert.equal(y.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID");
+ assert.equal(y.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID_V3");
  const z=create();
  z.addClip(z.a[0],"clip-1","node-1","1.0",TB,"0",TB);
- assert.equal(z.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID");
+ assert.equal(z.api.capture(SEQ),"S14|1|ERROR|TRACK_READBACK_INVALID_A1");
 });
 test("observer executes no mutation API, no file IO, no eval or user media read",()=>{
  for(const name of [".overwriteClip(",".insertClip(",".createBin(",
