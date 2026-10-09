@@ -17,21 +17,29 @@ REQUIRED = (
     "panel/styles.css",
     "panel/bridge.js",
     "panel/helper_bridge.js",
+    "panel/validation_bridge.js",
+    "panel/validation_ui.js",
     "panel/app.js",
     "host/step03.jsx",
     "helper/handshake.py",
+    "helper/validate_request.py",
+    "core/__init__.py",
+    "core/contracts.py",
+    "core/media.py",
+    "core/validate_cli.py",
+    "core/direction_registry.json",
 )
 GUIDE = """STEP03 P0 - UNSIGNED CEP DEVELOPMENT PILOT (NOT AN INSTALLER)
 Target: Adobe Premiere Pro 2024 (24.x), Windows 11.
 Status: GitHub static CI only; G3 BLOCKED_HOST until genuine Premiere evidence.
 Unzip and inspect files before any test. Folder AI_JSON_Premiere_P0_Pilot
-contains the CEP manifest, read-only JSX host probe, and helper diagnostics.
+contains CEP manifest, read-only JSX probe, native file pickers, and offline JSON validator.
 Unpacked unsigned CEP may require approved local developer/trust configuration.
 DO NOT change registry, security settings, or install helpers automatically.
 Only follow Adobe-supported CEP test setup with explicit owner approval.
 Python developer-only: environment AIJSON_P0_PYTHON_EXE pointing to a trusted
 absolute python.exe must be inherited by Premiere, or helper stays blocked.
-NO import, preflight, assembly, effects, media writes or MP4 generation.
+Includes safe offline data checks only: no Premiere import, sequence assembly, effects, media writes or MP4 generation.
 Keep existing user projects intact. Do not claim G3 from this ZIP/CI.
 For pilot log and exact real host evidence see docs/evidence/STEP03/README.md.
 """
