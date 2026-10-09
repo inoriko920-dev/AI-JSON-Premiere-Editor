@@ -1,20 +1,20 @@
 # Status proyek
 
-- Tanggal baseline: 9 Oktober 2026 WIB.
-- Tahap sekarang: STEP00 ASTRA planning.
-- Hasil dokumen: COMPLETE_WITH_OPEN_PREREQUISITES.
-- G0 kesiapan penuh: BLOCKED pada kelengkapan sumber dan jalur host nyata.
-- STEP01: NOT_STARTED; berikutnya adalah perencanaan kontrak, bukan coding.
-- G1A spesifikasi: NOT_STARTED. G1B schema tests: NOT_STARTED, dijalankan STEP04.
-- G2 UI approval: NOT_STARTED. Coding: BLOCKED.
-- G3–G10: NOT_STARTED. P0–P6: NOT_TESTED.
-- AC01–AC30: 0/30 diuji. Preset backend: 0/21 tersertifikasi.
-- Implementasi produk, CI produk, installer dan release: belum ada.
+- Tanggal pembaruan: 9 Oktober 2026 WIB.
+- Baseline main: `e28e08f818d92f01996ce6a6ca6db52606728bfb` (STEP00 ASTRA planning).
+- Tahap kerja: **STEP01 ASTRA — DRAFT_WITH_BLOCKERS**, pada branch `astra/step01-contract-spec-20261009`. Hasil terdiri dari DOCX kontrak, Markdown, katalog 48 fixture, dan keputusan terbuka.
+- G0 kesiapan penuh: BLOCKED pada sumber V2/layout/efek dan jalur host nyata.
+- G1A spesifikasi: **BLOCKED** (B01, B02, B06). Belum dapat disahkan untuk coding.
+- G1B schema tests: NOT_STARTED; baru boleh dibuat/diuji SOL STEP04 setelah UI gate.
+- G2 gambar UI + DOCX referensi final + approval: NOT_STARTED. **Coding PROHIBITED**.
+- G3–G10: NOT_STARTED; P0–P6 NOT_TESTED.
+- AC01–AC30: 0/30 diuji; 21 preset 0/21 disertifikasi.
+- Produk, executable, CI produk, installer dan release: belum ada.
 
-## Kelengkapan handoff
+## Serah terima
 
-Master V3 asli dan transkrip, rencana ASTRA DOCX/Markdown, audit sumber, acceptance matrix 30 baris, preset matrix 21 baris, blocker list, README, AGENTS dan 00_START_HERE tersedia dalam paket ini. Hash dokumen di CHECKSUMS.sha256.
+Lihat [STEP01 DOCX](planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.docx), [STEP01 Markdown](planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.md) dan [Fixture katalog](planning/STEP01_FIXTURE_CATALOG.csv). Planning draft bukan hasil tes host atau keputusan mengganti Master V2. Jangan mengubah G1A menjadi PASS sebelum seluruh definisi normatif benar-benar lengkap dan disetujui.
 
-## Aturan perubahan status
+## Berikutnya
 
-Catat commit yang diuji, bukti, tanggal dan reviewer sebelum gate PASS. Jangan menyalin PASS dari simulasi ke host. Persetujuan UI harus eksplisit dan mengacu gambar final. STEP berikut hanya setelah gate masuk terpenuhi serta instruksi pengguna sesuai workflow.
+Masih STEP01: tutup B01/B02/B06 dengan sumber resmi atau spesifikasi pengganti yang disetujui, bekukan kontrak, perbarui DOCX/MD dan catat approval. Sesudah G1A PASS, STEP02 menyiapkan prompt UI dan STOP menunggu gambar final serta approval. Jangan merge implementasi sebelum gate lengkap.
