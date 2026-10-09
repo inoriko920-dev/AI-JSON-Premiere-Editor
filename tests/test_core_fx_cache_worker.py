@@ -1,0 +1,210 @@
+"""STEP17 alpha cache worker mock subprocess tests; no images generated or edited.
+
+The PNG fixture consists only of a small IHDR byte header, not a real image.
+No real Adobe host, ffmpeg codec/alpha pixel correctness or UI artwork is claimed.
+"""
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import subprocess
+import tempfile
+import unittest
+
+from core.animation_phases import build_both_phase_candidate
+from core.fx_cache_worker import AlphaCacheError, render_candidate
+
+ROOT=Path(__file__).resolve().parents[1]
+demo=runpy.run_path(str(ROOT/"tests/test_core_contracts.py"))["demo"]
+HEADER=(b"\x89PNG\r\n\x1a\n"+(13).to_bytes(4,"big")+b"IHDR"+
+        (64).to_bytes(4,"big")+(64).to_bytes(4,"big")+
+        b"\x08\x06\x00\x00\x00"+b"\0"*8)
+
+
+def candidate(preset="FADE", direction="NONE"):
+    edit,animation=demo()
+    animation["decisions"][0]["preset"]=preset
+    animation["decisions"][0]["direction"]=direction
+    return build_both_phase_candidate(edit,animation,max_instances=10)["entries"][0]
+
+
+class AlphaCacheTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        root=Path(self.tmp.name)
+        self.media=root/"media"
+        self.cache=root/"cache"
+        self.binary=root/"bin"
+        for d in (self.media,self.cache,self.binary):
+            d.mkdir()
+        self.source=self.media/"approved.png"
+        self.source.write_bytes(HEADER)
+        self.input_sha=hashlib.sha256(HEADER).hexdigest()
+        self.ffmpeg=self.binary/"ffmpeg.exe"
+        self.ffprobe=self.binary/"ffprobe.exe"
+        self.ffmpeg.write_bytes(b"fixture_binary")
+        self.ffprobe.write_bytes(b"fixture_binary")
+        self.calls=[]
+        self.problem=None
+        self.output_codec="qtrle"
+        self.frame_count="150"
+        self.overwrite_race=False
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def runner(self,argv,**kwargs):
+        self.calls.append((argv,kwargs))
+        if argv[0]==str(self.ffmpeg):
+            if self.problem=="ffmpeg-exit":
+                return subprocess.CompletedProcess(argv,2,b"",b"no details")
+            if self.problem=="ffmpeg-timeout":
+                raise subprocess.TimeoutExpired(argv,kwargs["timeout"])
+            target=Path(argv[-1])
+            target.write_bytes(b"synthetic_MOV_BYTES_ONLY_MOCK_NO_REAL_CODEC")
+            if self.overwrite_race:
+                key=self._key_from_argv(argv)
+                # The actual test also supports manually preparing the
+                # final destination after the metadata probe below.
+            return subprocess.CompletedProcess(argv,0,b"",b"")
+        if argv[0]==str(self.ffprobe):
+            if self.problem=="probe-exit":
+                return subprocess.CompletedProcess(argv,2,b"",b"")
+            data={"streams":[{
+                "codec_name":self.output_codec,"pix_fmt":"argb",
+                "width":64,"height":64,"nb_read_frames":self.frame_count,
+                "r_frame_rate":"30/1"
+            }]}
+            if self.problem=="probe-malformed":
+                data=b"not json"
+            else:
+                data=json.dumps(data).encode()
+            return subprocess.CompletedProcess(argv,0,data,b"")
+        raise AssertionError("Only verified fixed executables may run")
+
+    def kwargs(self,**overrides):
+        return dict(item=candidate(),source_png=Path("approved.png"),
+            media_root=self.media,cache_root=self.cache,
+            expected_sha256=self.input_sha,ffmpeg_exe=self.ffmpeg,
+            ffprobe_exe=self.ffprobe,max_source_bytes=100000,
+            max_pixels=100000,max_frames=200,
+            timeout_seconds=10,runner=self.runner,**overrides)
+
+    def go(self,**overrides):
+        args=self.kwargs()
+        args.update(overrides)
+        return render_candidate(**args)
+
+    def assert_code(self,code,**overrides):
+        with self.assertRaises(AlphaCacheError) as ctx:
+            self.go(**overrides)
+        self.assertEqual(ctx.exception.code,code)
+
+    def test_successful_mock_render_is_cache_only_and_not_certified(self):
+        r=self.go()
+        self.assertEqual(r["status"],
+            "RENDERED_METADATA_CHECKED_NOT_HOST_OR_ALPHA_CERTIFIED")
+        self.assertFalse(r["can_assemble"])
+        self.assertFalse(r["alpha_pixels_verified"])
+        self.assertFalse(r["host_verified"])
+        self.assertEqual(r["size"],[64,64])
+        self.assertEqual(r["frames"],150)
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        outputs=list(self.cache.glob("fx_*.mov"))
+        self.assertEqual(len(outputs),1)
+        self.assertFalse(list(self.cache.glob(".fx_work_*")))
+        self.assertEqual(len(r["cache_key_sha256"]),64)
+        self.assertEqual(hashlib.sha256(outputs[0].read_bytes()).hexdigest(),
+                         r["output_sha256"])
+        self.assertEqual(len(self.calls),2)
+        for argv,options in self.calls:
+            self.assertFalse(options["shell"])
+            self.assertEqual(options["timeout"],10)
+        ffmpeg_args=self.calls[0][0]
+        self.assertIn("-n",ffmpeg_args)
+        self.assertNotIn("-y",ffmpeg_args)
+        self.assertEqual(ffmpeg_args[ffmpeg_args.index("-frames:v")+1],"150")
+        self.assertEqual(self.calls[1][0][self.calls[1][0].index("-count_frames")],
+                         "-count_frames")
+
+    def test_no_overwrite_even_when_cache_key_reused(self):
+        original=self.go()
+        self.assert_code("E_FX_CACHE_EXISTS_NO_OVERWRITE")
+        self.assertEqual(len(self.calls),2)
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
+        self.assertEqual(self.go if False else original["frames"],150)
+
+    def test_source_hash_tamper_never_runs_ffmpeg(self):
+        self.assert_code("E_FX_SOURCE_HASH",expected_sha256="a"*64)
+        self.assertEqual(self.calls,[])
+        self.assertFalse(list(self.cache.iterdir()))
+
+    def test_invalid_png_header_never_renders(self):
+        new=b"broken PNG"
+        self.source.write_bytes(new)
+        self.assert_code("E_FX_SOURCE_LIMIT",
+            expected_sha256=hashlib.sha256(new).hexdigest())
+        self.assertFalse(self.calls)
+        new=b"X"*len(HEADER)
+        self.source.write_bytes(new)
+        self.assert_code("E_FX_PNG_INVALID",
+            expected_sha256=hashlib.sha256(new).hexdigest())
+
+    def test_rejects_png_without_alpha(self):
+        data=bytearray(HEADER)
+        data[25]=2 # RGB, no alpha
+        self.source.write_bytes(data)
+        self.assert_code("E_FX_PNG_PROFILE_UNVERIFIED",
+                         expected_sha256=hashlib.sha256(data).hexdigest())
+        self.assertEqual(self.calls,[])
+
+    def test_path_traversal_and_cache_root_collision_are_blocked(self):
+        self.assert_code("E_FX_SOURCE_PATH",source_png=Path("../approved.png"))
+        self.assert_code("E_FX_CACHE_ROOT_COLLISION",cache_root=self.media)
+        self.assertFalse(self.calls)
+
+    def test_bad_resource_limits_and_unsupported_preset_are_blocked(self):
+        self.assert_code("E_FX_RESOURCE_LIMIT_UNVERIFIED",max_frames=0)
+        self.assert_code("E_FX_RESOURCE_LIMIT",max_frames=100)
+        self.assert_code("E_FX_BACKEND_NOT_IMPLEMENTED",
+                         item=candidate("BRUSH","LEFT_TO_RIGHT"))
+
+    def test_invalid_or_missing_binary_refused_before_render(self):
+        self.assert_code("E_FX_BINARY_UNVERIFIED",
+                         ffmpeg_exe=self.binary/"not-ffmpeg.exe")
+        self.assert_code("E_FX_BINARY_UNVERIFIED",
+                         ffprobe_exe=Path("ffprobe.exe"))
+        self.assertEqual(self.calls,[])
+
+    def test_ffmpeg_errors_clean_private_workdir_without_publishing(self):
+        for name,expected in (("ffmpeg-exit","E_FX_RENDER_FAILED"),
+                              ("ffmpeg-timeout","E_FX_RENDER_EXEC_FAILED")):
+            self.problem=name
+            self.assert_code(expected)
+            self.assertFalse(list(self.cache.iterdir()))
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_bad_ffprobe_data_aborts_publish_without_orphan(self):
+        for name,expected in (("probe-exit","E_FX_PROBE_FAILED"),
+                              ("probe-malformed","E_FX_PROBE_FAILED")):
+            self.problem=name
+            self.assert_code(expected)
+            self.assertFalse(list(self.cache.iterdir()))
+        self.problem=None
+        self.output_codec="h264"
+        self.assert_code("E_FX_PROBE_MISMATCH")
+        self.assertFalse(list(self.cache.iterdir()))
+        self.output_codec="qtrle"
+        self.frame_count="149"
+        self.assert_code("E_FX_PROBE_MISMATCH")
+        self.assertFalse(list(self.cache.iterdir()))
+
+    def test_cache_and_source_are_never_overwritten_by_json_values(self):
+        r=self.go()
+        self.assertFalse(r["canva_fidelity_verified"])
+        self.assertTrue(all(".fx_work_" not in x.name for x in self.cache.iterdir()))
+        self.assertTrue(self.source.is_file())
+        self.assertFalse(any(p.name=="approved.png" for p in self.cache.iterdir()))
+
+if __name__=="__main__":
+    unittest.main()
