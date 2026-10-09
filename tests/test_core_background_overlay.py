@@ -83,10 +83,11 @@ class OverlayTests(unittest.TestCase):
         self.assertEqual(args[0],str(self.ffprobe))
         self.assertFalse(kwargs["shell"])
         self.assertEqual(kwargs["timeout"],20)
-        if args[-1]==str(self.derived) and self.mutate_on_derived:
+        is_derived = Path(args[-1]).resolve() == self.derived.resolve()
+        if is_derived and self.mutate_on_derived:
             self.derived.write_bytes(b"CHANGED AFTER PROBE")
-        output=(self.original_metadata if args[-1]==str(self.original)
-                else self.derived_metadata)
+        output=(self.derived_metadata if is_derived
+                else self.original_metadata)
         return subprocess.CompletedProcess(args,0,output,b"")
 
     def verify(self,**kwargs):
