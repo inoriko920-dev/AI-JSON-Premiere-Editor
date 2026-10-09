@@ -1,0 +1,232 @@
+"""STEP17: isolated, no-overwrite candidate FFmpeg RGBA cache render worker.
+
+Only FADE/WIPE filters from STEP16. The source is copied + SHA-256 pinned
+into a private cache work directory BEFORE FFmpeg reads it; user PNG is
+never edited. Candidate MOV is checked by actual FFprobe metadata. This
+is NOT full alpha pixel QA, Canva equivalence or Premiere host approval.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import secrets
+import shutil
+import struct
+import subprocess
+from typing import Any, Callable
+
+from .fx_alpha_backend import compile_filter, build_ffmpeg_command, AlphaBackendError
+from .media import resolved_path
+
+_SHA = frozenset("0123456789abcdef")
+_PNG = b"\x89PNG\r\n\x1a\n"
+_MAX_LOG = 4096
+
+
+class AlphaCacheError(ValueError):
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
+
+
+def _is_hash(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(c in _SHA for c in value)
+
+
+def _binary(path: Path, kind: str) -> Path:
+    if (not isinstance(path, Path) or not path.is_absolute() or
+            path.name.lower() not in (kind, kind + ".exe") or
+            path.is_symlink() or not path.is_file()):
+        raise AlphaCacheError("E_FX_BINARY_UNVERIFIED")
+    return path.resolve(strict=True)
+
+
+def _root(root: Path) -> Path:
+    if (not isinstance(root, Path) or not root.is_absolute() or
+            root.is_symlink() or not root.is_dir()):
+        raise AlphaCacheError("E_FX_CACHE_ROOT_INVALID")
+    return root.resolve(strict=True)
+
+
+def _safe_png_header(header: bytes, max_pixels: int) -> tuple[int, int]:
+    if (len(header) < 33 or header[:8] != _PNG or
+            header[12:16] != b"IHDR" or
+            header[8:12] != b"\x00\x00\x00\x0d"):
+        raise AlphaCacheError("E_FX_PNG_INVALID")
+    width, height = struct.unpack(">II", header[16:24])
+    bit_depth, color_type = header[24:26]
+    # The original PNG must explicitly declare alpha; no invented transparency.
+    if (width < 1 or height < 1 or width * height > max_pixels or
+            bit_depth not in (8, 16) or color_type not in (4, 6)):
+        raise AlphaCacheError("E_FX_PNG_PROFILE_UNVERIFIED")
+    return width, height
+
+
+def _copy_pinned(source: Path, target: Path, expected_sha: str,
+                 max_source_bytes: int, max_pixels: int) -> tuple[int, int, int]:
+    """Write only an exclusive private snapshot, fail on content/file races."""
+    before = source.stat()
+    if before.st_size < 33 or before.st_size > max_source_bytes:
+        raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+    digest = hashlib.sha256()
+    count = 0
+    header = b""
+    # Exclusive file creation prevents accidental writes onto a pre-existing path.
+    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    with source.open("rb") as inp, os.fdopen(os.open(target, flags, 0o600), "wb") as out:
+        while True:
+            chunk = inp.read(1024 * 1024)
+            if not chunk:
+                break
+            count += len(chunk)
+            if count > max_source_bytes:
+                raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+            if len(header) < 33:
+                header = (header + chunk)[:33]
+            digest.update(chunk)
+            out.write(chunk)
+        out.flush()
+        os.fsync(out.fileno())
+        after_fd = os.fstat(inp.fileno())
+    after = source.stat()
+    if (count != before.st_size or count != after.st_size or
+            before.st_mtime_ns != after.st_mtime_ns or
+            before.st_ino != after.st_ino or
+            after_fd.st_size != after.st_size or
+            after_fd.st_mtime_ns != after.st_mtime_ns):
+        raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+    if digest.hexdigest() != expected_sha:
+        raise AlphaCacheError("E_FX_SOURCE_HASH")
+    return (*_safe_png_header(header, max_pixels), count)
+
+
+def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
+           runner: Callable[..., Any], timeout_seconds: int) -> None:
+    argv = [str(probe), "-v", "error", "-select_streams", "v:0",
+            "-count_frames", "-show_entries",
+            "stream=codec_name,pix_fmt,width,height,nb_read_frames,r_frame_rate",
+            "-of", "json", str(result)]
+    try:
+        call = runner(argv, shell=False, capture_output=True,
+                      timeout=timeout_seconds, check=False)
+    except (OSError, subprocess.SubprocessError):
+        raise AlphaCacheError("E_FX_PROBE_EXEC_FAILED")
+    if (call.returncode != 0 or not isinstance(call.stdout, bytes) or
+            len(call.stdout) > 128 * 1024):
+        raise AlphaCacheError("E_FX_PROBE_FAILED")
+    try:
+        info = json.loads(call.stdout)
+    except (UnicodeError, ValueError, TypeError):
+        raise AlphaCacheError("E_FX_PROBE_FAILED")
+    if (type(info) is not dict or type(info.get("streams")) is not list or
+            len(info["streams"]) != 1):
+        raise AlphaCacheError("E_FX_PROBE_FAILED")
+    v = info["streams"][0]
+    if (type(v) is not dict or v.get("codec_name") != "qtrle" or
+            v.get("pix_fmt") != "argb" or v.get("width") != width or
+            v.get("height") != height or
+            v.get("r_frame_rate") != "30/1" or
+            v.get("nb_read_frames") != str(frames)):
+        raise AlphaCacheError("E_FX_PROBE_MISMATCH")
+
+
+def render_candidate(
+    item: dict[str, Any], *, source_png: Path, media_root: Path,
+    cache_root: Path, expected_sha256: str, ffmpeg_exe: Path,
+    ffprobe_exe: Path, max_source_bytes: int, max_pixels: int,
+    max_frames: int, timeout_seconds: int,
+    runner: Callable[..., Any] = subprocess.run
+) -> dict[str, Any]:
+    """One render attempt; a failed attempt can never replace cached output.
+
+    The cache output is a NEW file; no arbitrary output path comes from JSON.
+    The returned metadata does not mean Premiere can import the MOV.
+    """
+    for number in (max_source_bytes, max_pixels, max_frames, timeout_seconds):
+        if type(number) is not int or number < 1:
+            raise AlphaCacheError("E_FX_RESOURCE_LIMIT_UNVERIFIED")
+    if not _is_hash(expected_sha256):
+        raise AlphaCacheError("E_FX_SOURCE_HASH_UNPINNED")
+    try:
+        compiled = compile_filter(item)
+    except AlphaBackendError as error:
+        raise AlphaCacheError(error.code) from error
+    if compiled["frames"] > max_frames:
+        raise AlphaCacheError("E_FX_RESOURCE_LIMIT")
+    ffmpeg = _binary(ffmpeg_exe, "ffmpeg")
+    ffprobe = _binary(ffprobe_exe, "ffprobe")
+    media = _root(media_root)
+    cache = _root(cache_root)
+    if cache == media or cache in media.parents or media in cache.parents:
+        raise AlphaCacheError("E_FX_CACHE_ROOT_COLLISION")
+    try:
+        source = resolved_path(media, str(source_png))
+    except (OSError, TypeError, ValueError, RuntimeError):
+        raise AlphaCacheError("E_FX_SOURCE_PATH")
+    if source.suffix.lower() != ".png":
+        raise AlphaCacheError("E_FX_SOURCE_PATH")
+
+    material = {
+        "version": "fx-alpha-cache-v1",
+        "source_sha256": expected_sha256, "preset": compiled["preset"],
+        "direction": compiled["direction"], "frames": compiled["frames"],
+        "filtergraph": compiled["filtergraph"], "codec": compiled["codec"]
+    }
+    key = hashlib.sha256(json.dumps(material, sort_keys=True,
+        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    final = cache / ("fx_" + key + ".mov")
+    if final.exists() or final.is_symlink():
+        raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE")
+    work = cache / (".fx_work_" + key[:16] + "_" + secrets.token_hex(8))
+    try:
+        work.mkdir(mode=0o700)
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_WORKDIR_FAILED") from error
+    try:
+        staged = work / "input.png"
+        output = work / "derived.mov"
+        width, height, _ = _copy_pinned(
+            source, staged, expected_sha256, max_source_bytes, max_pixels)
+        cmd = build_ffmpeg_command(compiled, ffmpeg, staged, output)
+        try:
+            call = runner(cmd, shell=False, capture_output=True,
+                          timeout=timeout_seconds, check=False)
+        except (OSError, subprocess.SubprocessError):
+            raise AlphaCacheError("E_FX_RENDER_EXEC_FAILED")
+        if call.returncode != 0:
+            raise AlphaCacheError("E_FX_RENDER_FAILED")
+        if (not output.is_file() or output.is_symlink() or
+                output.stat().st_size < 1):
+            raise AlphaCacheError("E_FX_RENDER_EMPTY")
+        _probe(ffprobe, output, width, height, compiled["frames"],
+               runner, timeout_seconds)
+        # Hard link is atomic and fails if destination exists; unlike replace()
+        # this cannot overwrite an existing cache file even with races.
+        try:
+            os.link(output, final)
+        except FileExistsError as error:
+            raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE") from error
+        except OSError as error:
+            raise AlphaCacheError("E_FX_CACHE_COMMIT_FAILED") from error
+        output_hash = hashlib.sha256()
+        with final.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024*1024), b""):
+                output_hash.update(chunk)
+        return {
+            "schema_version": "alpha-cache-render-report-v1",
+            "status": "RENDERED_METADATA_CHECKED_NOT_HOST_OR_ALPHA_CERTIFIED",
+            "preset": compiled["preset"], "frames": compiled["frames"],
+            "size": [width, height], "cache_key_sha256": key,
+            "output_sha256": output_hash.hexdigest(),
+            "can_assemble": False, "host_verified": False,
+            "alpha_pixels_verified": False, "canva_fidelity_verified": False
+        }
+    finally:
+        # Only our unique private work directory is removed; source and any
+        # existing cache output are never deleted, even on interrupted renders.
+        if work.is_dir() and not work.is_symlink():
+            shutil.rmtree(work)
