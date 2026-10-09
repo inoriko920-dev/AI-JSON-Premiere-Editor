@@ -96,6 +96,50 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_VIDEO_CODEC_REVIEW", codes(r))
         self.assertEqual(r["status"], "NEEDS_REVIEW")
 
+    def test_background_linked_audio_is_a_hard_error(self):
+        mixed = fixture()
+        report = self.inspect(payload=mixed)
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertIn("E_BACKGROUND_AUDIO_NOT_ISOLATED", codes(report))
+        self.assertFalse(report["can_assemble"])
+        self.assertEqual(len(report["streams"]), 1)  # narration inspected
+
+    def test_background_unknown_side_stream_is_blocking(self):
+        mixed = json.loads(fixture())
+        mixed["streams"] = [
+            {"codec_type":"video","codec_name":"h264","width":1920,"height":1080},
+            {"codec_type":"subtitle","codec_name":"mov_text"}
+        ]
+        report = self.inspect(payload=json.dumps(mixed).encode())
+        self.assertIn("E_BACKGROUND_STREAM_TOPOLOGY_UNKNOWN",codes(report))
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+
+    def test_background_multiple_video_tracks_is_blocking(self):
+        v = {"codec_type":"video","codec_name":"h264",
+             "width":1920,"height":1080}
+        mixed = json.dumps({"streams":[v,v],"format":{"duration":"11.5"}}).encode()
+        report = self.inspect(payload=mixed)
+        self.assertIn("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS",codes(report))
+        self.assertFalse(report["can_assemble"])
+
+    def test_background_video_only_remains_review_not_certified(self):
+        # Runner fixture responses for both files are video-only: audio probe
+        # correctly rejects missing narration, so test a video-only background
+        # with a callable that returns actual source-specific stream records.
+        def runner(argv, **_kwargs):
+            video = argv[-1].endswith(".mp4")
+            payload = ({"streams":[{"codec_type":"video","codec_name":"h264",
+                                    "width":1920,"height":1080}],
+                        "format":{"duration":"11.5"}} if video else
+                       {"streams":[{"codec_type":"audio","codec_name":"pcm_s16le",
+                                    "sample_rate":"48000"}],
+                        "format":{"duration":"11.5"}})
+            return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertFalse(report["can_assemble"])
+        self.assertEqual(len(report["streams"]),2)
+
     def test_missing_duration_requires_review(self):
         body = fixture().decode().replace('"11.500"', '"N/A"')
         r = self.inspect(payload=body.encode())

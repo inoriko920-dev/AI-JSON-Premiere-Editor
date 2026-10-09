@@ -174,5 +174,36 @@ class TrackPreflightTests(unittest.TestCase):
         self.assertIn("E_TRACK_CANDIDATE_REJECTED",codes(report))
 
 
+
+    def test_audio_bearing_background_never_yields_timeline_candidate(self):
+        original=self.runner
+        def with_linked_audio(argv,**kwargs):
+            output=original(argv,**kwargs)
+            if Path(argv[-1]).suffix.lower()==".mp4":
+                payload=json.loads(output.stdout)
+                payload["streams"].append({"codec_type":"audio","codec_name":"aac",
+                                           "sample_rate":"48000"})
+                return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+            return output
+        self.runner=with_linked_audio
+        report=self.check()
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_BACKGROUND_AUDIO_NOT_ISOLATED",codes(report))
+        self.assertIsNone(report["track_candidate"])
+
+    def test_unknown_background_auxiliary_stream_blocks_candidate(self):
+        original=self.runner
+        def with_data(argv,**kwargs):
+            output=original(argv,**kwargs)
+            if Path(argv[-1]).suffix.lower()==".mp4":
+                payload=json.loads(output.stdout)
+                payload["streams"].append({"codec_type":"data","codec_name":"bin_data"})
+                return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+            return output
+        self.runner=with_data
+        report=self.check()
+        self.assertIn("E_BACKGROUND_STREAM_TOPOLOGY_UNKNOWN",codes(report))
+        self.assertIsNone(report["track_candidate"])
+
 if __name__=="__main__":
     unittest.main()
