@@ -40,7 +40,7 @@ $._AIJSON_MEDIA_IMPORT_V1 = (function () {
             snapshot.status!=="CANDIDATE_NOT_AUTHORIZED" ||
             snapshot.can_import!==false || snapshot.can_assemble!==false ||
             !hash(snapshot.inventory_sha256) ||
-            !(snapshot.items instanceof Array) || snapshot.items.length < 4 ||
+            Object.prototype.toString.call(snapshot.items)!=="[object Array]" || snapshot.items.length < 4 ||
             snapshot.items.length > 2000 ||
             snapshot.item_count!==snapshot.items.length) {return null;}
         var ids={},paths={},importCount=0,kindCounts={srt:0,audio:0,background:0,png:0};
@@ -145,7 +145,7 @@ $._AIJSON_MEDIA_IMPORT_V1 = (function () {
                 var path=snapshot.items[i].absolute_path,match;
                 if(!snapshot.items[i].import_to_premiere){continue;}
                 match=root.findItemsMatchingMediaPath(path,1);
-                if(match!==0 && !(match instanceof Array && match.length===0)){
+                if(match!==0 && !(Object.prototype.toString.call(match)==="[object Array]" && match.length===0)){
                     return "S6|1|BLOCKED|MEDIA_ALREADY_IN_PROJECT";
                 }
             }

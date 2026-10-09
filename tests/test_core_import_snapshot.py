@@ -93,7 +93,7 @@ class ImportSnapshotTests(unittest.TestCase):
 
     def test_deleted_required_media_rejected(self):
         (self.root / "background.mp4").unlink()
-        self.assert_code("E_MEDIA_PATH")
+        self.assert_code("E_MEDIA_MISSING")
 
     def test_rejects_path_escape_before_any_import(self):
         self.edit["assets"]["A001"]["path"] = "../escape.png"
