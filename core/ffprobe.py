@@ -103,6 +103,29 @@ def inspect_ffprobe(
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "Informasi stream tidak tersedia."))
             continue
+        if source == "background":
+            # The JSON audio_policy=MUTE is only intent, NOT actual proof.
+            # A background MP4 with linked audio (or an unfamiliar stream)
+            # cannot be placed safely using the current Premiere adapter.
+            topology = data["streams"]
+            if any(type(s) is not dict or s.get("codec_type") not in
+                   ("video", "audio") for s in topology):
+                issues.append(issue("E_BACKGROUND_STREAM_TOPOLOGY_UNKNOWN", pointer,
+                                    "Background has unsupported or unknown media streams."))
+                continue
+            if any(s["codec_type"] == "audio" for s in topology):
+                issues.append(issue("E_BACKGROUND_AUDIO_NOT_ISOLATED", pointer,
+                                    "Background audio must be removed from a verified copy before timeline placement."))
+                continue
+            video_tracks = sum(s["codec_type"] == "video" for s in topology)
+            if video_tracks == 0:
+                issues.append(issue("E_FFPROBE_STREAM_MISSING", pointer,
+                                    "Required background video stream is missing."))
+                continue
+            if video_tracks != 1:
+                issues.append(issue("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS", pointer,
+                                    "Background must contain exactly one selected video stream."))
+                continue
         tracks = [s for s in data["streams"] if isinstance(s, dict)
                   and s.get("codec_type") == media_kind]
         if not tracks:
