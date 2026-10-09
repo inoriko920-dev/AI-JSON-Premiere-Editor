@@ -1,0 +1,47 @@
+name: STEP07 Four-Track Timeline (Host Mock Only)
+on:
+  push:
+    branches:
+      - 'sol/step07-*'
+  pull_request:
+    paths:
+      - 'core/track_plan.py'
+      - 'host/track_placement_adapter.jsx'
+      - 'tests/*track*'
+      - '.github/workflows/step07-track-mock.yml'
+jobs:
+  four_tracks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check one candidate host transaction with mocked empty sequence
+        run: node --test tests/track_placement_adapter.test.cjs
+      - name: Check four-track exact-frame plan and background loops
+        run: python -m unittest tests.test_core_track_plan -v
+      - name: Run complete JavaScript regression
+        run: npm test
+      - name: Run complete Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Ensure active CEP/ZIP cannot load host mutator
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); b=Path('tools/build_p0_pilot.py').read_text(); assert 'track_placement_adapter.jsx' not in s+b; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP07_LIVE_MUTATOR_EXCLUDED=PASS')"
+      - name: Build unsigned read-only CEP pilot
+        run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Windows malicious ZIP/consent regression
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
+          $result = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
+          if ($result -notcontains "P0_INSPECT=PASS" -or $result -notcontains "P0_FILES=21" -or $result -notcontains "P0_SHA256_ENTRIES=20") { throw "ZIP package changed unexpectedly" }
+          & "./tools/windows/Test_P0_Negative.ps1" -ZipPath $zip -InspectorPath "./tools/windows/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "step07-negative")
