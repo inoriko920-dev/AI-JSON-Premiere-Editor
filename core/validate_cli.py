@@ -15,6 +15,7 @@ from pathlib import Path
 import sys
 
 from .contracts import loads_strict, validate_pair
+from .media import inspect_media
 
 
 def error(code: str, message: str) -> dict:
@@ -47,6 +48,9 @@ def run(argv=None):
                         help="Development per-file read cap, explicit; not production approval")
     parser.add_argument("--caps", type=Path,
                         help="Optional future independently approved resource manifest")
+    parser.add_argument("--media-root", type=Path, help="Optional explicit media project root")
+    parser.add_argument("--max-media-bytes", type=int, help="Required when auditing media")
+    parser.add_argument("--max-srt-cues", type=int, help="Required when auditing media")
     args = parser.parse_args(argv)
     if args.max_json_bytes <= 0:
         result = error("E_CONFIG_LIMITS_UNVERIFIED",
@@ -59,6 +63,25 @@ def run(argv=None):
             if caps is not None and type(caps) is not dict:
                 raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
             result = validate_pair(edit, animation, caps=caps)
+            if args.media_root is not None:
+                if (args.max_media_bytes is None or args.max_srt_cues is None or
+                    args.max_media_bytes <= 0 or args.max_srt_cues <= 0):
+                    result["issues"].append({
+                        "code":"E_CONFIG_LIMITS_UNVERIFIED","severity":"ERROR",
+                        "pointer":"/media",
+                        "message":"Batas baca media dan cue wajib disediakan oleh pemanggil."})
+                else:
+                    media_report = inspect_media(
+                        edit, args.media_root,
+                        max_file_bytes=args.max_media_bytes,
+                        max_srt_cues=args.max_srt_cues)
+                    result["issues"].extend(media_report["issues"])
+                    result["media_file_count"] = len(media_report["files"])
+                    result["srt_cue_count"] = media_report.get("cue_count",0)
+                result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
+                result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
+                result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
+                result["can_assemble"] = False
         except (OSError, UnicodeError, ValueError, TypeError, OverflowError) as ex:
             # Never print untrusted file content or absolute paths in reports.
             code = "E_RESOURCE_LIMIT" if str(ex) == "E_RESOURCE_LIMIT" else "E_JSON_SCHEMA"
