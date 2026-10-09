@@ -76,9 +76,6 @@ class CoreCLIProcessTests(unittest.TestCase):
         self.assertNotIn("other",json.dumps(result))
 
 
-if __name__=="__main__":
-    unittest.main()
-
     def test_invalid_pair_skips_media_audit_safely(self):
         edit=json.loads(self.edit.read_text(encoding="utf-8"))
         edit["scenes"][0]["assets"][0]["entry_evidence"]["cue_id"]=["BAD"]
@@ -89,3 +86,6 @@ if __name__=="__main__":
         self.assertIn("E_MEDIA_AUDIT_SKIPPED",
                       [x["code"] for x in result["issues"]])
         self.assertNotIn("media_file_count",result)
+
+if __name__=="__main__":
+    unittest.main()
