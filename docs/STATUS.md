@@ -1,10 +1,9 @@
 # Status proyek — 9 Oktober 2026 WIB
 
-**STEP01 G1A SPEC PASS; B02 approved. STEP02 12 UI GENERATED IN CHAT AND AUDITED — G2 BLOCKED BY REVISION/APPROVAL.**
+**STEP01 G1A SPEC PASS. STEP02 visual correction draft available / G2 WAIT_EXPLICIT_APPROVAL_AND_ARCHIVE.**
 
-- Pengguna menyatakan Batch1 10 UI dan Batch2 2 UI gambar telah selesai. Audit langsung menemukan 12/12 gambar dan memeriksa SHA256 di working container; **belum diarsipkan ke GitHub**.
-- Semua PNG asli 1672x941 meskipun prompt menargetkan 1920x1080. 3 SESUAI, 2 CATATAN, 7 REVISI (5 wajib/2 terarah).
-- [Audit visual](ui/STEP02_VISUAL_QA_REVIEW_2026-10-09.md), [manifest QA SHA256](ui/STEP02_IMAGE_QA_MANIFEST.csv), dan [revisi 7 UI (1 TXT)](ui/revisions/STEP02_REVISION_BATCH_01_7_UI.txt) sudah menjadi acuan berikutnya.
-- Dokumen QA bergambar dan ZIP 12 mockup tersedia pada percakapan (lokal). **Jangan klaim semua 12 sudah di-upload GitHub atau disetujui**.
-- `UI_REFERENCE_FINAL.docx` belum ada; belum ada approval 12 UI final; **G2 WAIT_REVISION_AND_EXPLICIT_APPROVAL**. G1B executable tests NOT_STARTED, host proof 0/21, AC 0/30.
-- PR Draft dan `main` tetap tak di-merge. Coding SOL, packaging, final MP4 dilarang sampai G2 PASS dan seluruh DOCX/image reference final di repo.
+- Seluruh 12 layar selesai dibuat untuk paket review; 7 revisi utama, 2 perapian kecil, 3 gambar dari generasi awal. Draft 1920×1080; **semua berlabel simulasi, bukan host nyata**.
+- [Laporan perubahan](ui/STEP02_VISUAL_REVISION_DRAFT_READY_2026-10-09.md) dan [SHA256 12 PNG draft](ui/STEP02_DRAFT_REVISIONS_SHA256_2026-10-09.csv) dicatat di repo. Gambar, ZIP, dan contact sheet masih di container percakapan, **belum diunggah ke GitHub**.
+- 12/12 UI siap diperiksa, **0/12 disetujui eksplisit**. `UI_REFERENCE_FINAL.docx` belum ada. Tidak boleh menandai G2 PASS.
+- B01/B02/B06 planning selesai; G1B schema tests NOT_STARTED; PPRO actual host/CEP/alpha 0/21 preset verified, AC01–AC30 0/30.
+- PR tetap Draft, `main` tidak di-merge. Tidak coding SOL hingga pengguna menyetujui 12 desain final dan seluruh PNG + satu UI_REFERENCE_FINAL.docx tersimpan di repo.

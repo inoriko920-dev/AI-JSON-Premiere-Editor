@@ -1,12 +1,12 @@
-# Blockers STEP02 — 9 Oktober 2026
+# BLOCKERS — STEP02 visual QA review / 9 Oktober 2026
 
-| ID | Status | Evidence / next |
+| ID | Status | Exit |
 |---|---|---|
-| B01 | CLOSED | Historic sources indexed, raw private originals retained privately |
-| B02 | APPROVED | Issue #2 MEDIUM-first/V6 direction planning |
-| B06 | SPEC_CLOSED | ADR-002 validator contract; executable tests later |
-| B03 | HOST_PROOF_FUTURE | Premiere v24 CEP/ticks/alpha not tested |
-| B04 | **G2_BLOCKED_BY_VISUAL_QA** | 12 images generated in chat, 7 targeted revision, 2 minor notes; 12 final PNGs not user-approved/archived, one UI_REFERENCE_FINAL.docx absent |
-| B05 | DEPENDENCY_FUTURE | License and helper/FFmpeg proof before package |
+| B01 | CLOSED_SOURCE_DISCOVERY | Historical source derivation done |
+| B02 | APPROVED | MEDIUM-first V6 directions planning baseline approved |
+| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 contract |
+| B03 | HOST_PROOF_FUTURE | Premiere 24.x real host evidence |
+| B04 | **DRAFT_READY_FOR_USER_APPROVAL / G2_BLOCKED** | 12 screenshot draft visual available only in chat; 7 main+2 minor revisions, owner must approve final visuals, then PNG + checksum and one UI_REFERENCE_FINAL.docx archive to GitHub |
+| B05 | DEPENDENCIES_FUTURE | Runtime/licensing proof later |
 
-**G1A SPEC PASS; G1B NOT_STARTED; G2 WAIT_REVISION_AND_EXPLICIT_APPROVAL.** No code/merge/release. See [audit](../ui/STEP02_VISUAL_QA_REVIEW_2026-10-09.md) and [7-prompt revision TXT](../ui/revisions/STEP02_REVISION_BATCH_01_7_UI.txt).
+**G1A SPEC PASS, G1B NOT_STARTED, G2 WAIT_EXPLICIT_12_IMAGE_APPROVAL_AND_ARCHIVE. SOL CODING/MAIN MERGE STILL PROHIBITED.**
