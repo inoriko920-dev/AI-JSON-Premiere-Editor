@@ -18,8 +18,24 @@
             evalScript,root.setTimeout.bind(root),root.clearTimeout.bind(root),8000);
         var helperBridge = null;
         var hostSupported = false;
+        var closed = false;
+
+        function teardown() {
+            if (closed) { return; }
+            closed = true;
+            hostSupported = false;
+            bridge.cancel();
+            if (helperBridge) { helperBridge.cancel(); }
+            btn.disabled = true;
+            helperBtn.disabled = true;
+        }
+        if (typeof root.addEventListener === "function") {
+            root.addEventListener("pagehide", teardown);
+            root.addEventListener("unload", teardown);
+        }
 
         function reportHelper(result) {
+            if (closed) { return; }
             helperStatus.className = "status bad";
             var text = "Helper belum dapat diperiksa.";
             if (result.status === "supported") {
@@ -41,6 +57,7 @@
             log.textContent = text;
         }
         function renderHost(result) {
+            if (closed) { return; }
             var label="Gagal memeriksa host",message="Pemeriksaan host tidak berhasil.";
             hostSupported = result.status === "supported";
             helperBtn.disabled = !hostSupported;
@@ -69,6 +86,7 @@
             log.textContent=message;
         }
         btn.addEventListener("click",function () {
+            if (closed) { return; }
             if (bridge.isBusy()) { return; }
             hostSupported=false;
             helperBtn.disabled=true;
@@ -84,6 +102,7 @@
             if (!bridge.isBusy()) { btn.disabled=false; }
         });
         helperBtn.addEventListener("click",function () {
+            if (closed) { return; }
             if (!hostSupported || helperBtn.disabled) { return; }
             var nodeRequire = root.cep_node && typeof root.cep_node.require === "function" ?
                 root.cep_node.require : (typeof root.require === "function" ? root.require : null);

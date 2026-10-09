@@ -16,8 +16,10 @@ function boot(nativeResponse, extra={}) {
             addEventListener(event,cb){this.events[event]=cb;}});
     }
     let evalCalls=[];
+    const lifecycle={};
     const doc={readyState:"complete",getElementById:id=>elements.get(id)};
-    const context={document:doc,setTimeout:()=>1,clearTimeout:()=>{},console,module:{exports:{}}};
+    const context={document:doc,setTimeout:()=>1,clearTimeout:()=>{},console,module:{exports:{}},
+        addEventListener(event,cb){lifecycle[event]=cb;}};
     if(nativeResponse!==null){
         context.__adobe_cep__={evalScript:(src,cb)=>{evalCalls.push(src);cb(nativeResponse);},
                                   getSystemPath:()=>"file:///C:/User/AIJSON"};
@@ -28,7 +30,9 @@ function boot(nativeResponse, extra={}) {
     vm.runInNewContext(app,context,{timeout:1000});
     return {el:id=>elements.get(id),evalCalls,
             clickHost(){elements.get("btn-host").events.click();},
-            clickHelper(){elements.get("btn-helper").events.click();}};
+            clickHelper(){elements.get("btn-helper").events.click();},
+            unload(){if(lifecycle.unload) lifecycle.unload();},
+            pagehide(){if(lifecycle.pagehide) lifecycle.pagehide();}};
 }
 test("Browser fallback never enables helper/assembly without CEP",()=>{
  const p=boot(null);
@@ -66,4 +70,58 @@ test("CEP mixed context publishes bridge browser global",()=>{
  const p=boot("P0|1|OK|24.0");
  p.clickHost();
  assert.match(p.el("host-status").textContent,/24\.0/);
+});
+
+test("panel unload cancels pending host response and blocks late callback",()=>{
+ let onHost;
+ const cep={
+  evalScript:(_src,cb)=>{onHost=cb;},
+  getSystemPath:()=>"file:///C:/User/AIJSON"
+ };
+ const p=boot(null,{__adobe_cep__:cep});
+ p.clickHost();
+ assert.equal(typeof onHost,"function");
+ p.unload();
+ onHost("P0|1|OK|24.3");
+ assert.equal(p.el("btn-host").disabled,true);
+ assert.equal(p.el("btn-helper").disabled,true);
+ assert.equal(p.el("btn-assemble").disabled,true);
+ p.clickHost();
+ assert.equal(p.evalCalls.length,0);
+});
+test("panel pagehide kills running Python helper; stale result does not update UI",()=>{
+ const nodePath=require("node:path");
+ let complete,killCount=0,spawnCount=0;
+ const cepNode={
+  process:{platform:"win32",env:{AIJSON_P0_PYTHON_EXE:"C:\\Python311\\python.exe"}},
+  require(name){
+    if(name==="path")return nodePath;
+    if(name==="fs")return {realpathSync:p=>p,statSync:()=>({isFile:()=>true})};
+    if(name==="child_process")return {execFile:(_exe,_args,_opts,cb)=>{
+      spawnCount++;
+      complete=cb;
+      return {kill(){killCount++;}};
+    }};
+    throw new Error("unexpected node module");
+  }
+ };
+ const p=boot("P0|1|OK|24.2",{cep_node:cepNode});
+ p.clickHost();
+ assert.equal(p.el("btn-helper").disabled,false);
+ p.clickHelper();
+ assert.equal(spawnCount,1);
+ assert.equal(p.el("helper-status").textContent,"Memeriksa helper…");
+ p.pagehide();
+ p.unload();
+ assert.equal(killCount,1,"teardown must be idempotent");
+ const valid=JSON.stringify({protocol:"AIJSON_STEP03_P0",status:"OK",
+   helper_version:"0.0.3",python_version:"3.11.9",
+   capabilities:{schema_validation:false,media_probe:false,
+     ffmpeg_prerender:false,premiere_mutation:false}});
+ complete(null,valid);
+ assert.equal(p.el("btn-helper").disabled,true);
+ assert.equal(p.el("btn-assemble").disabled,true);
+ assert.notEqual(p.el("helper-status").textContent,"HELPER P0 • HANDSHAKE OK");
+ p.clickHelper();
+ assert.equal(spawnCount,1);
 });
