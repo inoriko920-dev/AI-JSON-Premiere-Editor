@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="styles.css">
   <script defer src="bridge.js"></script>
   <script defer src="helper_bridge.js"></script>
+  <script defer src="validation_bridge.js"></script>
   <script defer src="app.js"></script>
+  <script defer src="validation_ui.js"></script>
 </head>
 <body>
   <main class="app">
@@ -41,10 +43,12 @@
     </section>
     <section aria-labelledby="input-title" class="surface">
       <h2 id="input-title">Sumber proyek</h2>
-      <div class="file-field"><span>EDIT_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
-      <div class="file-field"><span>ANIMATION_PLAN.json</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
-      <div class="file-field"><span>Folder media proyek</span><button disabled title="Tersedia pada STEP04">Pilih…</button></div>
-      <p class="hint">Belum ada file yang dibuka atau dimodifikasi.</p>
+      <div class="file-field"><span>EDIT_PLAN.json <small id="selected-edit">Belum dipilih</small></span><button type="button" id="choose-edit" disabled>Pilih…</button></div>
+      <div class="file-field"><span>ANIMATION_PLAN.json <small id="selected-animation">Belum dipilih</small></span><button type="button" id="choose-animation" disabled>Pilih…</button></div>
+      <div class="file-field"><span>Folder media proyek <small id="selected-media">Belum dipilih</small></span><button type="button" id="choose-media" disabled>Pilih…</button></div>
+      <p class="hint">Pemilih file CEP native. Isi file tidak ditampilkan dan tidak ada perubahan Premiere.</p>
+      <button type="button" id="btn-validate-offline" disabled>PERIKSA DATA OFFLINE</button>
+      <p id="validation-summary" class="detail" role="status" aria-live="polite">Pilih kedua JSON dan folder media sebelum memeriksa data.</p>
     </section>
     <section aria-labelledby="summary-title" class="surface">
       <h2 id="summary-title">Ringkasan dan inspeksi</h2>
