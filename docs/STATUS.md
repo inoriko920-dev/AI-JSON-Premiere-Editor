@@ -10,3 +10,5 @@
 - After G1A PASS, STEP02 creates UI prompts then STOP for all final images and single UI_REFERENCE_FINAL.docx archived in repo; SOL code after G2.
 
 - B02 cross-file consistency audit confirmed 21/21 keys and MEDIUM IN/OUT pairs match `PRESET_MATRIX.csv`, no duplicate IDs, and backend statuses remain UNVERIFIED; see [audit](planning/STEP01_B02_CROSSFILE_AUDIT_2026-10-09.md). 9 direction semantic categories are now explicitly defined. Legacy conflict matrix statuses C07/C09/C10/C12/C13/C15 were reconciled; no approval or host PASS implied.
+
+**Single authoritative owner decision:** [Issue #2 — B02 scope and 21-direction approval](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2). The issue is OPEN / awaiting user response. Choose A/B and approve/revise the V6 21-row policy. Do not infer approval from 'lanjutkan'. No G1A transition until explicit response is recorded.

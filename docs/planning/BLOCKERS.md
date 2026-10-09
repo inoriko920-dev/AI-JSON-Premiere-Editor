@@ -10,3 +10,5 @@
 | B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 technical validator frozen; host numeric/resource proof deferred to host gates. |
 
 **G1A BLOCKED by B02 approval only; G1B and G2 NOT_STARTED.** No executable code, Premiere test, merge or release.
+
+**Action tracker:** [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) is open and contains the only outstanding user approval. B02 remains PENDING_USER_DECISION; don't mark G1A PASS or start STEP02 solely because the issue exists. Existing B03/B04/B05 host/UI/dependency gates remain.

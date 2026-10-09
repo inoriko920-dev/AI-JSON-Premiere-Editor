@@ -9,3 +9,5 @@ The V6 table distinguishes 4 exact direction tokens in original V2/V3, 6 inferre
 Do not infer signoff from 'lanjutkan'. After G1A PASS, STEP02 UI prompts then MUST STOP until final UI images approved and 1 UI_REFERENCE_FINAL.docx stored in repo; no SOL code until G2.
 
 [Latest static B02 consistency audit](planning/STEP01_B02_CROSSFILE_AUDIT_2026-10-09.md): 21 preset IDs, keys and MEDIUM frame pairs cross-checked against PRESET_MATRIX (all match). This is neither signoff nor Premiere proof.
+
+**Owner signoff request:** [GitHub Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) is the single B02 decision tracker (speed pilot scope + V6 direction matrix); OPEN, not approved. Stop generating new STEP01 audit revisions unless concrete contradictions appear. After approval, record formal G1A evidence before STEP02 UI-prompt STOP.
