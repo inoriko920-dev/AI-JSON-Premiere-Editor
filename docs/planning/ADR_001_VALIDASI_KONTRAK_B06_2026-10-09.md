@@ -1,3 +1,5 @@
+> UPDATED 9 October 2026: ADR-001 is historical; [ADR-002](ADR_002_B06_SPEC_FREEZE_2026-10-09.md) is the active ASTRA B06 spec decision. Numeric host budgets remain deferred; G1A still blocked by B02.
+
 # ADR-001 — Kontrak validator dua JSON dan preflight non-destruktif
 
 **Proyek:** AI-JSON-Premiere-Editor · **Tahap:** ASTRA STEP01 · **Tanggal:** 9 Oktober 2026 · **Status:** TECHNICAL_POLICY_DOCUMENTED / B06 REVIEW_PENDING · **G1A BLOCKED, G2 NOT_STARTED**

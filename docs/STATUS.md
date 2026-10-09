@@ -1,10 +1,12 @@
-# Status proyek — 9 Oktober 2026 WIB
+# Status — 9 October 2026 WIB
 
-- **STEP01 ASTRA B06 VALIDATION ADR** pada Draft PR #1; main tidak di-merge.
-- B01 **CLOSED_SOURCE_DISCOVERY** (7 dokumen referensi ditemukan dan SHA dicatat).
-- B06 **POLICY_DRAFT_COMPLETE / REVIEW_PENDING**: [ADR-001](planning/ADR_001_VALIDASI_KONTRAK_B06_2026-10-09.md), [17 area field + 4 prohibited scopes](planning/STEP01_B06_FIELD_POLICY.csv), [12 decisions](planning/STEP01_B06_TECH_DECISIONS.csv), [13 error crosswalk](planning/STEP01_B06_ERROR_CROSSWALK.csv). Semua baru spesifikasi, **bukan** schema/parser/test.
-- B02 REVIEW_PENDING: MEDIUM-only disarankan, namun belum user-approved; 21 full direction allowlist belum final, FAST/SLOW belum calibrated.
-- B03 host Premiere 24.x, B04 UI final, B05 dependensi/packaging masih OPEN.
-- **G1A BLOCKED** (B02 + B06 signoff), **G1B NOT_STARTED**, **G2 NOT_STARTED**, **CODING PROHIBITED**.
-- Static audit 18/18 hanya DEMO_001 di Master V3; 68 fixture rencana belum dijalankan. AC 0/30 PASS; 0/21 preset HOST_VERIFIED. Tidak ada installer/portable/release.
-- Langkah selanjutnya masih STEP01: signoff B02/B06 tanpa menebak nilai. Setelah G1A PASS, STEP02 prompt UI wajib STOP; gambar semua disetujui dan satu DOCX UI final dulu, baru SOL coding.
+STEP01 ASTRA still active in Draft PR #1; main unchanged.
+
+- B01 CLOSED_SOURCE_DISCOVERY: seven historical source files recovered/read/hash-inventoried; originals remain private.
+- B06 **SPEC_CLOSED_BY_ASTRA**: [ADR-002](planning/ADR_002_B06_SPEC_FREEZE_2026-10-09.md) sets unknown key handling, locked=false, SRT review labels, required production limits manifest and error mapping. Host numeric caps remain to be measured later, not guessed.
+- **B02 is sole remaining STEP01 SPEC blocker**: MEDIUM-first scope still needs user approval; full 21 direction tokens not signed off. Do not interpret lanjutkan as scope approval.
+- Fixture catalog now **83 planned** cases, including F069–F083. No executable test runner or host proof.
+- G1A BLOCKED by B02, G1B NOT_STARTED, G2 NOT_STARTED, CODING PROHIBITED. AC 0/30, host-certified preset 0/21.
+- B03 Premiere host, B04 UI, B05 dependency proof remain future gates. STEP02 UI prompt STOP after G1A approval until all final images and one UI_REFERENCE_FINAL.docx saved.
+
+[Review queue](planning/STEP01_REVIEW_QUEUE.csv) · [B06 tech decisions](planning/STEP01_B06_TECH_DECISIONS.csv) · [Blockers](planning/BLOCKERS.md).

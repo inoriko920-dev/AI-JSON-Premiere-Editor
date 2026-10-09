@@ -1,12 +1,12 @@
-# BLOCKERS — STEP01 B06 ADR, 9 Oktober 2026 WIB
+# Blockers — 9 October 2026
 
-| ID | Status | Pemilik / tindakan penutupan |
+| ID | Status | Next step |
 | --- | --- | --- |
-| B01 | CLOSED_SOURCE_DISCOVERY | 7 source historis dibaca dan SHA-256 diinventaris; dokumen mentah tetap privat. |
-| B02 | REVIEW_PENDING | Pengguna/reviewer menentukan MEDIUM-only MVP atau FAST/SLOW per preset; finalkan full 21 direction allowlist tanpa alias karangan. |
-| B03 | OPEN_HOST | Probe Premiere Pro 2024 exact 24.x Windows: CEP, ticks, native keyframes, alpha, codec. |
-| B04 | OPEN_UI | STEP02 prompt UI → STOP → PNG final disetujui → satu UI_REFERENCE_FINAL.docx + hash repo. |
-| B05 | OPEN_DEPENDENCIES | Versi helper/FFmpeg dan audit lisensi/notices/SBOM sebelum packaging. |
-| B06 | **POLICY_DRAFT_COMPLETE / REVIEW_PENDING** | [ADR-001](ADR_001_VALIDASI_KONTRAK_B06_2026-10-09.md) telah membukukan 17 area field + 4 pola field terlarang, 12 keputusan dan 13 crosswalk errors. Review final unknown nested/locked=false dan tentukan resource limits dengan host evidence sebelum implementasi. |
+| B01 | CLOSED_SOURCE_DISCOVERY | Seven original references read and SHA-inventoried; no public raw source upload |
+| B02 | OPEN_USER_SCOPE_AND_DIRECTION | Sign off MEDIUM-first versus FAST/SLOW now, and full 21-preset direction policy; no approval inferred from lanjutkan |
+| B03 | DEFER_HOST_PROOF | Premiere 24.x/CEP/ticks/alpha/keys must be probed on actual Windows |
+| B04 | WAIT_STEP02 | UI prompt then STOP; all images approval and one UI_REFERENCE_FINAL.docx |
+| B05 | DEFER_DEPENDENCIES | Worker/FFmpeg licensing/version/SBOM before build |
+| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 freezes fail-closed validator; numeric resource budgets and capability evidence gated later |
 
-**G1A BLOCKED (B02/B06 signoff), G1B NOT_STARTED, G2 NOT_STARTED; tidak boleh coding atau merge.** User typing `lanjutkan` ≠ approval MEDIUM-only.
+**G1A SPEC BLOCKED only by B02**. G1B and G2 NOT_STARTED; no coding, merge or release.
