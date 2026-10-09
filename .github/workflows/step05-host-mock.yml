@@ -1,0 +1,35 @@
+name: STEP05 Premiere ES3 Adapter (Mocked Host Only)
+on:
+  push:
+    branches:
+      - 'sol/step05-*'
+  pull_request:
+    paths:
+      - 'host/sequence_adapter.jsx'
+      - 'tests/sequence_adapter.test.cjs'
+      - 'core/**'
+      - '.github/workflows/step05-host-mock.yml'
+jobs:
+  adapter:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run mocked Premiere ES3 sequence adapter tests
+        run: node --test tests/sequence_adapter.test.cjs
+      - name: Regression test all existing panel, bridge and validator JS
+        run: npm test
+      - name: Regression test all Python contracts/media/FFprobe/draft
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Guard host adapter is not in P0 CEP's ScriptPath
+        run: python -c "from pathlib import Path; manifest=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in manifest; assert 'sequence_adapter.jsx' not in manifest; print('NO_LIVE_HOST_MUTATION_ROUTE=PASS')"
