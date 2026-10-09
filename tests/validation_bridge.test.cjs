@@ -209,3 +209,21 @@ test("read-only 4-track candidate parser drops paths and refuses fabricated READ
      "VALIDATOR_RESPONSE_INVALID");
  }
 });
+
+test("BOTH phases display is only sanitized reference, never render or host write",()=>{
+ const fx={status:"REFERENCE_SCHEDULE_ONLY",can_render:false,can_assemble:false,
+   instance_count:3,zero_hold_count:1,operation_sha256:"a".repeat(64),
+   private_asset_path:"C:\\Users\\Personal\\secret.png"};
+ const good=api.parseReport(JSON.stringify({...VALID,animation_phases:fx}));
+ assert.equal(good.status,"NEEDS_REVIEW");
+ assert.equal(good.animation_phases.instance_count,3);
+ assert.equal(good.animation_phases.can_render,false);
+ assert.equal(JSON.stringify(good).includes("Personal"),false);
+ for(const bad of [
+   {...fx,can_render:true}, {...fx,can_assemble:true},
+   {...fx,status:"READY"}, {...fx,zero_hold_count:999}
+ ]){
+   const result=api.parseReport(JSON.stringify({...VALID,animation_phases:bad}));
+   assert.equal(result.code,"VALIDATOR_RESPONSE_INVALID");
+ }
+});

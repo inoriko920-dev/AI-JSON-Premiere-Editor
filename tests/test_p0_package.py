@@ -31,7 +31,7 @@ class PilotPackageTests(unittest.TestCase):
                         "panel/validation_bridge.js", "panel/validation_ui.js",
                         "panel/app.js", "host/step03.jsx", "helper/handshake.py",
                         "helper/validate_request.py", "core/__init__.py",
-                        "core/contracts.py", "core/draft_compiler.py", "core/ffprobe.py", "core/import_snapshot.py", "core/media.py",
+                        "core/contracts.py", "core/animation_phases.py", "core/animation_timings_b02.json", "core/draft_compiler.py", "core/ffprobe.py", "core/import_snapshot.py", "core/media.py",
                         "core/validate_cli.py", "core/direction_registry.json",
                         "core/host_ticks.py","core/track_plan.py",
                         "core/track_preflight.py"
@@ -45,7 +45,7 @@ class PilotPackageTests(unittest.TestCase):
                     self.assertEqual(z.read(file), original)
                 sums = z.read(f"{PILOT}/P0_SHA256SUMS.txt").decode("ascii")
                 lines = sums.splitlines()
-                self.assertEqual(len(lines), 23)
+                self.assertEqual(len(lines), 25)
                 for line in lines:
                     digest, rel = line.split("  ", 1)
                     self.assertEqual(hashlib.sha256(z.read(f"{PILOT}/{rel}")).hexdigest(), digest)

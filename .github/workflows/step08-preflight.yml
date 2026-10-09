@@ -41,8 +41,8 @@ jobs:
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
           $r = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
           if ($r -notcontains "P0_INSPECT=PASS" -or
-              $r -notcontains "P0_FILES=24" -or
-              $r -notcontains "P0_SHA256_ENTRIES=23") { throw "STEP08 ZIP incomplete" }
+              $r -notcontains "P0_FILES=26" -or
+              $r -notcontains "P0_SHA256_ENTRIES=25") { throw "STEP08 ZIP incomplete" }
           & "./tools/windows/Test_P0_Negative.ps1" -ZipPath $zip -InspectorPath "./tools/windows/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "step08-negative")
       - name: Ensure no new host-mutation route
         run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); b=Path('tools/build_p0_pilot.py').read_text(); assert 'track_placement_adapter.jsx' not in s+b; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP08_HOST_MUTATION_NOT_LOADED=PASS')"

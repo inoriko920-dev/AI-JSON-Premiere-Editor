@@ -20,6 +20,7 @@ from .ffprobe import inspect_ffprobe
 from .draft_compiler import build_draft, DraftCompileError
 from .import_snapshot import prepare_media_snapshot, ImportSnapshotError
 from .track_preflight import prepare_track_preflight
+from .animation_phases import build_both_phase_candidate, PhasePlanError
 
 
 def error(code: str, message: str) -> dict:
@@ -65,6 +66,10 @@ def run(argv=None):
                         help="Read-only four-track source preflight (never production READY)")
     parser.add_argument("--candidate-timebase-ticks", type=str,
                         help="Optional UNVERIFIED candidate host ticks, only for offline planning")
+    parser.add_argument("--include-animation-phases", action="store_true",
+                        help="Draft 21 BOTH IN/HOLD/OUT references; no effect rendering")
+    parser.add_argument("--max-animation-instances", type=int,
+                        help="Explicit developer cap on visual occurrences")
     parser.add_argument("--include-draft", action="store_true",
                         help="Show deterministic non-executable timeline intent if structurally valid")
     args = parser.parse_args(argv)
@@ -181,6 +186,46 @@ def run(argv=None):
                             "message":"Preflight offline empat track; tidak mengizinkan mutasi Premiere."})
                     if report["track_candidate"] is not None:
                         result["track_candidate"] = report["track_candidate"]
+                result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
+                result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
+                result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
+                result["can_assemble"] = False
+            if args.include_animation_phases:
+                if (type(args.max_animation_instances) is not int or
+                        args.max_animation_instances <= 0):
+                    result["issues"].append({
+                        "code":"E_FX_RESOURCE_LIMIT_UNVERIFIED","severity":"ERROR",
+                        "pointer":"/animation_phases",
+                        "message":"Batas jumlah animasi developer harus integer positif."})
+                elif result["error_count"]:
+                    result["issues"].append({
+                        "code":"E_FX_PHASES_SKIPPED","severity":"REVIEW",
+                        "pointer":"/animation_phases",
+                        "message":"Animasi menunggu kontrak JSON dan sumber bebas error."})
+                else:
+                    try:
+                        planned=build_both_phase_candidate(
+                            edit,animation,max_instances=args.max_animation_instances)
+                        # Never forward per-image detailed effects or source paths
+                        # through user-facing CEP without a versioned review.
+                        result["animation_phases"] = {
+                            "status":"REFERENCE_SCHEDULE_ONLY",
+                            "can_render":False,"can_assemble":False,
+                            "instance_count":planned["instance_count"],
+                            "zero_hold_count":sum(
+                                x["zero_hold_needs_visual_review"]
+                                for x in planned["entries"]),
+                            "operation_sha256":planned["operation_sha256"]
+                        }
+                        result["issues"].append({
+                            "code":"E_FX_BACKEND_UNVERIFIED","severity":"REVIEW",
+                            "pointer":"/animation_phases",
+                            "message":"21 preset baru jadwal frame; native/FFmpeg belum tersedia."})
+                    except PhasePlanError as exc:
+                        result["issues"].append({
+                            "code":exc.code,"severity":"ERROR",
+                            "pointer":"/animation_phases",
+                            "message":"Jadwal BOTH tidak dapat dibentuk dari durasi/preset."})
                 result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
                 result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
                 result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"

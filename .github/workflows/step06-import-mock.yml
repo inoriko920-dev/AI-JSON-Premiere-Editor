@@ -43,8 +43,8 @@ jobs:
           $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
           $inspect = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
           if ($inspect -notcontains "P0_INSPECT=PASS" -or
-              $inspect -notcontains "P0_FILES=24" -or
-              $inspect -notcontains "P0_SHA256_ENTRIES=23") { throw "Invalid STEP06 P0 package" }
+              $inspect -notcontains "P0_FILES=26" -or
+              $inspect -notcontains "P0_SHA256_ENTRIES=25") { throw "Invalid STEP06 P0 package" }
           $temp = Join-Path $env:RUNNER_TEMP "p0-step06-test"
           try {
             & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Stage -ZipPath $zip -ExtensionDirectory $temp | Out-Null
