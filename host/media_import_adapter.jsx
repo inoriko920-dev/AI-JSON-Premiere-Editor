@@ -47,7 +47,7 @@ $._AIJSON_MEDIA_IMPORT_V1 = (function () {
         for(var i=0;i<snapshot.items.length;i++) {
             var x=snapshot.items[i];
             if (!x || typeof x.item_id!=="string" ||
-                !/^(SOURCE_(SRT|AUDIO|BACKGROUND)|ASSET_[A-Za-z0-9_-]{1,90})$/.test(x.item_id) ||
+                !/^(SOURCE_(SRT|AUDIO|BACKGROUND)|ASSET_[A-Za-z0-9][A-Za-z0-9_.-]{0,89})$/.test(x.item_id) ||
                 ids[x.item_id] ||
                 !validPath(x.absolute_path) ||
                 !hash(x.sha256) || !hash(snapshot.inventory_sha256) ||

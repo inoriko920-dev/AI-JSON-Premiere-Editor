@@ -181,3 +181,10 @@ test("static adapter never deletes project media or exports",()=>{
    assert.equal(code.includes(forbidden),false,forbidden);
  }
 });
+
+test("import adapter honors valid scene asset IDs with dots and underscores",()=>{
+ const h=host(),record=h.snapshot.items[4];
+ record.item_id="ASSET_A.extra_part-02";
+ assert.equal(h.run(),"S6|1|IMPORTED_TO_NEW_BIN|4");
+ assert.equal(h.imports(),4);
+});

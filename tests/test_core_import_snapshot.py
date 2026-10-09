@@ -83,6 +83,11 @@ class ImportSnapshotTests(unittest.TestCase):
         r = self.snapshot()
         self.assertFalse(r["can_import"])
 
+    def test_valid_dotted_and_underscored_asset_id_uses_same_contract(self):
+        self.edit["assets"]["A.extra_part-02"] = self.edit["assets"].pop("A002")
+        result=self.snapshot()
+        self.assertTrue(any(x["item_id"]=="ASSET_A.extra_part-02" for x in result["items"]))
+
     def test_unpinned_png_rejected(self):
         del self.edit["assets"]["A001"]["sha256"]
         self.assert_code("E_MEDIA_HASH_UNPINNED")

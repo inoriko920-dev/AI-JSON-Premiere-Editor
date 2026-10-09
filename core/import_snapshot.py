@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -53,8 +54,8 @@ def prepare_media_snapshot(
         jobs.append((f"SOURCE_{label.upper()}", label, info, label != "srt"))
     for asset_id in sorted(assets):
         info = assets[asset_id]
-        if (type(asset_id) is not str or not asset_id.isascii() or
-                not asset_id.replace("_", "").replace("-", "").isalnum() or
+        if (type(asset_id) is not str or
+                re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", asset_id) is None or
                 type(info) is not dict):
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append(("ASSET_" + asset_id, "png", info, True))
