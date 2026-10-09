@@ -103,9 +103,12 @@
                     " · draft "+result.draft.scene_count+" scene / "+
                         result.draft.asset_instance_count+" visual / "+
                         result.draft.total_frames+" frame (belum dapat dieksekusi)" : "";
+                var importLine=result.import_snapshot ?
+                    " · "+result.import_snapshot.import_count+
+                    " media tercatat (HANYA KANDIDAT, belum izin impor)" : "";
                 status.textContent="Validasi offline "+result.status+
                     " · error "+result.error_count+" · review "+result.review_count+
-                    " · kode: "+(codes.join(", ")||"—")+draftLine+
+                    " · kode: "+(codes.join(", ")||"—")+draftLine+importLine+
                     ". Timeline tetap terkunci.";
             });
             if(!started){refresh();}
