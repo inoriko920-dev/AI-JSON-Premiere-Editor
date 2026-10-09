@@ -1,9 +1,10 @@
 # Status proyek — 9 Oktober 2026 WIB
 
-**STEP01 G1A SPEC PASS. STEP02 visual correction draft available / G2 WAIT_EXPLICIT_APPROVAL_AND_ARCHIVE.**
+**STEP01 G1A SPEC PASS. STEP02 G2 BLOCKED — USER-ONLY UI IMAGE GENERATION.**
 
-- Seluruh 12 layar selesai dibuat untuk paket review; 7 revisi utama, 2 perapian kecil, 3 gambar dari generasi awal. Draft 1920×1080; **semua berlabel simulasi, bukan host nyata**.
-- [Laporan perubahan](ui/STEP02_VISUAL_REVISION_DRAFT_READY_2026-10-09.md) dan [SHA256 12 PNG draft](ui/STEP02_DRAFT_REVISIONS_SHA256_2026-10-09.csv) dicatat di repo. Gambar, ZIP, dan contact sheet masih di container percakapan, **belum diunggah ke GitHub**.
-- 12/12 UI siap diperiksa, **0/12 disetujui eksplisit**. `UI_REFERENCE_FINAL.docx` belum ada. Tidak boleh menandai G2 PASS.
-- B01/B02/B06 planning selesai; G1B schema tests NOT_STARTED; PPRO actual host/CEP/alpha 0/21 preset verified, AC01–AC30 0/30.
-- PR tetap Draft, `main` tidak di-merge. Tidak coding SOL hingga pengguna menyetujui 12 desain final dan seluruh PNG + satu UI_REFERENCE_FINAL.docx tersimpan di repo.
+- Pengguna menetapkan aturan tetap: **AI hanya membuat prompt gambar TXT; pemilik membuat semua gambar UI sendiri.** Dua percobaan kolase serta redraw/PNG yang dihasilkan asisten sebelumnya **tidak boleh dianggap UI final dan tidak menjadi basis G2 PASS**.
+- Audit awal terhadap 12 gambar: **7 revisi** (UI03, UI04, UI07, UI08, UI09, UI10, UI11), **2 perbaikan kecil** (UI02, UI05), **3 tidak perlu revisi** (UI01, UI06, UI12).
+- [Batch tunggal 9 prompt revisi siap digunakan pemilik](ui/revisions/BATCH_01_REVISI_9_UI02_UI11_OWNER_GENERATES.txt). Setiap prompt mandiri; maksimum 10 prompt per TXT dipatuhi.
+- Selanjutnya pemilik membuat 9 PNG revisi sendiri dan menyerahkan untuk QA; asisten hanya meninjau dan bila perlu menulis TXT revisi, **tidak mengedit/generate gambar**.
+- G2 belum PASS karena hasil akhir 12 PNG belum disetujui secara eksplisit dan satu UI_REFERENCE_FINAL.docx belum diarsipkan di GitHub.
+- G1B executable tests NOT_STARTED; host Premiere 24.x, 21 efek dan AC01–AC30 belum terverifikasi. PR masih Draft, main belum di-merge. **SOL coding dilarang sampai G2 PASS**.

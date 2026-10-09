@@ -10,3 +10,5 @@
 | B05 | DEPENDENCIES_FUTURE | Runtime/licensing proof later |
 
 **G1A SPEC PASS, G1B NOT_STARTED, G2 WAIT_EXPLICIT_12_IMAGE_APPROVAL_AND_ARCHIVE. SOL CODING/MAIN MERGE STILL PROHIBITED.**
+
+**Instruksi UI terbaru pemilik (menggantikan draft AI):** gambar UI tidak boleh dibuat/diedit AI asisten. Semua kekurangan harus dituangkan sebagai prompt TXT untuk digenerate pengguna. [Sembilan prompt revisi dalam satu TXT](../ui/revisions/BATCH_01_REVISI_9_UI02_UI11_OWNER_GENERATES.txt) menunggu gambar dari pemilik; G2 tetap BLOCKED sampai audit dan approval final.
