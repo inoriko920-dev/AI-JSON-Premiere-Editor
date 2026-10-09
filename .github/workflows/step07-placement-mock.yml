@@ -1,0 +1,35 @@
+name: STEP07 Premiere Track Placement (Mocked Host Only)
+on:
+  push:
+    branches:
+      - 'sol/step07-*'
+  pull_request:
+    paths:
+      - 'host/timeline_placement_adapter.jsx'
+      - 'tests/timeline_placement_adapter.test.cjs'
+      - 'core/**'
+      - '.github/workflows/step07-placement-mock.yml'
+jobs:
+  placement:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Mocked Premiere V1/V2/V3/A1 track insertion tests
+        run: node --test tests/timeline_placement_adapter.test.cjs
+      - name: Regress all JS tests
+        run: npm test
+      - name: Regress all Python tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Assert no host-write adapter reachable from live CEP
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert 'timeline_placement_adapter.jsx' not in s; p=Path('panel/index.html').read_text(); assert 'timeline_placement_adapter' not in p; print('NO_LIVE_HOST_MUTATION_ROUTE=PASS')"
