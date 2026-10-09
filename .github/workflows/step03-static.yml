@@ -67,6 +67,11 @@ jobs:
           $template = & $script -Mode Evidence -ZipPath $zip -EvidenceDirectory $evidence
           if (-not (Test-Path (Join-Path $evidence "G3_HOST_TEST_TEMPLATE.txt"))) { throw "Missing evidence template" }
           if ((Get-Content (Join-Path $evidence "G3_HOST_TEST_TEMPLATE.txt") -Raw) -notmatch "NOT_VERIFIED") { throw "Fake G3 success" }
+      - name: Reject modified and malicious P0 ZIPs on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          & "./tools/windows/Test_P0_Negative.ps1" -ZipPath "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip" -InspectorPath "./dist/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "p0-negative-zip-tests")
       - name: Publish Windows P0 development pilot only
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
