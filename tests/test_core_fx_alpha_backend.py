@@ -90,6 +90,19 @@ class FFmpegAlphaBackendTests(unittest.TestCase):
             compile_filter(item)
         self.assertEqual(ex.exception.code,"E_FX_PHASE_TAMPERED")
 
+    def test_tampered_reference_durations_and_type_confusion_rejected(self):
+        item=case()
+        item["in_frames"]=16
+        item["in_range"]=[0,16]
+        with self.assertRaises(AlphaBackendError) as ex:
+            compile_filter(item)
+        self.assertEqual(ex.exception.code,"E_FX_REFERENCE_TAMPERED")
+        for invalid in ([],{},None):
+            item=case()
+            item["preset"]=invalid
+            with self.assertRaises(AlphaBackendError):
+                compile_filter(item)
+
     def test_graph_never_carries_paths_or_json_user_expressions(self):
         item=case("WIPE","LEFT_TO_RIGHT")
         item["asset_id"]="source_private_file.png"
@@ -118,6 +131,13 @@ class FFmpegAlphaBackendTests(unittest.TestCase):
         with self.assertRaises(AlphaBackendError):
             build_ffmpeg_command(compromised,Path("/usr/bin/ffmpeg"),Path("/tmp/x.png"),Path("/tmp/y.mov"))
         compromised=copy.deepcopy(out);compromised["filtergraph"]="movie=/etc/passwd,format=argb"
+        with self.assertRaises(AlphaBackendError):
+            build_ffmpeg_command(compromised,Path("/usr/bin/ffmpeg"),Path("/tmp/x.png"),Path("/tmp/y.mov"))
+        compromised=copy.deepcopy(out)
+        compromised["filtergraph"]=compromised["filtergraph"].replace("alpha(X,Y)","255")
+        with self.assertRaises(AlphaBackendError):
+            build_ffmpeg_command(compromised,Path("/usr/bin/ffmpeg"),Path("/tmp/x.png"),Path("/tmp/y.mov"))
+        compromised=copy.deepcopy(out);compromised["in_frames"]=55
         with self.assertRaises(AlphaBackendError):
             build_ffmpeg_command(compromised,Path("/usr/bin/ffmpeg"),Path("/tmp/x.png"),Path("/tmp/y.mov"))
 

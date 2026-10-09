@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 from typing import Any
+from .animation_phases import _reference
 
 SUPPORTED = frozenset({"FADE", "WIPE"})
 WIPE_DIRECTIONS = frozenset({
@@ -34,7 +35,7 @@ def _check(item: Any) -> tuple[str, int, int, int]:
     if type(item) is not dict:
         raise AlphaBackendError("E_FX_BACKEND_INPUT")
     preset = item.get("preset")
-    if preset not in SUPPORTED:
+    if type(preset) is not str or preset not in SUPPORTED:
         raise AlphaBackendError("E_FX_BACKEND_NOT_IMPLEMENTED")
     if (item.get("mode") != "BOTH" or item.get("speed") != "MEDIUM" or
         item.get("can_render") is not False or
@@ -43,7 +44,8 @@ def _check(item: Any) -> tuple[str, int, int, int]:
         item.get("source_reference") != "STEP01_B02_PROPOSED_21"):
         raise AlphaBackendError("E_FX_BACKEND_INPUT")
     direction = item.get("direction")
-    if ((preset == "FADE" and direction != "NONE") or
+    if (type(direction) is not str or
+        (preset == "FADE" and direction != "NONE") or
         (preset == "WIPE" and direction not in WIPE_DIRECTIONS)):
         raise AlphaBackendError("E_FX_DIRECTION_INVALID")
     start,end,inside,outside = [item.get(k) for k in (
@@ -52,6 +54,11 @@ def _check(item: Any) -> tuple[str, int, int, int]:
             _integer(inside, 1) and _integer(outside, 1) and
             start < end and end-start >= inside+outside):
         raise AlphaBackendError("E_TIME_006")
+    reference = _reference()["entries"][preset]
+    if (inside != reference["in_frames"] or
+        outside != reference["out_frames"] or
+        item.get("reference_evidence") != reference["evidence_level"]):
+        raise AlphaBackendError("E_FX_REFERENCE_TAMPERED")
     if (item.get("in_range") != [start,start+inside] or
         item.get("hold_range") != [start+inside,end-outside] or
         item.get("out_range") != [end-outside,end]):
@@ -93,6 +100,8 @@ def compile_filter(item: dict) -> dict:
         "status": "FILTER_COMPILED_NOT_HOST_OR_VISUALLY_CERTIFIED",
         "preset": preset, "direction": direction,
         "frames": frames, "fps": 30,
+        "in_frames": inside, "out_frames": outside,
+        "reference_evidence": item["reference_evidence"],
         "width_policy": "PRESERVE_SOURCE",
         "height_policy": "PRESERVE_SOURCE",
         "pixel_format": "argb",
@@ -128,10 +137,38 @@ def build_ffmpeg_command(candidate: dict, ffmpeg_exe: Path,
     if (not isinstance(ffmpeg_exe,Path) or not ffmpeg_exe.is_absolute() or
         ffmpeg_exe.name.lower() not in {"ffmpeg","ffmpeg.exe"}):
         raise AlphaBackendError("E_FX_BINARY_UNVERIFIED")
-    graph=candidate["filtergraph"]
-    if (len(graph)>1400 or not graph.startswith("format=gbrap,geq=") or
-        not graph.endswith(",format=argb")):
+    frames,inside,outside=(candidate.get("frames"),
+        candidate.get("in_frames"),candidate.get("out_frames"))
+    if (not _integer(frames,1) or
+        not _integer(inside,1) or not _integer(outside,1) or
+        frames<inside+outside or
+        candidate.get("fps")!=30 or
+        candidate.get("codec")!="qtrle" or
+        candidate.get("pixel_format")!="argb"):
         raise AlphaBackendError("E_FX_COMMAND_UNVERIFIED")
+    # Re-create the approved graph from trusted preset/reference fields. Do
+    # NOT execute arbitrary -vf snippets supplied inside a report or JSON.
+    synthetic={
+        "preset":candidate["preset"],
+        "direction":candidate.get("direction"),
+        "mode":"BOTH","speed":"MEDIUM","can_render":False,
+        "effect_backend":"NOT_IMPLEMENTED","keyframes":None,
+        "source_reference":"STEP01_B02_PROPOSED_21",
+        "reference_evidence":candidate.get("reference_evidence"),
+        "start_frame":0,"end_frame":frames,
+        "in_frames":inside,"out_frames":outside,
+        "in_range":[0,inside],
+        "hold_range":[inside,frames-outside],
+        "out_range":[frames-outside,frames]
+    }
+    try:
+        rebuilt=compile_filter(synthetic)
+    except (AlphaBackendError,KeyError,TypeError):
+        raise AlphaBackendError("E_FX_COMMAND_UNVERIFIED")
+    if (candidate.get("filtergraph")!=rebuilt["filtergraph"] or
+        candidate.get("direction")!=rebuilt["direction"]):
+        raise AlphaBackendError("E_FX_COMMAND_UNVERIFIED")
+    graph=rebuilt["filtergraph"]
     return [
         str(ffmpeg_exe), "-hide_banner", "-nostdin", "-loglevel", "error",
         "-n", "-loop", "1", "-framerate", "30", "-i", str(source_png),
