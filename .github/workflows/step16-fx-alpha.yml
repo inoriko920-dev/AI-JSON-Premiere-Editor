@@ -1,0 +1,33 @@
+name: STEP16 FFmpeg Alpha Backend Subset (NO Premiere Host)
+on:
+  push:
+    branches: ['sol/step16-*']
+  pull_request:
+    paths:
+      - 'core/fx_alpha_backend.py'
+      - 'tests/test_core_fx_alpha_backend.py'
+      - '.github/workflows/step16-fx-alpha.yml'
+jobs:
+  backend:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: FFmpeg backend candidate - focused checks
+        run: python -m unittest tests.test_core_fx_alpha_backend -v
+      - name: Regression all Python
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Regression all JavaScript CEP + ES3
+        run: npm test
+      - name: Explicit safety - no Premiere host mutation and no approved PNG edits
+        run: python -c "from pathlib import Path; from core.fx_alpha_backend import backend_support; d=backend_support(); assert d['coded_presets']==['FADE','WIPE']; assert d['actual_host_certified']==0 and d['can_assemble'] is False; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('FFMPEG_ALPHA_CANDIDATE_ONLY=PASS')"
