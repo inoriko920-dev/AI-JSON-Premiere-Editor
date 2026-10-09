@@ -15,13 +15,17 @@ Master V2 §5.5–5.6 explicitly prioritizes calibrated `speed=MEDIUM` for MVP; 
 
 | Field classification | Meaning of `direction` | Examples | Preflight rule |
 | --- | --- | --- | --- |
-| MASK_VECTOR | Direction in which visible mask coverage progresses, image stays fixed | BRUSH, WIPE, GRADIENT | `LEFT_TO_RIGHT` differs from `FROM_LEFT` |
+| MASK_VECTOR | Direction in which visible mask coverage progresses, image stays fixed | BRUSH, WIPE | `LEFT_TO_RIGHT` differs from `FROM_LEFT` |
+| MASK_VECTOR_OR_RADIAL | Either a signed sweep across the cropped image or a center-out radial mask; exact visual route must be defined in registry | DIGITAL, GRADIENT | `RADIAL` is not an alias for LEFT/RIGHT and must pass its own alpha test |
+| MASK_DIAGONAL | Ordered diagonal stroke coverage; image remains at base transform | SKETCH | `DIAGONAL_TL_BR` and `DIAGONAL_BR_TL` are distinct stroke-order directions |
 | MASK_ORIGIN | Where organic reveal begins, e.g. center or edge | INK | `CENTER` is origin, not movement |
 | MASK_PATTERN_MODE | Spray pattern (uniform/sweep/burst), not an independent travel vector | SPRAY_PAINT | enum exact, no blanket aliases |
 | TRANSFORM_ORIGIN | Side from which the entire asset approaches base position | PAN, RISE, DRIFT, BASELINE | `FROM_LEFT` is origin; image moves right |
 | OSCILLATION_AXIS | Main shake axis (horizontal or vertical), not origin | TECTONIC | no rotation/translation direction alias |
 | ROTATION_SIGN | Clockwise vs counterclockwise tilt/rotation | TUMBLE, SCRAPBOOK | entry offset fixed by registry; never random new creative decision |
 | NONE | Effect has no directional degree of freedom | FADE, POP, BLUR etc. | only exact `NONE`, no random direction |
+
+**Cross-file audit (9 October 2026):** all 21 preset IDs/keys and MEDIUM IN/OUT reference frame pairs match `PRESET_MATRIX.csv` exactly; 0 mismatches. The seven direction semantics used by the older summary have been expanded to nine explicit semantic classes above. See [cross-file audit](STEP01_B02_CROSSFILE_AUDIT_2026-10-09.md). This audit does **not** approve the proposed JSON enum names or verify effects in Premiere.
 
 ## 3. Proposed exact allowed_directions for review
 
