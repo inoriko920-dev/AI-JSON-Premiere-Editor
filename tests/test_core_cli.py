@@ -33,6 +33,14 @@ class CoreCLIProcessTests(unittest.TestCase):
         self.assertTrue(done.stdout,done.stderr)
         return done.returncode,json.loads(done.stdout)
 
+    def test_missing_optional_ffprobe_stays_review_not_ready(self):
+        code,result=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","100")
+        self.assertEqual(code,2)
+        self.assertFalse(result["can_assemble"])
+        self.assertIn("E_FFPROBE_SKIPPED",
+                      [x["code"] for x in result["issues"]])
+
     def test_draft_timeline_is_non_executable_and_deterministic(self):
         code,result=self.run_cli("--include-draft")
         self.assertEqual(code,3)

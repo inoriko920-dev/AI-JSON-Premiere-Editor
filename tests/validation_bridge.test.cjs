@@ -160,3 +160,16 @@ test("sanitized read-only draft summary is accepted; executable draft is refused
  data=api.parseReport(JSON.stringify({...VALID,draft:{...draft,can_assemble:true}}));
  assert.equal(data.code,"VALIDATOR_RESPONSE_INVALID");
 });
+
+test("optional FFprobe executable is fixed environment configuration, not user JSON",()=>{
+ let o=fake({ffprobeExe:"C:\\FFmpeg\\bin\\ffprobe.exe"}),result;
+ assert.equal(o.validator.run(selected,r=>result=r),true);
+ assert.deepEqual(o.calls[0].args.slice(-2),
+   ["--ffprobe-exe","C:\\FFmpeg\\bin\\ffprobe.exe"]);
+ o.done({code:3},JSON.stringify(VALID));
+ assert.equal(result.status,"NEEDS_REVIEW");
+ o=fake({ffprobeExe:"ffprobe.exe"});
+ assert.equal(o.validator.run(selected,r=>result=r),false);
+ assert.equal(result.code,"VALIDATOR_FFPROBE_PATH_INVALID");
+ assert.equal(o.calls.length,0);
+});

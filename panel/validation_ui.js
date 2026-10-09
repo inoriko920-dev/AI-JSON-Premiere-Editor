@@ -38,6 +38,7 @@
                     path:nodePath,fs:nodeFS,execFile:processAPI.execFile,
                     platform:nodeProc.platform,
                     pythonExe:nodeProc.env && nodeProc.env.AIJSON_P0_PYTHON_EXE,
+                    ffprobeExe:nodeProc.env && nodeProc.env.AIJSON_P0_FFPROBE_EXE,
                     extensionPath:cep.getSystemPath("extension"),
                     decodeExtensionPath:root.AIJSONP0Helper.decodeExtensionPath
                 });

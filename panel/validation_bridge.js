@@ -148,13 +148,23 @@
                 callback(result);
             }
             try{
-                var args=["-I","-B",script,
+                var ffprobe = deps.ffprobeExe;
+            if(ffprobe && (typeof ffprobe!=="string" ||
+                !windowsPath(ffprobe,path,"ffprobe") ||
+                path.win32.basename(ffprobe).toLowerCase()!=="ffprobe.exe")){
+                cbInvalid();return false;
+            }
+            function cbInvalid(){
+                finish({status:"error",code:"VALIDATOR_FFPROBE_PATH_INVALID"});
+            }
+            var args=["-I","-B",script,
                     "--edit",edit,"--animation",animation,
                     "--max-json-bytes",READ_BUDGETS.json,
                     "--media-root",media,
                     "--max-media-bytes",READ_BUDGETS.media,
                     "--max-srt-cues",READ_BUDGETS.cues,
                     "--include-draft"];
+                if(ffprobe){args.push("--ffprobe-exe",ffprobe);}
                 child=execFile(py,args,{
                     cwd:realRoot,shell:false,windowsHide:true,timeout:30000,
                     maxBuffer:MAX_OUTPUT,encoding:"utf8"

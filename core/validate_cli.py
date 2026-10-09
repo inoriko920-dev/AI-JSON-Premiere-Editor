@@ -16,6 +16,7 @@ import sys
 
 from .contracts import loads_strict, validate_pair
 from .media import inspect_media
+from .ffprobe import inspect_ffprobe
 from .draft_compiler import build_draft, DraftCompileError
 
 
@@ -52,6 +53,8 @@ def run(argv=None):
     parser.add_argument("--media-root", type=Path, help="Optional explicit media project root")
     parser.add_argument("--max-media-bytes", type=int, help="Required when auditing media")
     parser.add_argument("--max-srt-cues", type=int, help="Required when auditing media")
+    parser.add_argument("--ffprobe-exe", type=Path,
+                        help="Optional explicitly configured local FFprobe binary")
     parser.add_argument("--include-draft", action="store_true",
                         help="Show deterministic non-executable timeline intent if structurally valid")
     args = parser.parse_args(argv)
@@ -86,6 +89,17 @@ def run(argv=None):
                     result["issues"].extend(media_report["issues"])
                     result["media_file_count"] = len(media_report["files"])
                     result["srt_cue_count"] = media_report.get("cue_count",0)
+                    if not any(x["severity"] == "ERROR"
+                               for x in media_report["issues"]):
+                        probe = inspect_ffprobe(
+                            edit, args.media_root, ffprobe_exe=args.ffprobe_exe)
+                        result["issues"].extend(probe["issues"])
+                        result["ffprobe_stream_count"] = len(probe["streams"])
+                    else:
+                        result["issues"].append({
+                            "code":"E_FFPROBE_SKIPPED","severity":"REVIEW",
+                            "pointer":"/ffprobe",
+                            "message":"FFprobe menunggu file dan hash media valid."})
                 result["error_count"] = sum(x["severity"]=="ERROR" for x in result["issues"])
                 result["review_count"] = sum(x["severity"]=="REVIEW" for x in result["issues"])
                 result["status"] = "PREFLIGHT_FAIL" if result["error_count"] else "NEEDS_REVIEW"
