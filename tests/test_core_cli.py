@@ -78,3 +78,14 @@ class CoreCLIProcessTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+    def test_invalid_pair_skips_media_audit_safely(self):
+        edit=json.loads(self.edit.read_text(encoding="utf-8"))
+        edit["scenes"][0]["assets"][0]["entry_evidence"]["cue_id"]=["BAD"]
+        self.edit.write_text(json.dumps(edit),encoding="utf-8")
+        code,result=self.run_cli("--media-root",str(self.root),
+            "--max-media-bytes","100000","--max-srt-cues","20")
+        self.assertEqual(code,2)
+        self.assertIn("E_MEDIA_AUDIT_SKIPPED",
+                      [x["code"] for x in result["issues"]])
+        self.assertNotIn("media_file_count",result)

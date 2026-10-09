@@ -205,7 +205,8 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             evidence=ins.get("entry_evidence",{})
             if not isinstance(evidence,dict) or evidence.get("accuracy") != "EXACT_CUE":
                 continue
-            if evidence.get("cue_id") not in cue_ids:
+            cue = evidence.get("cue_id")
+            if type(cue) is not int or cue not in cue_ids:
                 errors.append(issue("E_SRT_AMBIGUOUS",f"/scenes/{i}/assets/{j}/entry_evidence",
                                     "cue_id tidak ditemukan dalam SRT yang dibaca."))
     errors.append(issue("E_MEDIA_DECODE_UNVERIFIED","/media",

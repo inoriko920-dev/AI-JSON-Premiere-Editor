@@ -70,6 +70,11 @@ def run(argv=None):
                         "code":"E_CONFIG_LIMITS_UNVERIFIED","severity":"ERROR",
                         "pointer":"/media",
                         "message":"Batas baca media dan cue wajib disediakan oleh pemanggil."})
+                elif result["error_count"]:
+                    result["issues"].append({
+                        "code":"E_MEDIA_AUDIT_SKIPPED","severity":"REVIEW",
+                        "pointer":"/media",
+                        "message":"Audit media ditunda sampai kontrak JSON bebas error."})
                 else:
                     media_report = inspect_media(
                         edit, args.media_root,
