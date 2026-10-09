@@ -139,8 +139,10 @@ class ReadbackAuditTests(unittest.TestCase):
 
     def test_malicious_unhashable_track_is_structured_mismatch_not_crash(self):
         p=candidate()
+        observed=make_observed(p,5)
         p["placements"][0]["target_track"]=["V1"]
-        result=self.run_audit(plan=p)
+        result=audit_prefix(p,observed,mapping(),operation_index=5,
+                            sequence_id=SEQ,max_operations=20)
         self.assertEqual(result["status"],"READBACK_MISMATCH")
         self.assertEqual(result["code"],"E_READBACK_PLAN_INVALID")
 
