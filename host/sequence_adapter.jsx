@@ -55,7 +55,7 @@ $._AIJSON_SEQUENCE_V1 = (function () {
         var old = [];
         for (var i=0;i<n;i++) {
             var item = sequenceAt(p,i);
-            if (!item || !identifier(String(item.name || ""))) { return null; }
+            if (!item || typeof item.name !== "string" || item.name.length === 0) { return null; }
             var id = sequenceIdentity(item);
             if (!id) { return null; }
             old.push({id:id,name:String(item.name)});

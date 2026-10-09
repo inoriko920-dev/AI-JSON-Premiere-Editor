@@ -17,8 +17,10 @@ function sequence(name,id,options={}){
 function host(options={}){
  const prior=sequence("Untouched",OLD_GUID);
  const seqs=[prior];let creates=0;
+ // Premiere SequenceCollection supports numeric [] access and numSequences.
+ Object.defineProperty(seqs,"numSequences",{get(){return seqs.length;}});
  const project={
-   sequences:{get numSequences(){return seqs.length;}},
+   sequences:seqs,
    activeSequence:options.noActive?null:prior,
    createNewSequence(name,requestedGUID){
      creates++;
