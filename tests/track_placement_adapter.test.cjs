@@ -121,6 +121,8 @@ test("invalid plan, wrong track, duplicate instance, and fake READY are blocked"
   x=>x.plan.placements[1].instance_key="BG_0",
   x=>x.plan.placements[0].item_id="ASSET_A001",
   x=>x.plan.placements[0].start_frame=100,
+  x=>x.plan.placements[1].end_ticks=String(151*Number(TB)),
+  x=>x.plan.placements[0].source_out_frame=181,
   x=>x.plan.ticks_per_frame="999",
  ]){
    const x=setup();corrupt(x);

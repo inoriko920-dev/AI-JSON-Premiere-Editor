@@ -11,6 +11,24 @@ $._AIJSON_PLACEMENT_V1=(function(){
                     /^[1-9][0-9]{0,25}$/).test(s);
     }
     function eq(a,b){return String(a)===String(b);}
+    // Multiply a decimal tick string by a bounded integer frame without
+    // passing giant tick values through IEEE-754 floating point.
+    function ticksAtFrame(tick,frame){
+        if(!isTick(tick,false) || typeof frame!=="number" ||
+           Math.floor(frame)!==frame || frame<0 || frame>10000000){return null;}
+        var carry=0,out="",i,product;
+        for(i=tick.length-1;i>=0;i--){
+            product=(tick.charCodeAt(i)-48)*frame+carry;
+            out=String(product%10)+out;
+            carry=Math.floor(product/10);
+        }
+        while(carry>0){
+            out=String(carry%10)+out;
+            carry=Math.floor(carry/10);
+        }
+        out=out.replace(/^0+(?=[0-9])/,"");
+        return isTick(out,true)?out:null;
+    }
     function less(a,b){
         if(a.length!==b.length){return a.length<b.length;}
         return a<b;
@@ -52,7 +70,13 @@ $._AIJSON_PLACEMENT_V1=(function(){
                 typeof p.start_frame!=="number" || Math.floor(p.start_frame)!==p.start_frame ||
                 typeof p.end_frame!=="number" || Math.floor(p.end_frame)!==p.end_frame ||
                 p.start_frame<0 || p.end_frame<=p.start_frame ||
-                p.start_ticks.length>26 || p.end_ticks.length>26 ||
+                p.end_frame>plan.total_frames ||
+                ticksAtFrame(plan.ticks_per_frame,p.start_frame)!==p.start_ticks ||
+                ticksAtFrame(plan.ticks_per_frame,p.end_frame)!==p.end_ticks ||
+                typeof p.source_in_frame!=="number" ||
+                typeof p.source_out_frame!=="number" ||
+                p.source_in_frame!==0 ||
+                p.source_out_frame!==p.end_frame-p.start_frame ||
                 p.media_readback!=="NOT_TESTED"){
                 return false;
             }
