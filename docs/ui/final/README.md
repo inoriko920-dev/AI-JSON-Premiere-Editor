@@ -1,24 +1,16 @@
-# STEP02 final UI — 12 images approved, binary archive pending
+# UI FINAL — G2 PASS
 
-Pemilik **menyetujui seluruh 12 gambar UI** sebagai desain final pada 9 Oktober 2026, termasuk:
-- Ketidaktepatan ilustrasi UI08–UI11 (tidak mengubah kontrak yang harus ditaati SOL).
-- Resolusi asli 1672×941 pada 10 gambar, 1920×1080 pada UI01 dan UI06.
-- Izin menyimpan dua belas PNG final **dan satu** `UI_REFERENCE_FINAL.docx` ke GitHub.
+**All 12 owner-approved PNG images and the single UI_REFERENCE_FINAL.docx are archived on GitHub** under this directory. GitHub and local exact binary verification completed on 2026-10-09. **G2 PASS** (design gate only; no Premiere testing).
 
-**Status GitHub saat ini:** dokumen dan 12 PNG **BELUM TERUNGGAH**. Koneksi GitHub yang tersedia untuk ASTRA hanya mendukung isi teks atau `create_blob` dengan string base64 yang harus tersedia di konektor; tidak dapat mengambil byte mentah dari file container secara langsung. G2 **PENDING_BINARY_ARCHIVE**. Jangan klaim PASS sekarang.
+## Verified directory contents
 
-## Berkas yang harus diunggah ke folder ini
+- `UI01.png` through `UI12.png` — 12 original binary mockups, **no image manipulation** during archival.
+- `UI_REFERENCE_FINAL.docx` — ONE owner-approved illustrated reference, rendered 13 pages, 12 embedded original PNG bytes.
+- `UI_FINAL_SHA256.csv` — owner-approved 12-image SHA-256 manifest.
+- `STEP02_G2_GITHUB_BIN_INTEGRITY_2026-10-09.csv` — 13-file GitHub blob SHA1/byte-size crosswalk.
 
-`UI01.png`, `UI02.png`, `UI03.png`, `UI04.png`, `UI05.png`, `UI06.png`, `UI07.png`, `UI08.png`, `UI09.png`, `UI10.png`, `UI11.png`, `UI12.png`, dan **tepat satu** `UI_REFERENCE_FINAL.docx`.
+Owner accepts four minor inaccurate mock illustrations (UI08–UI11) and ten 1672×941 PNG image resolutions; these are only **reference images**, not overrides of normative edit-plan-v2 / animation-plan-v1 contracts.
 
-File `UI_FINAL_SHA256.csv` sudah tersimpan di folder ini dan merupakan checksum yang **harus cocok**. Jangan merekam ulang PNG, melakukan upscale, atau mengganti desain. Local DOCX sudah diverifikasi 13 halaman dan mengandung ke-12 original PNG dengan SHA-256 cocok. SHA256 DOCX kerja: `a922ba42013d63352605dd22080a00afd081618f78f1ed8879254d81be724ccd`.
+**Implementation:** read [STEP02 G2 PASS gate](../ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md) and Master V3, STEP01 planning DOCX and ADR-002. Do not begin with effects based on inaccurate example art; real Premiere Pro 2024 v24.x host capabilities and all 21 effects still require functional verification. G1B executable schema/test gate not started, 0/30 acceptance cases verified, no executable app/MP4 release.
 
-## Cara unggah dengan browser GitHub (jika pengunggahan otomatis belum tersedia)
-
-1. Buka folder ini pada branch `astra/step01-contract-spec-20261009`, **bukan** main.
-2. Klik **Add file → Upload files**.
-3. Ekstrak `UNGGAH_GITHUB_STEP02_UI_FINAL_13_FILE.zip` yang diberikan dalam chat; seret **12 PNG dan 1 DOCX** dari hasil ekstraksi ke GitHub. `CARA_UNGGAH_GITHUB.txt` hanya petunjuk, bukan file final.
-4. Commit perubahan **langsung pada branch development ini**, jangan merge ke main.
-5. Kembali ke chat dan minta pemeriksaan **"cek G2"**. ASTRA akan memverifikasi semua 12 sha, DOCX dan status gate, kemudian hanya jika semuanya memenuhi ketentuan dapat mencatat G2 PASS.
-
-**Dilarang mulai coding SOL sebelum G2 PASS**, dan G1B executable schema tests serta host Premiere Pro 2024 tetap belum diuji.
+Branch PR remains Draft, `main` not merged.
