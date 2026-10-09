@@ -1,0 +1,16 @@
+# Instruksi untuk ASTRA dan SOL
+
+Lingkup hanya repository AI-JSON-Premiere-Editor. Baca docs/00_START_HERE.md dan docs/STATUS.md sebelum bekerja.
+
+1. ASTRA merencanakan; SOL mengimplementasikan. Instruksi pengguna terbaru dan Master V3 di docs/source adalah otoritas. Paket ASTRA A1 mengoperasionalkan master, tidak menggantikannya.
+2. Target Premiere Pro 2024 Windows 11: CEP + ExtendScript + FFmpeg hybrid. Jangan berpindah ke UXP atau standalone renderer.
+3. Dua JSON tetap terpisah; tepat satu preset per (scene_id, asset_id), BOTH wajib. Tidak ada pemilihan ulang, split IN/OUT atau fallback preset diam-diam.
+4. Missing required file atau unreadable input menghentikan proses. Jangan mengganti dengan dummy untuk proyek nyata.
+5. Tahap UI wajib STOP setelah prompt selesai. Coding tidak boleh dimulai sebelum seluruh gambar final disetujui dan satu DOCX referensi UI beserta seluruh planning tersedia di repo.
+6. Kerjakan satu STEP per giliran, laporkan gate dan next STEP lalu tunggu lanjutkan. Kata lanjutkan tidak mengalahkan STOP UI, file wajib, atau host gate yang belum terpenuhi.
+7. STEP01 hanya spesifikasi dan katalog fixture. Implementasi schema/tests dilakukan setelah G2, pada STEP04. Bedakan G1A SPEC dan G1B SCHEMA TEST.
+8. Tiap STEP planning menghasilkan DOCX detail dan salinan teks untuk AI lain. Implementasi tidak memerlukan DOCX rutin kecuali kontrak/arsitektur berubah.
+9. Simulasi/CI tidak membuktikan Premiere. Rekam exact build dan evidence; status untested bukan PASS.
+10. Default CREATE_NEW_SEQUENCE. Jangan menimpa edit manual, menghapus media/cache linked, atau retry ke sequence parsial tanpa inspeksi.
+11. Paket/installer akhir setelah pengujian. Tidak ada merge implementasi, force push, tag/release otomatis tanpa otorisasi yang sesuai. Publikasi planning awal telah diminta pengguna.
+12. Jangan mengarang ukuran layout, FAST/SLOW, direction, codec tersertifikasi, lisensi proyek, atau hasil tes. Lihat docs/planning/BLOCKERS.md.
