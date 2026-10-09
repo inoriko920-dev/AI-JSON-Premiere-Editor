@@ -56,7 +56,7 @@ test("fixed Python invocation uses no shell and no user JSON",()=>{
 });
 test("encoded Windows extension path preserves Unicode, spaces and hash characters",()=>{
  const url="file:///C:/Users/Jos%C3%A9%20A/%23Panel%20CEP";
- assert.equal(helper.decodeExtensionPath(url,path),"C:\\\\Users\\\\José A\\\\#Panel CEP");
+ assert.equal(helper.decodeExtensionPath(url,path),path.win32.resolve("C:/Users/José A/#Panel CEP"));
 });
 test("helper refuses missing or malformed configuration without spawn",()=>{
  for(const [overrides,code] of [
