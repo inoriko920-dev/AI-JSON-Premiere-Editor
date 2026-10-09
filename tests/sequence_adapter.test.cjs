@@ -125,3 +125,33 @@ test("host implementation does not use undocumented QE, deletes, imports, or exp
    assert.equal(source.includes(forbidden),false,forbidden);
  }
 });
+
+test("existing manually named sequence with Unicode/punctuation is preserved",()=>{
+ const h=host();
+ h.prior.name="Karya Indonesia — 2026 🎞";
+ assert.equal(h.adapter.createNewEmpty("AIJSON Managed",NEW_GUID,
+   h.requirements,h.authorization()),
+   "S5|1|CREATED_EMPTY|"+NEW_GUID);
+ assert.equal(h.prior.name,"Karya Indonesia — 2026 🎞");
+});
+test("missing API and unparseable real-host timebase fail closed",()=>{
+ const h=host();
+ h.project.createNewSequence=null;
+ assert.equal(h.adapter.createNewEmpty("AIJSON Managed",NEW_GUID,
+   h.requirements,h.authorization()),
+   "S5|1|BLOCKED|CREATE_API_UNAVAILABLE");
+ assert.equal(h.creates(),0);
+ const broken=host(); broken.project.activeSequence.timebase="NaN";
+ assert.equal(broken.adapter.inspect(),"S5|1|ERROR|HOST_TIMEBASE_OR_TRACKS_UNKNOWN");
+ assert.equal(broken.creates(),0);
+});
+test("duplicate new managed sequence after first creation prevents retry",()=>{
+ const h=host();
+ assert.equal(h.adapter.createNewEmpty("AIJSON Managed",NEW_GUID,
+   h.requirements,h.authorization()),
+   "S5|1|CREATED_EMPTY|"+NEW_GUID);
+ assert.equal(h.adapter.createNewEmpty("AIJSON Managed",NEW_GUID,
+   h.requirements,h.authorization()),
+   "S5|1|BLOCKED|SEQUENCE_ALREADY_EXISTS");
+ assert.equal(h.creates(),1);
+});
