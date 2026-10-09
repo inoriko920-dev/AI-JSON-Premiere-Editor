@@ -117,7 +117,12 @@ def inspect_ffprobe(
                 issues.append(issue("E_BACKGROUND_AUDIO_NOT_ISOLATED", pointer,
                                     "Background audio must be removed from a verified copy before timeline placement."))
                 continue
-            if sum(s["codec_type"] == "video" for s in topology) != 1:
+            video_tracks = sum(s["codec_type"] == "video" for s in topology)
+            if video_tracks == 0:
+                issues.append(issue("E_FFPROBE_STREAM_MISSING", pointer,
+                                    "Required background video stream is missing."))
+                continue
+            if video_tracks != 1:
                 issues.append(issue("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS", pointer,
                                     "Background must contain exactly one selected video stream."))
                 continue
