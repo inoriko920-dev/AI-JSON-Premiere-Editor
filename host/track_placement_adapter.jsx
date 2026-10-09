@@ -77,6 +77,8 @@ $._AIJSON_PLACEMENT_V1=(function(){
                 typeof p.source_out_frame!=="number" ||
                 p.source_in_frame!==0 ||
                 p.source_out_frame!==p.end_frame-p.start_frame ||
+                ticksAtFrame(plan.ticks_per_frame,p.source_in_frame)===null ||
+                ticksAtFrame(plan.ticks_per_frame,p.source_out_frame)===null ||
                 p.media_readback!=="NOT_TESTED"){
                 return false;
             }
@@ -225,12 +227,37 @@ $._AIJSON_PLACEMENT_V1=(function(){
                     !clip.start || !eq(clip.start.ticks,row.start_ticks)){
                     return "S7|1|INCOMPLETE|PLACEMENT_READBACK_FAILED";
                 }
+                /* Premiere TrackItem.inPoint/outPoint are per-instance source
+                 * Time objects, independent from sequence-relative start/end.
+                 * Set and read back both to prevent background loops from
+                 * using an unintended region of the original media.
+                 * The current candidate deliberately supports zero source IN.
+                 */
+                var sourceIn=ticksAtFrame(plan.ticks_per_frame,row.source_in_frame),
+                    sourceOut=ticksAtFrame(plan.ticks_per_frame,row.source_out_frame),
+                    newIn,newOut;
+                if(sourceIn===null || sourceOut===null ||
+                    !clip.inPoint || !clip.outPoint) {
+                    return "S7|1|INCOMPLETE|SOURCE_TRIM_API_UNAVAILABLE";
+                }
+                newIn=new Time();newIn.ticks=sourceIn;
+                newOut=new Time();newOut.ticks=sourceOut;
+                clip.inPoint=newIn;
+                clip.outPoint=newOut;
+                if(!clip.inPoint || !clip.outPoint ||
+                    !eq(clip.inPoint.ticks,sourceIn) ||
+                    !eq(clip.outPoint.ticks,sourceOut)) {
+                    return "S7|1|INCOMPLETE|SOURCE_TRIM_READBACK_FAILED";
+                }
                 if(!clip.end || !eq(clip.end.ticks,row.end_ticks)){
                     newEnd=new Time();
                     newEnd.ticks=row.end_ticks;
                     clip.end=newEnd;
                 }
-                if(!clip.end || !eq(clip.end.ticks,row.end_ticks)){
+                if(!clip.end || !eq(clip.end.ticks,row.end_ticks) ||
+                    !clip.start || !eq(clip.start.ticks,row.start_ticks) ||
+                    !eq(clip.inPoint.ticks,sourceIn) ||
+                    !eq(clip.outPoint.ticks,sourceOut)){
                     return "S7|1|INCOMPLETE|TRIM_READBACK_FAILED";
                 }
                 /* Any unexpected linked audio/audio spill => stop, preserve.
