@@ -90,7 +90,7 @@ test("create-empty inserts exactly one NEW sequence and never alters previous",(
  const h=host(),originalName=h.prior.name;
  const response=h.adapter.createNewEmpty("AIJSON Managed",NEW_GUID,
    h.requirements,h.authorization());
- assert.equal(response,"S5|1|CREATED_EMPTY|TRACKS_AND_TIMEBASE_READBACK_OK");
+ assert.equal(response,"S5|1|CREATED_EMPTY|"+NEW_GUID);
  assert.equal(h.creates(),1);
  assert.equal(h.seqs.length,2);
  assert.equal(h.prior.name,originalName);

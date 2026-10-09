@@ -49,7 +49,7 @@ def compile_tick_draft(draft: dict[str, Any],
         start, end = item.get("start_frame"), item.get("end_frame")
         track = item.get("target_track")
         if (not isinstance(key, str) or not key or key in unique or
-                track not in TRACK_INDEX or
+                not isinstance(track, str) or track not in TRACK_INDEX or
                 type(start) is not int or type(end) is not int or
                 not 0 <= start < end <= draft["total_frames"] or
                 item.get("mode") != "BOTH"):
@@ -70,6 +70,8 @@ def compile_tick_draft(draft: dict[str, Any],
             "effect_backend": "UNVERIFIED",
             "readback_verified": False,
         })
+    if len(placements) != draft.get("asset_instance_count"):
+        raise HostTickDraftError("E_HOST_DRAFT_INVALID")
     for spans in intervals.values():
         spans.sort()
         for i in range(1, len(spans)):

@@ -143,7 +143,7 @@ $._AIJSON_SEQUENCE_V1 = (function () {
                 return "S5|1|INCOMPLETE|SEQUENCE_PROFILE_MISMATCH";
             }
             /* Empty only! No import, clip insertion, FX, or export here. */
-            return "S5|1|CREATED_EMPTY|TRACKS_AND_TIMEBASE_READBACK_OK";
+            return "S5|1|CREATED_EMPTY|"+actualId;
         } catch(e) {
             /* Cannot know if mutation occurred before exception: never delete. */
             return "S5|1|INCOMPLETE|HOST_CREATE_EXCEPTION";

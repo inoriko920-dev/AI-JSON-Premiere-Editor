@@ -69,6 +69,22 @@ class HostTickTests(unittest.TestCase):
             compile_tick_draft(draft,"8467200000")
         self.assertEqual(context.exception.code,"E_HOST_TRACK_OVERLAP")
 
+    def test_malformed_track_list_is_rejected_as_structured_error(self):
+        e,a=demo()
+        draft=build_draft(e,a)
+        draft["asset_placements"][0]["target_track"]=["V2"]
+        with self.assertRaises(HostTickDraftError) as ctx:
+            compile_tick_draft(draft,"8467200000")
+        self.assertEqual(ctx.exception.code,"E_HOST_DRAFT_INVALID")
+
+    def test_wrong_placement_count_rejected(self):
+        e,a=demo()
+        draft=build_draft(e,a)
+        draft["asset_instance_count"]=999
+        with self.assertRaises(HostTickDraftError) as ctx:
+            compile_tick_draft(draft,"8467200000")
+        self.assertEqual(ctx.exception.code,"E_HOST_DRAFT_INVALID")
+
     def test_unknown_track_or_source_boundaries_refused(self):
         e,a=demo();draft=build_draft(e,a)
         draft["asset_placements"][0]["target_track"]="V99"
