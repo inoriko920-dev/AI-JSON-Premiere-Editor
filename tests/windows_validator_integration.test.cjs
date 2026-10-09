@@ -79,6 +79,10 @@ test("Windows uses real isolated Python runner and real media to produce NEEDS_R
   assert.equal(result.draft.scene_count,1);
   assert.equal(result.draft.asset_instance_count,1);
   assert.equal(result.draft.total_frames,90);
+  assert.ok(result.import_snapshot,"real Windows Python should yield local import inventory");
+  assert.equal(result.import_snapshot.item_count,4);
+  assert.equal(result.import_snapshot.import_count,3);
+  assert.equal(result.import_snapshot.can_import,false);
   assert.ok(result.issues.some(x=>x.code==="E_HOST_UNVERIFIED"));
   assert.equal(fs.existsSync(path.join(home,"DO_NOT_RENDER.mp4")),false);
   assert.equal(v.isBusy(),false);

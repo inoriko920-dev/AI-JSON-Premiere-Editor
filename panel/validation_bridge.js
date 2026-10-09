@@ -85,9 +85,24 @@
             draft={scene_count:d.scene_count,asset_instance_count:d.asset_instance_count,
                 total_frames:d.total_frames,digest:d.operation_digest_sha256};
         }
+        var importSummary=null;
+        if(Object.prototype.hasOwnProperty.call(obj,"import_snapshot")){
+            var snap=obj.import_snapshot;
+            if(!snap || typeof snap!=="object" ||
+                snap.status!=="CANDIDATE_NOT_AUTHORIZED" ||
+                snap.can_import!==false ||
+                !Number.isSafeInteger(snap.item_count) || snap.item_count<4 ||
+                !Number.isSafeInteger(snap.import_count) || snap.import_count<3 ||
+                snap.import_count!==snap.item_count-1 ||
+                !/^[a-f0-9]{64}$/.test(snap.inventory_sha256||"")){
+                return {status:"error",code:"VALIDATOR_RESPONSE_INVALID"};
+            }
+            importSummary={item_count:snap.item_count,import_count:snap.import_count,
+                digest:snap.inventory_sha256,can_import:false};
+        }
         return {status:obj.status,can_assemble:false,
             error_count:obj.error_count,review_count:obj.review_count,
-            issues:sanitized,draft:draft};
+            issues:sanitized,draft:draft,import_snapshot:importSummary};
     }
     function createValidator(deps){
         var active=false,generation=0,child=null;
@@ -163,7 +178,8 @@
                     "--media-root",media,
                     "--max-media-bytes",READ_BUDGETS.media,
                     "--max-srt-cues",READ_BUDGETS.cues,
-                    "--include-draft"];
+                    "--include-draft","--include-import-snapshot",
+                    "--max-import-items","256"];
                 if(ffprobe){args.push("--ffprobe-exe",ffprobe);}
                 child=execFile(py,args,{
                     cwd:realRoot,shell:false,windowsHide:true,timeout:30000,

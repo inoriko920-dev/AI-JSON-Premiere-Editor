@@ -1,0 +1,67 @@
+name: STEP06 Premiere Media Import (Mocked Host Only)
+on:
+  push:
+    branches:
+      - 'sol/step06-*'
+  pull_request:
+    paths:
+      - 'host/media_import_adapter.jsx'
+      - 'tests/media_import_adapter.test.cjs'
+      - 'core/import_snapshot.py'
+      - 'tests/test_core_import_snapshot.py'
+      - '.github/workflows/step06-import-mock.yml'
+jobs:
+  import:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run mocked Premiere media importer
+        run: node --test tests/media_import_adapter.test.cjs
+      - name: Run actual local media SHA and change-detection tests
+        run: python -m unittest tests.test_core_import_snapshot -v
+      - name: Run all JS panel, bridge and sequence adapter regression tests
+        run: npm test
+      - name: Run all Python JSON, media and tick regression tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Build deterministic P0 with new snapshot validator dependency
+        run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Check Windows inspector and explicit staging safety
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
+          $inspect = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Inspect -ZipPath $zip
+          if ($inspect -notcontains "P0_INSPECT=PASS" -or
+              $inspect -notcontains "P0_FILES=21" -or
+              $inspect -notcontains "P0_SHA256_ENTRIES=20") { throw "Invalid STEP06 P0 package" }
+          $temp = Join-Path $env:RUNNER_TEMP "p0-step06-test"
+          try {
+            & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Stage -ZipPath $zip -ExtensionDirectory $temp | Out-Null
+            throw "Unauthorized stage succeeded"
+          } catch {
+            if ($_.Exception.Message -notmatch "P0_STAGE_REQUIRES_EXPLICIT_CONFIRMATION") { throw }
+          }
+          if (Test-Path $temp) { throw "Unauthorized stage modified disk" }
+          $result = & "./tools/windows/P0_Windows_Pilot.ps1" -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $temp
+          if ($result -notcontains "P0_STAGE=PASS_USER_APPROVED") { throw "Approved staging failed" }
+          $root = Join-Path $temp "AI_JSON_Premiere_P0_Pilot"
+          if (-not (Test-Path (Join-Path $root "core/import_snapshot.py"))) { throw "Missing runtime dependency" }
+          if (Test-Path (Join-Path $root "host/media_import_adapter.jsx")) { throw "Unapproved host write adapter packaged" }
+      - name: Reject malicious ZIP test cases
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          & "./tools/windows/Test_P0_Negative.ps1" -ZipPath "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip" -InspectorPath "./tools/windows/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "step06-negative")
+      - name: Assert live CEP does not expose importer/mutations
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert 'media_import_adapter.jsx' not in s and 'sequence_adapter.jsx' not in s; print('NO_LIVE_HOST_MUTATION_ROUTE=PASS')"

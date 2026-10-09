@@ -173,3 +173,18 @@ test("optional FFprobe executable is fixed environment configuration, not user J
  assert.equal(result.code,"VALIDATOR_FFPROBE_PATH_INVALID");
  assert.equal(o.calls.length,0);
 });
+
+test("sanitized import snapshot is not host approval and rejects forged readiness",()=>{
+ const snap={status:"CANDIDATE_NOT_AUTHORIZED",can_import:false,
+   item_count:6,import_count:5,inventory_sha256:"b".repeat(64),
+   items:[{absolute_path:"C:\\Private\\secret"}]};
+ const safe=api.parseReport(JSON.stringify({...VALID,import_snapshot:snap}));
+ assert.equal(safe.status,"NEEDS_REVIEW");
+ assert.equal(safe.import_snapshot.import_count,5);
+ assert.equal(safe.import_snapshot.can_import,false);
+ assert.equal(JSON.stringify(safe).includes("Private"),false);
+ const changed=api.parseReport(JSON.stringify({
+   ...VALID,import_snapshot:{...snap,can_import:true}
+ }));
+ assert.equal(changed.code,"VALIDATOR_RESPONSE_INVALID");
+});
