@@ -119,6 +119,40 @@ class CoreCLIProcessTests(unittest.TestCase):
         self.assertIn("E_TRACK_PREFLIGHT_SKIPPED",
                       [x["code"] for x in r["issues"]])
 
+    def test_medium_both_phase_reference_cli_never_claims_backend(self):
+        code,result=self.run_cli("--include-animation-phases",
+            "--max-animation-instances","20")
+        self.assertEqual(code,3)
+        phase=result["animation_phases"]
+        self.assertEqual(phase["status"],"REFERENCE_SCHEDULE_ONLY")
+        self.assertEqual(phase["instance_count"],3)
+        self.assertEqual(phase["zero_hold_count"],0)
+        self.assertFalse(phase["can_render"])
+        self.assertFalse(result["can_assemble"])
+        self.assertIn("E_FX_BACKEND_UNVERIFIED",
+                      [x["code"] for x in result["issues"]])
+        self.assertNotIn("asset_placements",str(phase))
+
+    def test_animation_phases_budget_required_and_fail_closed(self):
+        code,result=self.run_cli("--include-animation-phases")
+        self.assertEqual(code,2)
+        self.assertNotIn("animation_phases",result)
+        self.assertIn("E_FX_RESOURCE_LIMIT_UNVERIFIED",
+                      [x["code"] for x in result["issues"]])
+
+    def test_both_reference_too_short_is_e_time_006(self):
+        edit=json.loads(self.edit.read_text("utf-8"))
+        edit["scenes"][0]["end_frame"]=47
+        edit["scenes"][0]["assets"][0]["end_frame"]=47
+        edit["scenes"][1]["start_frame"]=47
+        edit["scenes"][1]["assets"][0]["start_frame"]=47
+        self.edit.write_text(json.dumps(edit),encoding="utf-8")
+        code,result=self.run_cli("--include-animation-phases",
+            "--max-animation-instances","20")
+        self.assertEqual(code,2)
+        self.assertIn("E_TIME_006",[x["code"] for x in result["issues"]])
+        self.assertNotIn("animation_phases",result)
+
     def test_draft_timeline_is_non_executable_and_deterministic(self):
         code,result=self.run_cli("--include-draft")
         self.assertEqual(code,3)

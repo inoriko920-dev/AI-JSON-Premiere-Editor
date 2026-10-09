@@ -18,6 +18,20 @@ registry_file = ROOT / "core/direction_registry.json"
 
 
 class BothPhaseTests(unittest.TestCase):
+    def test_reference_matches_astra_csv_exactly(self):
+        import csv
+        source=ROOT / "docs/planning/STEP01_B02_PROPOSED_21_DIRECTION_REGISTRY.csv"
+        with source.open(encoding="utf-8-sig",newline="") as f:
+            source_rows=list(csv.DictReader(f))
+        reference=json.loads(ref_file.read_text(encoding="utf-8"))["entries"]
+        self.assertEqual(len(source_rows),21)
+        for row in source_rows:
+            key=row["preset_key"]
+            self.assertIn(key,reference)
+            self.assertEqual(reference[key]["in_frames"],int(row["medium_in_frames_ref"]))
+            self.assertEqual(reference[key]["out_frames"],int(row["medium_out_frames_ref"]))
+            self.assertEqual(reference[key]["evidence_level"],row["evidence_level"])
+
     def test_reference_has_all_21_named_presets(self):
         reference=json.loads(ref_file.read_text("utf-8"))
         directions=json.loads(registry_file.read_text("utf-8"))["directions"]
