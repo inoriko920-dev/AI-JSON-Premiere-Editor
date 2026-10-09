@@ -140,7 +140,7 @@ class BackgroundIsolationTests(unittest.TestCase):
         original_runner=self.runner
         def mutate_after_probe(args,**kwargs):
             result=original_runner(args,**kwargs)
-            if args[0] == str(self.ffprobe) and args[-1] == str(self.original):
+            if args[0] == str(self.ffprobe) and not Path(args[-1]).name.startswith(".bg_work_"):
                 self.original.write_bytes(b"CHANGED DURING READ")
             return result
         self.runner=mutate_after_probe
