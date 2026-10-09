@@ -102,7 +102,9 @@ def prepare_track_preflight(
         kwargs["runner"] = ffprobe_runner
     probe = inspect_ffprobe(edit, media_root, **kwargs)
     for raw in probe["issues"]:
-        if raw["severity"] == "ERROR" or raw["code"] not in FFPROBE_PENDING_ONLY:
+        if raw["code"] == "E_FFPROBE_UNAVAILABLE":
+            issues.append(_problem("E_FFPROBE_UNAVAILABLE", "ffprobe", "REVIEW"))
+        elif raw["severity"] == "ERROR" or raw["code"] not in FFPROBE_PENDING_ONLY:
             # Even if FFprobe is absent, do not infer duration from scene or
             # narration quote. The user needs actual decoder metadata.
             issues.append(_problem(raw["code"], "ffprobe"))
