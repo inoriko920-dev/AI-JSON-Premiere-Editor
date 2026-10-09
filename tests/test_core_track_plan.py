@@ -79,7 +79,7 @@ class FourTrackTests(unittest.TestCase):
             compile_four_track_candidate(e,a,ticks_per_frame="8467200000",
                 audio_duration_ms=11000,background_duration_ms=6000,
                 media_snapshot=snapshot(e))
-        self.assertEqual(ctx.exception.code,"E_TRACK_AUDIO_POLICY_UNVERIFIED")
+        self.assertEqual(ctx.exception.code,"E_TRACK_SOURCE_CONTRACT_INVALID")
 
     def test_tick_string_exact_and_deterministic(self):
         x=make();y=make()

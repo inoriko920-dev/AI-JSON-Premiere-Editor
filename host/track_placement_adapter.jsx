@@ -28,7 +28,11 @@ $._AIJSON_PLACEMENT_V1=(function(){
             !/^[a-f0-9]{64}$/.test(plan.operation_sha256||"") ||
             !eq(plan.ticks_per_frame,tb) ||
             !isTick(plan.ticks_per_frame,false) ||
-            !isTick(plan.source_digest,false) && !/^[a-f0-9]{64}$/.test(plan.source_digest||"") ||
+            !/^[a-f0-9]{64}$/.test(plan.source_digest||"") ||
+            !/^[a-f0-9]{64}$/.test(plan.media_digest||"") ||
+            typeof plan.total_frames!=="number" ||
+            Math.floor(plan.total_frames)!==plan.total_frames ||
+            plan.total_frames<1 || plan.total_frames>10000000 ||
             !(Object.prototype.toString.call(plan.placements)==="[object Array]") ||
             plan.placements.length<4 || plan.placements.length>10000){
             return false;
