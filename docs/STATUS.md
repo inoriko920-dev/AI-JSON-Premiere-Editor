@@ -1,12 +1,10 @@
 # Status proyek — 9 Oktober 2026 WIB
 
-- **STEP01 ASTRA DECISION CONSOLIDATION V5**, [Draft PR #1](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/pull/1), main unchanged.
-- **B01 CLOSED_SOURCE_DISCOVERY**: seven historical source documents read and SHA-256 indexed in prior STEP01 V2; no public upload of raw private files necessary.
-- **B02 REVIEW_PENDING**: 10/21 preset rows have at least one source-grounded direction token, 11 canonical name sets remain proposed; MEDIUM-only MVP recommended but not user approved; FAST/SLOW uncalibrated.
-- **B06 REVIEW_PENDING**: nested unknown-field compatibility, locked=false, evidence aliases, max resource limits and host ticks policy.
-- Technical normatives source-supported: 2 JSON, BOTH, exact pair coverage, integer frame timing, no blind fallback, create-new sequence.
-- [V5 decision DOCX](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.docx), [Markdown](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.md), [direction matrix](planning/STEP01_DIRECTION_EVIDENCE_V5.csv) and [review queue](planning/STEP01_REVIEW_QUEUE.csv).
-- **G1A BLOCKED (B02/B06)**; G1B NOT_STARTED, G2 NOT_STARTED, **CODING PROHIBITED**.
-- B03 real host, B04 UI and B05 dependency/packaging remain OPEN; G3-G10 NOT_STARTED; 30 AC **0 PASS**; presets host **0/21 VERIFIED**.
-- Prior static example audit 18/18 PASS **only for source JSON sample**; 68 fixture cases are **planned, not executed**.
-- Next: obtain **one consolidated decision approval** plus engineering schema ADR. When G1A PASS then STEP02 UI prompt STOP until all UI PNG approved and 1 UI DOCX in repository.
+- **STEP01 ASTRA B06 VALIDATION ADR** pada Draft PR #1; main tidak di-merge.
+- B01 **CLOSED_SOURCE_DISCOVERY** (7 dokumen referensi ditemukan dan SHA dicatat).
+- B06 **POLICY_DRAFT_COMPLETE / REVIEW_PENDING**: [ADR-001](planning/ADR_001_VALIDASI_KONTRAK_B06_2026-10-09.md), [17 area field + 4 prohibited scopes](planning/STEP01_B06_FIELD_POLICY.csv), [12 decisions](planning/STEP01_B06_TECH_DECISIONS.csv), [13 error crosswalk](planning/STEP01_B06_ERROR_CROSSWALK.csv). Semua baru spesifikasi, **bukan** schema/parser/test.
+- B02 REVIEW_PENDING: MEDIUM-only disarankan, namun belum user-approved; 21 full direction allowlist belum final, FAST/SLOW belum calibrated.
+- B03 host Premiere 24.x, B04 UI final, B05 dependensi/packaging masih OPEN.
+- **G1A BLOCKED** (B02 + B06 signoff), **G1B NOT_STARTED**, **G2 NOT_STARTED**, **CODING PROHIBITED**.
+- Static audit 18/18 hanya DEMO_001 di Master V3; 68 fixture rencana belum dijalankan. AC 0/30 PASS; 0/21 preset HOST_VERIFIED. Tidak ada installer/portable/release.
+- Langkah selanjutnya masih STEP01: signoff B02/B06 tanpa menebak nilai. Setelah G1A PASS, STEP02 prompt UI wajib STOP; gambar semua disetujui dan satu DOCX UI final dulu, baru SOL coding.

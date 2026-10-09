@@ -1,11 +1,9 @@
-# Mulai di sini — AI-JSON-Premiere-Editor
+# Mulai di sini — ASTRA / SOL
 
-**ASTRA STEP01 V5. B01 historical source discovery CLOSED; B02/B06 remain REVIEW_PENDING; G1A BLOCKED, G2 NOT_STARTED, coding PROHIBITED.**
+**Masih STEP01. B06 validator ADR telah didokumentasikan namun belum final review. G1A BLOCKED; G2 NOT_STARTED; CODING DILARANG.**
 
-Handoff reading order: AGENTS.md → Master V3 original + transcript → STEP00 plan → STEP01 V1/V2/V3/V4 → **[V5 decision DOCX](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.docx)** / [V5 Markdown](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.md) → [21 direction evidence](planning/STEP01_DIRECTION_EVIDENCE_V5.csv) → [10 review decisions](planning/STEP01_REVIEW_QUEUE.csv) → [BLOCKERS](planning/BLOCKERS.md) → [68 fixture plans](planning/STEP01_FIXTURE_CATALOG.csv).
+Urutan: AGENTS.md → Master V3 di docs/source → STEP00 plan → STEP01 kontrak V1–V5 DOCX/MD → **[ADR-001 B06](planning/ADR_001_VALIDASI_KONTRAK_B06_2026-10-09.md)** → [field policy](planning/STEP01_B06_FIELD_POLICY.csv) → [error crosswalk](planning/STEP01_B06_ERROR_CROSSWALK.csv) → [12 tech decisions](planning/STEP01_B06_TECH_DECISIONS.csv) → 21 direction matrix + 10 review queue + 68 fixture plans → [blockers](planning/BLOCKERS.md).
 
-Source file raw transfer is NOT required merely to close B01; the seven sources were read and SHA-recorded previously; do not put private documents into a public GitHub repo automatically.
+ADR-001 tidak mengubah dua JSON. Root V2 11/9 tetap wajib; extra metadata nested dan locked=false butuh signoff. Field `render` adalah legacy hint saja, bukan izin ekspor via FFmpeg. Missing media dan unknown backend stop sebelum host mutation.
 
-10/21 direction rows have at least one source-grounded token, 11 still need review, and no host implementation is verified. Speed MEDIUM-only is an ASTRA proposal awaiting explicit scope sign-off; user typing 'lanjutkan' does not grant it.
-
-Upon G1A spec PASS move to STEP02 prompt UI and STOP. User must approve all UI images, then pack a single UI_REFERENCE_FINAL.docx and PNGs to GitHub before SOL coding STEP03. No main merge, portable or release until authorized gates.
+MEDIUM-only belum user-approved, 21 direction belum certified. Jangan anggap perintah `lanjutkan` sebagai approval. Setelah G1A PASS, STEP02 prompt UI **WAJIB STOP** menunggu seluruh gambar final + approval + satu UI_REFERENCE_FINAL.docx di repo. Baru SOL dapat coding.

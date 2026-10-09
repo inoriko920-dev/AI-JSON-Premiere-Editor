@@ -1,14 +1,12 @@
-# BLOCKERS — STEP01 V5, 9 Oktober 2026 WIB
+# BLOCKERS — STEP01 B06 ADR, 9 Oktober 2026 WIB
 
-| ID | Status | Next action |
+| ID | Status | Pemilik / tindakan penutupan |
 | --- | --- | --- |
-| B01 | **CLOSED_SOURCE_DISCOVERY** | Seven original source files were found, read and SHA-256 inventoried in STEP01 V2. Do not publish private raw originals merely to close this gate. Derived DOCX/MD handoff is available. |
-| B02 | **REVIEW_PENDING** | Final sign-off on MEDIUM-only MVP versus FAST/SLOW calibration, and full 21-preset canonical direction allowlist. 10/21 rows have at least one source-grounded token; 11 remain proposed. |
-| B03 | OPEN_HOST | Exact Windows/Premiere Pro 2024 24.x, CEP runtime, native keyframe/alpha/timebase probes. No claimed host PASS. |
-| B04 | OPEN_UI | STEP02 prompt UI → STOP → all image approvals → single UI_REFERENCE_FINAL.docx in repo → G2 PASS. |
-| B05 | OPEN_DEPENDENCIES | Helper/FFmpeg versions, distribution licenses/notice and SBOM before packaging. |
-| B06 | REVIEW_PENDING | Freeze unknown nested fields while preserving legacy V2, locked=false safety, SRT alias confidence, resource ceilings and host-dependent ticks ADR. |
+| B01 | CLOSED_SOURCE_DISCOVERY | 7 source historis dibaca dan SHA-256 diinventaris; dokumen mentah tetap privat. |
+| B02 | REVIEW_PENDING | Pengguna/reviewer menentukan MEDIUM-only MVP atau FAST/SLOW per preset; finalkan full 21 direction allowlist tanpa alias karangan. |
+| B03 | OPEN_HOST | Probe Premiere Pro 2024 exact 24.x Windows: CEP, ticks, native keyframes, alpha, codec. |
+| B04 | OPEN_UI | STEP02 prompt UI → STOP → PNG final disetujui → satu UI_REFERENCE_FINAL.docx + hash repo. |
+| B05 | OPEN_DEPENDENCIES | Versi helper/FFmpeg dan audit lisensi/notices/SBOM sebelum packaging. |
+| B06 | **POLICY_DRAFT_COMPLETE / REVIEW_PENDING** | [ADR-001](ADR_001_VALIDASI_KONTRAK_B06_2026-10-09.md) telah membukukan 17 area field + 4 pola field terlarang, 12 keputusan dan 13 crosswalk errors. Review final unknown nested/locked=false dan tentukan resource limits dengan host evidence sebelum implementasi. |
 
-**G1A BLOCKED (B02, B06), G1B NOT_STARTED, G2 NOT_STARTED. CODING/MAIN MERGE/RELEASE PROHIBITED.**
-
-For precise decisions see [V5](ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.md), [21 direction matrix](STEP01_DIRECTION_EVIDENCE_V5.csv) and [review queue](STEP01_REVIEW_QUEUE.csv). 
+**G1A BLOCKED (B02/B06 signoff), G1B NOT_STARTED, G2 NOT_STARTED; tidak boleh coding atau merge.** User typing `lanjutkan` ≠ approval MEDIUM-only.
