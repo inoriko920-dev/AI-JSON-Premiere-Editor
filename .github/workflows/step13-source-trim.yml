@@ -1,0 +1,34 @@
+name: STEP13 Premiere Source Trim Readback (Mock Only)
+on:
+  push:
+    branches:
+      - 'sol/step13-*'
+  pull_request:
+    paths:
+      - 'host/track_placement_adapter.jsx'
+      - 'tests/track_placement_adapter.test.cjs'
+      - '.github/workflows/step13-source-trim.yml'
+jobs:
+  source-trim:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test source in/out and sequence readback ES3 adapter
+        run: node --test tests/track_placement_adapter.test.cjs
+      - name: Run all CEP/host JavaScript regression tests
+        run: npm test
+      - name: Run all Python contracts, journaling and dispatcher tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Assert production CEP remains read-only and no host write route exposed
+        run: python -c "from pathlib import Path; m=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in m; assert 'track_placement_adapter.jsx' not in m and 'transaction_dispatcher.py' not in m; print('NO_LIVE_PREMIERE_MUTATION=PASS')"
