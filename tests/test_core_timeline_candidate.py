@@ -2,6 +2,8 @@
 import copy
 import runpy
 import unittest
+from unittest.mock import patch
+from core import timeline_candidate as module
 from pathlib import Path
 
 from core.timeline_candidate import build_timeline_candidate, TimelineCandidateError
@@ -96,12 +98,15 @@ class TimelineCandidateTests(unittest.TestCase):
         with self.assertRaises(TimelineCandidateError):
             compile_plan(inputs=(e,a,s))
 
-    def test_oversized_background_loop_count_is_blocked(self):
-        with self.assertRaises(TimelineCandidateError) as x:
-            compile_plan(bg=1)
-        # Three hundred loops are valid and under current developer cap.
-        # Prove the safe cap using a longer but structurally valid sample instead.
-        self.assertNotEqual(x.exception.code,"E_RESOURCE_LIMIT")
+    def test_one_frame_background_loops_do_not_exceed_dev_budget(self):
+        report=compile_plan(bg=1)
+        self.assertEqual(len([x for x in report["operations"] if x["track"]=="V1"]),330)
+
+    def test_declared_development_operation_cap_blocks_large_plan(self):
+        with patch.object(module,"MAX_OPERATIONS_DEV",5):
+            with self.assertRaises(TimelineCandidateError) as x:
+                compile_plan(bg=1)
+        self.assertEqual(x.exception.code,"E_RESOURCE_LIMIT")
 
 
 if __name__=="__main__":
