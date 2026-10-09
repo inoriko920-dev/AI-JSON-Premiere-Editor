@@ -24,7 +24,7 @@ CONTRACT_PENDING_ONLY = {
     "E_PROFILE_UNVERIFIED", "E_HOST_UNVERIFIED"
 }
 MEDIA_PENDING_ONLY = {"E_MEDIA_DECODE_UNVERIFIED", "E_HOST_UNVERIFIED"}
-FFPROBE_PENDING_ONLY = {"E_DECODE_PREMIERE_UNVERIFIED"}
+FFPROBE_PENDING_ONLY = {"E_DECODE_PREMIERE_UNVERIFIED", "E_FFPROBE_UNAVAILABLE"}
 
 
 def _problem(code: str, stage: str, severity: str = "ERROR") -> dict[str, str]:
@@ -107,6 +107,9 @@ def prepare_track_preflight(
             # narration quote. The user needs actual decoder metadata.
             issues.append(_problem(raw["code"], "ffprobe"))
     if issues:
+        # FFprobe not configured is a non-authorizing REVIEW, not a false
+        # claim of malformed user media. No candidate is emitted without
+        # actual stream metadata and duration.
         return _finish(issues)
     durations: dict[str, int] = {}
     for item in probe["streams"]:
