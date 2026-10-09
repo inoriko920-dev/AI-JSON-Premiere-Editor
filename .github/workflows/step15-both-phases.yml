@@ -1,0 +1,35 @@
+name: STEP15 BOTH animation reference phase scheduler (NO HOST)
+on:
+  push:
+    branches: ['sol/step15-*']
+  pull_request:
+    paths:
+      - 'core/animation_phases.py'
+      - 'core/animation_timings_b02.json'
+      - 'tests/test_core_animation_phases.py'
+      - 'core/validate_cli.py'
+      - '.github/workflows/step15-both-phases.yml'
+jobs:
+  scheduler:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test STEP15 21 presets / BOTH timing
+        run: python -m unittest tests.test_core_animation_phases -v
+      - name: Run all Python regressions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run all JavaScript, ES3 and CEP regressions
+        run: npm test
+      - name: Prevent Premiere host mutation or image rewriting
+        run: python -c "from pathlib import Path; manifest=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in manifest; assert 'animation_phases.py' not in manifest; print('ANIMATION_SCHEDULER_ONLY_NO_HOST_CLAIM=PASS')"
