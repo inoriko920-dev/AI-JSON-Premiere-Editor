@@ -1,0 +1,40 @@
+name: STEP07 Track Placement (Mocked Host, no Premiere)
+on:
+  push:
+    branches:
+      - 'sol/step07-*'
+  pull_request:
+    paths:
+      - 'host/track_placement_adapter.jsx'
+      - 'tests/track_placement_adapter.test.cjs'
+      - 'core/track_worklist.py'
+      - 'tests/test_core_track_worklist.py'
+      - '.github/workflows/step07-track-mock.yml'
+jobs:
+  track:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run candidate V2/V3 host placement mock cases
+        run: node --test tests/track_placement_adapter.test.cjs
+      - name: Run V1/V2/V3/A1 exact timeline worklist unit tests
+        run: python -m unittest tests.test_core_track_worklist -v
+      - name: Regress all CEP and ExtendScript tests
+        run: npm test
+      - name: Regress all offline Python validator and media tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Ensure P0 runtime has no host write adapters
+        run: python -c "from pathlib import Path; p=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in p; assert 'track_placement_adapter.jsx' not in p; print('READ_ONLY_CEP_ONLY=PASS')"
+      - name: Verify original development ZIP excludes host mutators
+        run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
