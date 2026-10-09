@@ -1,6 +1,7 @@
 """Runnable FFmpeg filtergraph assembly, no user image/media generation."""
 import copy
 import json
+import os
 import runpy
 from pathlib import Path
 import re
@@ -112,12 +113,14 @@ class FFmpegAlphaBackendTests(unittest.TestCase):
 
     def test_build_command_no_shell_and_no_overwrite(self):
         out=compile_filter(case())
-        cmd=build_ffmpeg_command(out,Path("/opt/ffmpeg"),Path("/tmp/source.png"),
-                                  Path("/tmp/derived.mov"))
-        self.assertEqual(cmd[0],"/opt/ffmpeg")
+        binary = Path("C:/ffmpeg/ffmpeg.exe") if os.name=="nt" else Path("/opt/ffmpeg")
+        source = Path("C:/Job/source.png") if os.name=="nt" else Path("/tmp/source.png")
+        target = Path("C:/Job/derived.mov") if os.name=="nt" else Path("/tmp/derived.mov")
+        cmd=build_ffmpeg_command(out,binary,source,target)
+        self.assertEqual(cmd[0],str(binary))
         self.assertIn("-n",cmd)
         self.assertNotIn("-y",cmd)
-        self.assertEqual(cmd[-2:],["mov","/tmp/derived.mov"])
+        self.assertEqual(cmd[-2:],["mov",str(target)])
         self.assertEqual(cmd[cmd.index("-frames:v")+1],"150")
         self.assertEqual(cmd[cmd.index("-vf")+1],out["filtergraph"])
 
