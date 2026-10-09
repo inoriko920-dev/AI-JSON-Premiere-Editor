@@ -1,20 +1,19 @@
 # Status proyek
 
-- Tanggal: 9 Oktober 2026 WIB.
-- Baseline main commit e28e08f818d92f01996ce6a6ca6db52606728bfb. STEP01 masih di Draft PR #1.
-- STEP01 ASTRA: SOURCE_RECOVERED / CONTRACT_PARTIAL. Tujuh sumber ditemukan di Library pengguna, checksum dicatat, file mentah belum diunggah publik.
-- Profil layout S02 dan 21 durasi MEDIUM S04 ditranskrip sebagai source-derived, tetapi REFERENCE_UNCALIBRATED.
-- B01 SOURCE_LOCATED / ARCHIVAL_PENDING; B02 PARTIAL; B06 PARTIAL. B03/B04/B05 OPEN.
-- G1A SPEC BLOCKED. G1B SCHEMA TEST NOT_STARTED. G2 UI NOT_STARTED. CODING PROHIBITED.
-- G3-G10 NOT_STARTED, P0-P6 NOT_TESTED, AC01-AC30 0/30, preset host 0/21.
-- Berikutnya masih STEP01: source approval, per-preset direction/speed, schema alias/unknown fields, host-timebase ADR. Baru setelah G1A PASS boleh STEP02 prompt UI kemudian STOP wajib.
+- STEP01 ASTRA **ADDENDUM CONTRACT REVIEW V3** disimpan di Draft PR #1; masih satu STEP, belum maju ke UI.
+- Berdasarkan 7 dokumen Library historis; sumber raw tidak disalin ke repo publik.
+- SOURCE-SUPPORTED: field top-level kedua JSON, duplicate-key reject, mode BOTH, exact decision coverage, ms→frame round_half_up, clip-too-short fail, create new sequence, media fail-closed.
+- PROPOSED/NEEDS APPROVAL: per-preset token directions, FAST/SLOW (pilihan MVP MEDIUM-only), unknown field allowlist/limits, APPROX_REVIEW/ESTIMATED_FROM_AUDIO policy, locked=false handling.
+- G1A **BLOCKED**: B01 source approval, B02 directions/speeds, B06 policy. G1B NOT_STARTED. G2 NOT_STARTED; coding PROHIBITED.
+- B03 host Premiere 24.x, B04 UI final, B05 runtime dependency remain OPEN.
+- G3–G10/P0–P6 NOT_TESTED; AC01–AC30 0/30, backend presets VERIFIED 0/21.
 
-## Handoff
+### Dokumen terbaru
 
-- docs/planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.docx
-- docs/planning/ASTRA_STEP01_SOURCE_RECOVERY_AND_CONTRACT_V2_2026-10-09.docx dan .md
-- docs/planning/STEP01_SOURCE_CONFLICT_MATRIX.csv (15 konflik)
-- docs/planning/STEP01_FIXTURE_CATALOG.csv (48 fixture rencana)
-- docs/planning/PRESET_MATRIX.csv, ACCEPTANCE_MATRIX.csv, docs/planning/BLOCKERS.md
+- [ASTRA STEP01 Addendum DOCX](planning/ASTRA_STEP01_CONTRACT_FREEZE_REVIEW_V3_2026-10-09.docx)
+- [ASTRA STEP01 Addendum Markdown](planning/ASTRA_STEP01_CONTRACT_FREEZE_REVIEW_V3_2026-10-09.md)
+- [Arah 21 preset](planning/STEP01_DIRECTION_CANDIDATES.csv)
+- [Keputusan kontrak](planning/STEP01_CONTRACT_DECISIONS.csv)
+- [Kontrak sebelumnya](planning/ASTRA_STEP01_SOURCE_RECOVERY_AND_CONTRACT_V2_2026-10-09.docx)
 
-Tidak ada aplikasi UI, plugin Premiere atau installer yang sudah dijalankan.
+Next STEP: masih STEP01, tunggu review opsi. **STEP02 prompt UI STOP** hanya setelah G1A PASS. Tidak ada merge main.

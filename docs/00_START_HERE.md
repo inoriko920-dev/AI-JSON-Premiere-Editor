@@ -1,9 +1,9 @@
-# Mulai di sini — ASTRA dan SOL
+# Mulai di sini — ASTRA / SOL
 
-Status: STEP01 SOURCE_RECOVERED / CONTRACT_PARTIAL; G1A BLOCKED; G2 NOT_STARTED; CODING DILARANG.
+**Masih STEP01, G1A BLOCKED, coding dilarang.** Untuk persyaratan terbaru lihat [STATUS](STATUS.md).
 
-Baca AGENTS.md, docs/STATUS.md dan Master V3 di docs/source dahulu. Berikutnya baca rencana STEP00, kontrak STEP01 V1 dan audit sumber STEP01 V2 DOCX/Markdown, BLOCKERS.md, 48 fixture, 15 konflik, 21 preset dan 30 AC.
+Urutan baca: AGENTS.md → Master V3 asli → STEP00 ASTRA → STEP01 kontrak V1 → pemulihan 7 sumber V2 → **STEP01 Contract Freeze Review V3 (DOCX+MD)** → [Arah 21 preset](planning/STEP01_DIRECTION_CANDIDATES.csv) → [Matriks keputusan](planning/STEP01_CONTRACT_DECISIONS.csv) → [BLOCKERS](planning/BLOCKERS.md) → acceptance dan fixtures.
 
-Tujuh sumber historis ditemukan di Library pengguna, disimpulkan ke ASTRA_STEP01_SOURCE_RECOVERY_AND_CONTRACT_V2_2026-10-09.md. File asli tidak otomatis dipublikasikan di repo publik. B01 archival tetap terbuka; B02 directions/FAST-SLOW dan B06 schema juga belum lengkap.
+Contract Freeze Review V3 membedakan SOURCE_SUPPORTED versus PROPOSAL_NEEDS_SIGNOFF. Jangan menjadikan parameter proposed sebagai production registry atau pengujian PASS.
 
-Masih STEP01 untuk menutup gate G1A. Setelah G1A PASS, STEP02 membuat prompt UI dan WAJIB STOP. Baru setelah semua gambar disetujui, UI_REFERENCE_FINAL.docx beserta PNG dan evidence di repo, G2 PASS membuka coding SOL STEP03. Host Premiere asli diperlukan; jangan melaporkan CI browser sebagai bukti host.
+Tentukan arah per preset, kebijakan FAST/SLOW, unknown field kompatibilitas, batas input, SRT review alias dan raw source handoff. Jika G1A PASS, baru masuk STEP02 menulis prompt UI lalu STOP menunggu semua gambar + persetujuan; satu UI_REFERENCE_FINAL.docx wajib di repo sebelum SOL coding.
