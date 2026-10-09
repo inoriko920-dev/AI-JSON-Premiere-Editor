@@ -9,6 +9,7 @@ const guid="aaaa1111-bbbb-2222-cccc-333333333333";
 function operation(key,track,item,start,end,slot,sourceIn=0){
  const tick=f=>String(f*TPF);
  return {key,track,item_id:item,slot,start_frame:start,end_frame:end,
+  source_in_frame:sourceIn,source_out_frame:sourceIn+end-start,
   source_in_ticks:tick(sourceIn),source_out_ticks:tick(sourceIn+end-start),
   start_ticks:tick(start),end_ticks:tick(end),duration_ticks:tick(end-start),
   readback_verified:false};
