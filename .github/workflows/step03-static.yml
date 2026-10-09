@@ -10,6 +10,7 @@ on:
       - 'host/**'
       - 'helper/**'
       - 'tests/**'
+      - 'tools/**'
       - 'package.json'
       - '.github/workflows/step03-static.yml'
 jobs:
@@ -30,3 +31,13 @@ jobs:
           python-version: '3.11'
       - run: npm test
       - run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Build deterministic unsigned P0 development test ZIP
+        run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Publish Windows P0 development pilot only
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_JSON_Premiere_STEP03_P0_TEST_ONLY_Windows
+          path: dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+          retention-days: 7
+          if-no-files-found: error
