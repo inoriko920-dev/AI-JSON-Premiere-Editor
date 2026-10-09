@@ -1,0 +1,38 @@
+name: STEP07 Timeline V1-V3 A1 (Mocked Host Only)
+on:
+  push:
+    branches:
+      - 'sol/step07-*'
+  pull_request:
+    paths:
+      - 'core/timeline_candidate.py'
+      - 'tests/test_core_timeline_candidate.py'
+      - 'host/track_placement_adapter.jsx'
+      - 'tests/track_placement_adapter.test.cjs'
+      - '.github/workflows/step07-timeline-mock.yml'
+jobs:
+  timeline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Mock Premiere V1 V2 V3 A1 placement and failure handling
+        run: node --test tests/track_placement_adapter.test.cjs
+      - name: Test deterministic Python track compiler and background looping
+        run: python -m unittest tests.test_core_timeline_candidate -v
+      - name: Regression all JavaScript code
+        run: npm test
+      - name: Regression all Python code
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Prevent live CEP mutation route
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert 'track_placement_adapter.jsx' not in s and 'media_import_adapter.jsx' not in s; assert 'track_placement_adapter.jsx' not in Path('tools/build_p0_pilot.py').read_text(); print('NO_UNVERIFIED_HOST_MUTATION_ROUTE=PASS')"
