@@ -1,20 +1,20 @@
 # Status proyek
 
-- Tanggal pembaruan: 9 Oktober 2026 WIB.
-- Baseline main: `e28e08f818d92f01996ce6a6ca6db52606728bfb` (STEP00 ASTRA planning).
-- Tahap kerja: **STEP01 ASTRA — DRAFT_WITH_BLOCKERS**, pada branch `astra/step01-contract-spec-20261009`. Hasil terdiri dari DOCX kontrak, Markdown, katalog 48 fixture, dan keputusan terbuka.
-- G0 kesiapan penuh: BLOCKED pada sumber V2/layout/efek dan jalur host nyata.
-- G1A spesifikasi: **BLOCKED** (B01, B02, B06). Belum dapat disahkan untuk coding.
-- G1B schema tests: NOT_STARTED; baru boleh dibuat/diuji SOL STEP04 setelah UI gate.
-- G2 gambar UI + DOCX referensi final + approval: NOT_STARTED. **Coding PROHIBITED**.
-- G3–G10: NOT_STARTED; P0–P6 NOT_TESTED.
-- AC01–AC30: 0/30 diuji; 21 preset 0/21 disertifikasi.
-- Produk, executable, CI produk, installer dan release: belum ada.
+- Tanggal: 9 Oktober 2026 WIB.
+- Baseline main commit e28e08f818d92f01996ce6a6ca6db52606728bfb. STEP01 masih di Draft PR #1.
+- STEP01 ASTRA: SOURCE_RECOVERED / CONTRACT_PARTIAL. Tujuh sumber ditemukan di Library pengguna, checksum dicatat, file mentah belum diunggah publik.
+- Profil layout S02 dan 21 durasi MEDIUM S04 ditranskrip sebagai source-derived, tetapi REFERENCE_UNCALIBRATED.
+- B01 SOURCE_LOCATED / ARCHIVAL_PENDING; B02 PARTIAL; B06 PARTIAL. B03/B04/B05 OPEN.
+- G1A SPEC BLOCKED. G1B SCHEMA TEST NOT_STARTED. G2 UI NOT_STARTED. CODING PROHIBITED.
+- G3-G10 NOT_STARTED, P0-P6 NOT_TESTED, AC01-AC30 0/30, preset host 0/21.
+- Berikutnya masih STEP01: source approval, per-preset direction/speed, schema alias/unknown fields, host-timebase ADR. Baru setelah G1A PASS boleh STEP02 prompt UI kemudian STOP wajib.
 
-## Serah terima
+## Handoff
 
-Lihat [STEP01 DOCX](planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.docx), [STEP01 Markdown](planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.md) dan [Fixture katalog](planning/STEP01_FIXTURE_CATALOG.csv). Planning draft bukan hasil tes host atau keputusan mengganti Master V2. Jangan mengubah G1A menjadi PASS sebelum seluruh definisi normatif benar-benar lengkap dan disetujui.
+- docs/planning/ASTRA_STEP01_KONTRAK_TEKNIS_V1_DRAFT_2026-10-09.docx
+- docs/planning/ASTRA_STEP01_SOURCE_RECOVERY_AND_CONTRACT_V2_2026-10-09.docx dan .md
+- docs/planning/STEP01_SOURCE_CONFLICT_MATRIX.csv (15 konflik)
+- docs/planning/STEP01_FIXTURE_CATALOG.csv (48 fixture rencana)
+- docs/planning/PRESET_MATRIX.csv, ACCEPTANCE_MATRIX.csv, docs/planning/BLOCKERS.md
 
-## Berikutnya
-
-Masih STEP01: tutup B01/B02/B06 dengan sumber resmi atau spesifikasi pengganti yang disetujui, bekukan kontrak, perbarui DOCX/MD dan catat approval. Sesudah G1A PASS, STEP02 menyiapkan prompt UI dan STOP menunggu gambar final serta approval. Jangan merge implementasi sebelum gate lengkap.
+Tidak ada aplikasi UI, plugin Premiere atau installer yang sudah dijalankan.

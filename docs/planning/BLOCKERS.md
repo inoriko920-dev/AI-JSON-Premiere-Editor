@@ -1,16 +1,14 @@
-# Prasyarat terbuka
+# BLOCKERS — Update STEP01 9 Oktober 2026 WIB
 
-Status ini merupakan fakta saat paket STEP00 dibuat. Jangan mengubahnya menjadi PASS hanya karena dokumen plan selesai.
+| ID | Status | Kebutuhan penutupan |
+| --- | --- | --- |
+| B01 | SOURCE_LOCATED / ARCHIVAL_PENDING | Tujuh sumber ditemukan di Library, SHA pada audit STEP01 V2. Perlu keputusan izin salinan sumber asli atau pernyataan bahwa kontrak turunan mencukupi untuk GitHub. |
+| B02 | PARTIAL | Durasi MEDIUM 21 preset tersedia namun belum calibrated. FAST/SLOW per preset dan direction allowed/mapping belum final. |
+| B03 | OPEN_HOST | Exact PPRO 24.x, OS Windows, locale, CEP, keyframe/alpha dan bukti host masih dibutuhkan. |
+| B04 | OPEN_UI | Prompt UI STEP02, STOP, approval seluruh gambar, satu UI_REFERENCE_FINAL.docx + hash belum ada. |
+| B05 | OPEN_DEPENDENCIES | Runtime helper dan lisensi/reuse/distribusi FFmpeg, SBOM/notices belum fixed. |
+| B06 | PARTIAL | Unknown-field allowlist, duplicate-key, direction aliases, scene gap, source in/out, timing ticks, input limits belum disahkan. |
 
-| ID | Yang belum tersedia | Pemilik tindakan berikut | Menutup dengan | Menghalangi |
-| --- | --- | --- | --- | --- |
-| B01 | Master V2, Layout Zoom/Crop, Animation Engine General Reveal, durasi 21 efek, Prompt 1 dan Prompt_panel, Prompt 4 | ASTRA meminta sumber spesifik kepada pengguna | Berkas dibaca dan hash dicatat, atau spesifikasi pengganti disetujui eksplisit | Kontrak produksi STEP01 |
-| B02 | FAST/SLOW, direction allowed, easing dan visual final tiap preset | ASTRA bersama pengguna | Registry specification dan sumber visual disetujui | STEP01 dan sertifikasi STEP08 |
-| B03 | Exact build Premiere 24.x, CEP, locale dan mesin pengujian | Pengguna atau operator host, SOL merekam | Inventaris host dan akses pengujian nyata | Kesiapan G0 dan G3 serta semua host gate |
-| B04 | Prompt UI, gambar final, approval, UI_REFERENCE_FINAL.docx | ASTRA bersama pengguna | G2 PASS dengan semua gambar dan approval hash | Seluruh coding |
-| B05 | Dependency version/runtime, lisensi file reuse, build FFmpeg untuk distribusi | ASTRA merencanakan, SOL membuktikan | ADR dependency, notices, SBOM dan build flags final | Adopsi dependency dan G10 |
-| B06 | Schema penuh V2, mapping catalog ID/preset key, unknown fields, rounding, ticks, transform, short clip policy, limits | ASTRA STEP01 | DOCX kontrak tanpa ambiguity; hal yang host-dependent punya prosedur probe dan runtime block | G1A dan implementasi kontrak |
+Jika file wajib proyek nyata tidak ada/tidak terbaca, preflight harus berhenti. Tidak ada fallback preset, Enter-only atau random ulang.
 
-Missing file proyek runtime berbeda dari missing referensi planning. Untuk proyek nyata: dua JSON, audio/SRT dan PNG yang diwajibkan, serta background required harus ada dan terbaca; jika tidak, hentikan proses sebelum mutasi Premiere. Fixture sintetis hanya untuk tes dan tidak menggantikan file pengguna.
-
-Perencanaan dapat menjelaskan backlog meskipun sumber belum lengkap. Implementasi tidak boleh mengarang nilai yang belum ditetapkan. Tidak ada blocker yang ditutup dalam paket ini selain tersedianya Master V3 asli dan handoff STEP00.
+G1A BLOCKED. G2 NOT_STARTED. CODING PROHIBITED.
