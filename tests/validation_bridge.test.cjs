@@ -1,0 +1,150 @@
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const path=require("node:path");
+const vm=require("node:vm");
+const fs=require("node:fs");
+const helper=require("../panel/helper_bridge.js");
+const api=require("../panel/validation_bridge.js");
+
+const VALID={
+    schema_version:"structure-validation-report-v1",status:"NEEDS_REVIEW",
+    can_assemble:false,error_count:0,review_count:1,
+    issues:[{code:"E_HOST_UNVERIFIED",severity:"REVIEW",
+        pointer:"/host",message:"Test fixture. C:\\Private\\secret"}]
+};
+function fake(deps={}){
+  const calls=[],control={calls};
+  const io={realpathSync:x=>x,statSync:x=>({
+    isFile:()=>!/media(\/|\\)?$/.test(x),
+    isDirectory:()=>/media(\/|\\)?$/.test(x)
+  })};
+  const opts={
+    platform:"win32",fs:io,path,pythonExe:"C:\\Python311\\python.exe",
+    extensionPath:"file:///C:/Adobe/CEP/Panel",
+    decodeExtensionPath:helper.decodeExtensionPath,
+    execFile:(exe,args,options,done)=>{
+      calls.push({exe,args,options});
+      control.done=done;
+      return {kill(){control.killCount=(control.killCount||0)+1;}};
+    },
+    ...deps
+  };
+  control.validator=api.createValidator(opts);
+  return control;
+}
+const selected={
+  edit:"C:\\Project\\EDIT_PLAN.json",
+  animation:"C:\\Project\\ANIMATION_PLAN.json",
+  media:"C:\\Project\\media"
+};
+test("native CEP picker file and folder signatures match Adobe CEP API",()=>{
+ let argv;
+ const picker={showOpenDialogEx:(...args)=>{
+   argv=args;return {err:0,data:["C:\\Project\\EDIT_PLAN.json"]};
+ }};
+ let item=api.selectNative(picker,"edit",path);
+ assert.equal(item.status,"selected");
+ assert.deepEqual(argv,[false,false,"Pilih EDIT_PLAN.json","","json".split(","),
+                        "File JSON","Pilih"]);
+ const folder={showOpenDialogEx:(...args)=>{
+   argv=args;return {err:0,data:["C:\\Project\\media"]};
+ }};
+ item=api.selectNative(folder,"media",path);
+ assert.equal(item.status,"selected");
+ assert.equal(argv[1],true);
+ assert.deepEqual(argv[4],[]);
+});
+test("picker cancellation and malicious/incorrect filename fail closed",()=>{
+ const picker=x=>({showOpenDialogEx:()=>({err:0,data:x})});
+ assert.equal(api.selectNative(picker([]),"edit",path).status,"cancelled");
+ for(const item of ["C:\\Temp\\notes.json","\\\\server\\share\\EDIT_PLAN.json",
+   "C:EDIT_PLAN.json","C:\\private\\edit_plan.json\nbad"]){
+  assert.equal(api.selectNative(picker([item]),"edit",path).status,"error",item);
+ }
+ assert.equal(api.selectNative(picker(["C:\\foo\\EDIT_PLAN.json","C:\\bar\\EDIT_PLAN.json"]),"edit",path).status,"error");
+ assert.equal(api.selectNative(null,"edit",path).code,"CEP_DIALOG_UNAVAILABLE");
+});
+test("raw malicious report cannot mark assembly READY or leak paths",()=>{
+ for(const candidate of [
+  JSON.stringify({...VALID,can_assemble:true}),
+  JSON.stringify({...VALID,status:"READY"}),
+  JSON.stringify({...VALID,review_count:2}),
+  JSON.stringify({...VALID,issues:[{code:"malicious",severity:"REVIEW"}]}),
+  "NOT_JSON",null,"x".repeat(524289)
+ ]){
+  assert.equal(api.parseReport(candidate).status,"error");
+ }
+ const good=api.parseReport(JSON.stringify(VALID));
+ assert.equal(good.status,"NEEDS_REVIEW");
+ assert.equal(good.can_assemble,false);
+ assert.deepEqual(good.issues,[{code:"E_HOST_UNVERIFIED",severity:"REVIEW"}]);
+ assert.equal(JSON.stringify(good).includes("Private"),false);
+});
+test("Windows launches isolated Python with fixed script and bounded no-shell args",()=>{
+ const o=fake();let outcome=null;
+ assert.equal(o.validator.run(selected,r=>outcome=r),true);
+ assert.equal(o.calls.length,1);
+ const call=o.calls[0];
+ assert.equal(call.exe,"C:\\Python311\\python.exe");
+ assert.equal(call.options.shell,false);
+ assert.equal(call.options.windowsHide,true);
+ assert.equal(call.options.timeout,30000);
+ assert.equal(call.options.maxBuffer,524288);
+ assert.equal(call.args[0],"-I");
+ assert.equal(call.args[1],"-B");
+ assert.equal(call.args[2],"C:\\Adobe\\CEP\\Panel\\helper\\validate_request.py");
+ assert.deepEqual(call.args.slice(3,7),[
+   "--edit",selected.edit,"--animation",selected.animation]);
+ assert.equal(call.args.includes("--media-root"),true);
+ o.done({code:3},JSON.stringify(VALID));
+ assert.equal(outcome.status,"NEEDS_REVIEW");
+ assert.equal(outcome.can_assemble,false);
+ assert.equal(o.validator.isBusy(),false);
+});
+test("invalid CLI report exit/status combinations fail closed",()=>{
+ let o=fake();let result;
+ o.validator.run(selected,r=>result=r);
+ o.done(null,JSON.stringify(VALID));
+ assert.equal(result.code,"VALIDATOR_EXIT_MISMATCH");
+ o=fake();o.validator.run(selected,r=>result=r);
+ o.done({code:2},JSON.stringify(VALID));
+ assert.equal(result.code,"VALIDATOR_EXIT_MISMATCH");
+ o=fake();o.validator.run(selected,r=>result=r);
+ o.done({code:"ENOENT"},"");
+ assert.equal(result.code,"VALIDATOR_EXEC_FAILED");
+});
+test("bad path, missing files and no Python never spawn",()=>{
+ for(const [overrides,choice,code] of [
+  [{pythonExe:null},selected,"VALIDATOR_PYTHON_NOT_CONFIGURED"],
+  [{pythonExe:"cmd.exe"},selected,"VALIDATOR_PATH_INVALID"],
+  [{platform:"linux"},selected,"VALIDATOR_WINDOWS_ONLY"],
+  [{fs:{realpathSync(){throw Error("not found")}}},selected,"VALIDATOR_INPUT_MISSING"],
+  [{}, {...selected,edit:"C:\\Temp\\virus.txt"},"VALIDATOR_INPUT_MISSING"]
+ ]){
+   const o=fake(overrides);let result;
+   assert.equal(o.validator.run(choice,r=>result=r),false);
+   assert.equal(result.code,code);
+   assert.equal(o.calls.length,0);
+ }
+});
+test("cancel kills subprocess and stale completion cannot succeed",()=>{
+ const o=fake();let results=[];
+ assert.equal(o.validator.run(selected,r=>results.push(r)),true);
+ assert.equal(o.validator.run(selected,r=>results.push(r)),false);
+ const stale=o.done;
+ o.validator.cancel();
+ assert.equal(o.killCount,1);
+ assert.equal(o.validator.run(selected,r=>results.push(r)),true);
+ stale({code:3},JSON.stringify(VALID));
+ assert.equal(results.length,0);
+ o.done({code:3},JSON.stringify(VALID));
+ assert.equal(results.length,1);
+ assert.equal(results[0].status,"NEEDS_REVIEW");
+});
+test("bridge exports to both window and CommonJS under CEP mixed Node",()=>{
+ const content=fs.readFileSync(path.join(__dirname,"..","panel","validation_bridge.js"),"utf8");
+ const context={document:{},module:{exports:{}}};
+ vm.runInNewContext(content,context,{timeout:1000});
+ assert.equal(typeof context.AIJSONValidationBridge.createValidator,"function");
+ assert.equal(typeof context.module.exports.createValidator,"function");
+});
