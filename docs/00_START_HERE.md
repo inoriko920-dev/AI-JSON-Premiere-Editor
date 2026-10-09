@@ -1,11 +1,11 @@
-# Mulai di sini — ASTRA / SOL
+# Mulai di sini — AI-JSON-Premiere-Editor
 
-**STEP01 ASTRA — G1A BLOCKED; G1B NOT_STARTED; G2 NOT_STARTED; CODING PROHIBITED.**
+**ASTRA STEP01 V5. B01 historical source discovery CLOSED; B02/B06 remain REVIEW_PENDING; G1A BLOCKED, G2 NOT_STARTED, coding PROHIBITED.**
 
-Urutan baca: [AGENTS](../AGENTS.md) → [STATUS](STATUS.md) → Master V3 DOCX/transkrip dalam docs/source → STEP00 plan → STEP01 kontrak V1 → pemulihan 7 sumber V2 → Gate Closure Review V4 DOCX/MD → [audit statis JSON DEMO_001](planning/STEP01_V3_DEMO_STATIC_AUDIT.md) → [68 fixture rencana](planning/STEP01_FIXTURE_CATALOG.csv) → [10 keputusan](planning/STEP01_REVIEW_QUEUE.csv) dan [blockers](planning/BLOCKERS.md).
+Handoff reading order: AGENTS.md → Master V3 original + transcript → STEP00 plan → STEP01 V1/V2/V3/V4 → **[V5 decision DOCX](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.docx)** / [V5 Markdown](planning/ASTRA_STEP01_DECISION_CONSOLIDATION_V5_2026-10-09.md) → [21 direction evidence](planning/STEP01_DIRECTION_EVIDENCE_V5.csv) → [10 review decisions](planning/STEP01_REVIEW_QUEUE.csv) → [BLOCKERS](planning/BLOCKERS.md) → [68 fixture plans](planning/STEP01_FIXTURE_CATALOG.csv).
 
-AUDIT JSON DEMO_001: 18/18 cek struktur dan durasi referensi PASS; **tidak membuktikan** source media asli, registry allowed direction, implementasi codec, host Premiere, UI ataupun AC. Semua checksum media contoh adalah placeholder.
+Source file raw transfer is NOT required merely to close B01; the seven sources were read and SHA-recorded previously; do not put private documents into a public GitHub repo automatically.
 
-F026 pada fixture 48 awal stale: half-frame rounding kini source-supported, diperbaiki menjadi 50ms@30FPS→frame2. Fixtures diperluas menjadi 68; belum ada test code.
+10/21 direction rows have at least one source-grounded token, 11 still need review, and no host implementation is verified. Speed MEDIUM-only is an ASTRA proposal awaiting explicit scope sign-off; user typing 'lanjutkan' does not grant it.
 
-MEDIUM-only untuk MVP tetap opsi yang direkomendasikan, bukan keputusan user yang sudah eksplisit. B01 source archive dan Q02 directions/Q03 schema masih membutuhkan keputusan. Jangan infer approval dari chat 'lanjutkan'. Setelah G1A PASS, STEP02 prompt UI lalu STOP wajib sampai gambar+approval+UI_REFERENCE_FINAL.docx di repo.
+Upon G1A spec PASS move to STEP02 prompt UI and STOP. User must approve all UI images, then pack a single UI_REFERENCE_FINAL.docx and PNGs to GitHub before SOL coding STEP03. No main merge, portable or release until authorized gates.
