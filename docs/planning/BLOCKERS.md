@@ -1,14 +1,12 @@
-# BLOCKERS — STEP02 visual QA review / 9 Oktober 2026
+# BLOCKERS — STEP02 9 Oktober 2026
 
 | ID | Status | Exit |
 |---|---|---|
-| B01 | CLOSED_SOURCE_DISCOVERY | Historical source derivation done |
-| B02 | APPROVED | MEDIUM-first V6 directions planning baseline approved |
-| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 contract |
-| B03 | HOST_PROOF_FUTURE | Premiere 24.x real host evidence |
-| B04 | **DRAFT_READY_FOR_USER_APPROVAL / G2_BLOCKED** | 12 screenshot draft visual available only in chat; 7 main+2 minor revisions, owner must approve final visuals, then PNG + checksum and one UI_REFERENCE_FINAL.docx archive to GitHub |
-| B05 | DEPENDENCIES_FUTURE | Runtime/licensing proof later |
+| B01 | CLOSED_SOURCE_DISCOVERY | Historical source notes complete |
+| B02 | APPROVED | MEDIUM-first and V6 directions planning baseline |
+| B06 | SPEC_CLOSED_BY_ASTRA | Fail-closed JSON ADR |
+| B03 | HOST_PROOF_FUTURE | Real PPRO 24.x runtime tests |
+| B04 | **G2_BLOCKED_FIVE_IMAGES** | Latest 9 audited: 4 suitable, 5 need owner-generated redraws; native 1672x941 requires explicit resolution acceptance or owner's replacement; 12 final images and one UI_REFERENCE_FINAL.docx not approved/archived |
+| B05 | DEPENDENCIES_FUTURE | License/build steps later |
 
-**G1A SPEC PASS, G1B NOT_STARTED, G2 WAIT_EXPLICIT_12_IMAGE_APPROVAL_AND_ARCHIVE. SOL CODING/MAIN MERGE STILL PROHIBITED.**
-
-**Instruksi UI terbaru pemilik (menggantikan draft AI):** gambar UI tidak boleh dibuat/diedit AI asisten. Semua kekurangan harus dituangkan sebagai prompt TXT untuk digenerate pengguna. [Sembilan prompt revisi dalam satu TXT](../ui/revisions/BATCH_01_REVISI_9_UI02_UI11_OWNER_GENERATES.txt) menunggu gambar dari pemilik; G2 tetap BLOCKED sampai audit dan approval final.
+**STOP**: only owner generates UI images. One TXT with 5 prompts: [revisions](../ui/revisions/BATCH_01_REVISI_LANJUTAN_5_UI07_UI11.txt). No coding, main merge or release before G2 PASS.
