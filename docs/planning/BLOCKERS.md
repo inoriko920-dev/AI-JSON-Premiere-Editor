@@ -1,12 +1,12 @@
-# Blockers / gates — 9 Oktober 2026 WIB
+# Gate status — 9 Oktober 2026 WIB
 
-| ID | Status | Exit / next evidence |
+| ID | Status | Evidence |
 | --- | --- | --- |
-| B01 | CLOSED_SOURCE_DISCOVERY | 7 historic sources read+SHA indexed |
-| B02 | **APPROVED_2026_10_09** | [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) closed: MEDIUM-first, V6 21 directions planning baseline; FAST/SLOW calibrated later |
-| B03 | FUTURE_HOST_PROOF | Actual Premiere Pro 2024 24.x, CEP ticks/keyframe/alpha/API |
-| B04 | STEP02_UI_STOP | Generate UI prompts first and stop until final PNGs user approved and one UI_REFERENCE_FINAL.docx in repo |
-| B05 | FUTURE_DEPENDENCIES | FFmpeg/worker licenses, notices, SBOM before packaging |
-| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002; tested resource caps/host probe later |
+| B01 | CLOSED_SOURCE_DISCOVERY | Seven historical sources read/SHA inventoried |
+| B02 | APPROVED | Issue #2: MEDIUM pilot + 21-direction V6 baseline |
+| B06 | SPEC_CLOSED_BY_ASTRA | ADR-002 fail-closed JSON policy |
+| B03 | HOST_PROOF_LATER | Premiere 24.x, CEP/ticks/alpha later |
+| B04 | **STEP02_STOP_UI_IMAGES_PENDING** | 12 prompts ready, 0 PNG final, UI_REFERENCE_FINAL.docx absent |
+| B05 | DEPENDENCY_PROOF_LATER | FFmpeg/worker licensing before installer |
 
-**G1A PASS SPEC**, [formal report](ASTRA_STEP01_G1A_PASS_2026-10-09.md). **G1B NOT_STARTED, G2 NOT_STARTED, CODING/MAIN MERGE/RELEASE PROHIBITED** pending UI approval.
+**G1A SPEC PASS, G1B NOT_STARTED, G2 WAIT_IMAGES.** Do not start SOL coding, package/merge/release, or silently generate UI images now.
