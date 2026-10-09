@@ -1,0 +1,36 @@
+name: STEP08 Offline Four-Track Preflight (No Premiere Host)
+on:
+  push:
+    branches:
+      - 'sol/step08-*'
+  pull_request:
+    paths:
+      - 'core/track_preflight.py'
+      - 'tests/test_core_track_preflight.py'
+      - 'core/validate_cli.py'
+      - 'panel/**'
+      - '.github/workflows/step08-preflight.yml'
+jobs:
+  preflight:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run real-file four-track preflight unit tests
+        run: python -m unittest tests.test_core_track_preflight -v
+      - name: Run all Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run all CEP and mocked Premiere regressions
+        run: npm test
+      - name: Ensure no new host-mutation route
+        run: python -c "from pathlib import Path; s=Path('CSXS/manifest.xml').read_text(); b=Path('tools/build_p0_pilot.py').read_text(); assert 'track_placement_adapter.jsx' not in s+b; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; print('STEP08_HOST_MUTATION_NOT_LOADED=PASS')"
