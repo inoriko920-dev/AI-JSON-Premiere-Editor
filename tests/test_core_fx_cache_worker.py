@@ -55,19 +55,15 @@ class AlphaCacheTests(unittest.TestCase):
 
     def runner(self,argv,**kwargs):
         self.calls.append((argv,kwargs))
-        if argv[0]==str(self.ffmpeg):
+        if Path(argv[0]).samefile(self.ffmpeg):
             if self.problem=="ffmpeg-exit":
                 return subprocess.CompletedProcess(argv,2,b"",b"no details")
             if self.problem=="ffmpeg-timeout":
                 raise subprocess.TimeoutExpired(argv,kwargs["timeout"])
             target=Path(argv[-1])
             target.write_bytes(b"synthetic_MOV_BYTES_ONLY_MOCK_NO_REAL_CODEC")
-            if self.overwrite_race:
-                key=self._key_from_argv(argv)
-                # The actual test also supports manually preparing the
-                # final destination after the metadata probe below.
             return subprocess.CompletedProcess(argv,0,b"",b"")
-        if argv[0]==str(self.ffprobe):
+        if Path(argv[0]).samefile(self.ffprobe):
             if self.problem=="probe-exit":
                 return subprocess.CompletedProcess(argv,2,b"",b"")
             data={"streams":[{
@@ -132,7 +128,7 @@ class AlphaCacheTests(unittest.TestCase):
         self.assert_code("E_FX_CACHE_EXISTS_NO_OVERWRITE")
         self.assertEqual(len(self.calls),2)
         self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
-        self.assertEqual(self.go if False else original["frames"],150)
+        self.assertEqual(original["frames"],150)
 
     def test_source_hash_tamper_never_runs_ffmpeg(self):
         self.assert_code("E_FX_SOURCE_HASH",expected_sha256="a"*64)
