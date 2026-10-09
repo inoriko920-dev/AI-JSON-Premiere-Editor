@@ -1,9 +1,9 @@
-# Status proyek — 9 Oktober 2026 WIB
+# Status — 9 Oktober 2026 WIB
 
-**G1A SPEC PASS · STEP02 VISUAL QA 9 REVISIONS REVIEWED · G2 BLOCKED / WAIT_FIVE_OWNER_IMAGES.**
+**G1A SPEC PASS · STEP02 12/12 candidate images re-audited · G2 WAIT_OWNER_FINAL_APPROVAL_AND_ARCHIVE · G1B NOT_STARTED.**
 
-- Pengguna menyediakan 9 gambar revisi di chat. Pemeriksaan substansi **4/9 sesuai** (UI02/UI03/UI04/UI05), **5/9 revisi lagi** (UI07/UI08/UI09/UI10/UI11).
-- Semua 9 gambar baru 1672×941 bukan 1920×1080; tidak ada upscaling/penyuntingan dari AI. Deviasi resolusi wajib ditinjau pada approval akhir.
-- [QA laporan](ui/STEP02_QA_9_IMAGES_2026-10-09.md) dan [1 TXT 5 prompt revisi](ui/revisions/BATCH_01_REVISI_LANJUTAN_5_UI07_UI11.txt). Pemilik menghasilkan lima PNG baru sendiri; ASTRA/SOL hanya memeriksa dan menulis prompt TXT.
-- UI01/UI06/UI12 tetap dari QA batch sebelumnya; belum ada persetujuan eksplisit untuk **12 final UI**. UI_REFERENCE_FINAL.docx **belum ada**. G2 belum PASS.
-- G1B schema executable tests NOT_STARTED. Premiere 24.x belum diuji; AC 0/30, 21 effects 0/21 host verified. Main tidak di-merge, SOL coding tidak boleh dimulai.
+- Audit terbaru [12 gambar](ui/STEP02_12_UI_CANDIDATE_FINAL_QA_2026-10-09.md): 8 SESUAI_SUBSTANSI, 4 CATATAN_ILUSTRASI UI08/UI09/UI10/UI11; tidak ditemukan masalah kontrak baru pada lima gambar terakhir.
+- Dimensi input asli: UI01/UI06 1920x1080; sepuluh lainnya 1672x941, tanpa image edits/upscaling oleh assistant pada giliran audit ini.
+- [SHA256 exact 12 PNG](ui/STEP02_12_UI_PRE_APPROVAL_SHA256.csv) telah dicek terhadap ZIP review yang hanya ada di percakapan; file PNG **belum diupload ke GitHub** dan **belum disetujui final**.
+- Jika owner memilih memperbaiki ketidaksesuaian ilustrasi: [4 optional prompts TXT](ui/revisions/BATCH_01_OPSIONAL_4_UI08_UI11.txt). Jika menerima perbedaan visual, minta pernyataan **eksplisit** yang juga menerima perbedaan resolusi sebelum UI final DOCX/archive.
+- Tidak boleh membuat UI_REFERENCE_FINAL.docx atau PASS G2 sebelum approval dan archival 12 PNG; SOL tidak boleh coding. Actual host 0/21 animation presets verified, AC 0/30, G1B schema tests NOT_STARTED; PR still Draft and main unchanged.

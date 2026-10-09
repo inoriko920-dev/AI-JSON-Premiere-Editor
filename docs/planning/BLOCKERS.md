@@ -1,12 +1,12 @@
-# BLOCKERS — STEP02 9 Oktober 2026
+# Blockers — STEP02 Candidate UI review (9 October 2026)
 
-| ID | Status | Exit |
+| ID | Status | Next evidence |
 |---|---|---|
-| B01 | CLOSED_SOURCE_DISCOVERY | Historical source notes complete |
-| B02 | APPROVED | MEDIUM-first and V6 directions planning baseline |
-| B06 | SPEC_CLOSED_BY_ASTRA | Fail-closed JSON ADR |
-| B03 | HOST_PROOF_FUTURE | Real PPRO 24.x runtime tests |
-| B04 | **G2_BLOCKED_FIVE_IMAGES** | Latest 9 audited: 4 suitable, 5 need owner-generated redraws; native 1672x941 requires explicit resolution acceptance or owner's replacement; 12 final images and one UI_REFERENCE_FINAL.docx not approved/archived |
-| B05 | DEPENDENCIES_FUTURE | License/build steps later |
+| B01 | CLOSED | Historical source audit |
+| B02 | APPROVED | MEDIUM-first and V6 direction baseline |
+| B06 | SPEC_CLOSED | ADR-002 validation policy |
+| B03 | HOST_FUTURE | Premiere Pro 2024 24.x host proof not run |
+| B04 | **G2_WAIT_EXPLICIT_OWNER_APPROVAL_AND_ARCHIVE** | 12 candidate PNG reviewed, 4 presentation notes and ten 1672x941 deviations must be expressly accepted or corrected. No UI_REFERENCE_FINAL.docx and approved PNG archive yet. |
+| B05 | DEPENDENCIES_FUTURE | FFmpeg/CEP build/license checks later |
 
-**STOP**: only owner generates UI images. One TXT with 5 prompts: [revisions](../ui/revisions/BATCH_01_REVISI_LANJUTAN_5_UI07_UI11.txt). No coding, main merge or release before G2 PASS.
+G1A SPEC PASS; G1B NOT_STARTED; G2 BLOCKED. Do not code SOL, merge main or claim app runtime verification. Review [QA](../ui/STEP02_12_UI_CANDIDATE_FINAL_QA_2026-10-09.md).
