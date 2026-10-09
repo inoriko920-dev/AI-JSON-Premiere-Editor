@@ -22,7 +22,9 @@ function plan(){
    instance_key:id,item_id:item,target_track:track,
    zero_based_track_index:track==="V3"?2:track==="V2"?1:0,
    start_frame:start,end_frame:end,start_ticks:String(start*Number(TB)),
-   end_ticks:String(end*Number(TB)),media_readback:"NOT_TESTED"
+   end_ticks:String(end*Number(TB)),
+   source_in_frame:0,source_out_frame:end-start,
+   media_readback:"NOT_TESTED"
   }))};
 }
 function setup(options={}){
