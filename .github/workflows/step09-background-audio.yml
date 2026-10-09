@@ -1,0 +1,39 @@
+name: STEP09 Background Audio Isolation (Offline Only)
+on:
+  push:
+    branches:
+      - 'sol/step09-*'
+  pull_request:
+    paths:
+      - 'core/ffprobe.py'
+      - 'core/background_audio.py'
+      - 'core/track_preflight.py'
+      - 'tests/test_core_background_audio.py'
+      - 'tests/test_core_background_audio_real.py'
+      - 'tests/test_core_ffprobe.py'
+      - 'tests/test_core_track_preflight.py'
+      - '.github/workflows/step09-background-audio.yml'
+jobs:
+  isolation:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run dedicated audio-isolation tests (mock + optional real FFmpeg)
+        run: python -m unittest tests.test_core_background_audio tests.test_core_background_audio_real -v
+      - name: Run all Python regressions (including offline STEP08 preflight)
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run all CEP and mocked Premiere JavaScript tests
+        run: npm test
+      - name: Verify no Premiere host write code is packaged
+        run: python -c "from pathlib import Path; manifest=Path('CSXS/manifest.xml').read_text(); bundle=Path('tools/build_p0_pilot.py').read_text(); assert 'track_placement_adapter.jsx' not in manifest+bundle; assert 'background_audio.py' not in bundle; print('NO_HOST_MUTATION_OR_WORKER_RELEASE=PASS')"
