@@ -1,0 +1,34 @@
+name: STEP17 Isolated FFmpeg Alpha Cache Worker (NO Premiere Host)
+on:
+  push:
+    branches: ['sol/step17-*']
+  pull_request:
+    paths:
+      - 'core/fx_cache_worker.py'
+      - 'core/fx_alpha_backend.py'
+      - 'tests/test_core_fx_cache_worker.py'
+      - '.github/workflows/step17-alpha-cache.yml'
+jobs:
+  cache:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test cache isolation, SHA pin and no-overwrite
+        run: python -m unittest tests.test_core_fx_cache_worker -v
+      - name: Full Python regression, no owner images created
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full CEP/ES3 JavaScript regression
+        run: npm test
+      - name: Static safety assertion and no live Premiere mutation
+        run: python -c "from pathlib import Path; from core.fx_alpha_backend import backend_support; s=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in s; assert backend_support()['actual_host_certified']==0; print('STEP17_CACHE_CANDIDATE_ONLY=PASS')"
