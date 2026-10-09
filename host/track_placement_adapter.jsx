@@ -16,6 +16,22 @@ $._AIJSON_TRACK_PLACER_V1 = (function () {
         return typeof v==="string" &&
             (allowZero ? /^(0|[1-9][0-9]{0,25})$/ : /^[1-9][0-9]{0,25}$/).test(v);
     }
+    /* ES3 has no BigInt; multiply decimal strings exactly without Number ticks. */
+    function exactTicks(frame, tickValue) {
+        if(typeof frame!=="number" || frame<0 || frame>100000000 ||
+            Math.floor(frame)!==frame || !ticks(tickValue,false)){return null;}
+        var a=String(frame),b=tickValue,digits=[],i,j;
+        for(i=0;i<a.length+b.length;i++){digits[i]=0;}
+        for(i=a.length-1;i>=0;i--){
+            for(j=b.length-1;j>=0;j--){
+                var n=(a.charCodeAt(i)-48)*(b.charCodeAt(j)-48)+digits[i+j+1];
+                digits[i+j+1]=n%10;
+                digits[i+j]+=Math.floor(n/10);
+            }
+        }
+        var result=digits.join("").replace(/^0+/,"");
+        return result.length?result:"0";
+    }
     function track(seq, name) {
         if(name==="A1"){return seq.audioTracks && seq.audioTracks[0];}
         var n=({V1:0,V2:1,V3:2})[name];
@@ -68,6 +84,9 @@ $._AIJSON_TRACK_PLACER_V1 = (function () {
             Object.prototype.toString.call(manifest.operations)!=="[object Array]" ||
             manifest.operations.length<3||manifest.operations.length>4096 ||
             manifest.operation_count!==manifest.operations.length){return false;}
+        if(typeof manifest.total_frames!=="number" ||
+            manifest.total_frames<=0 || manifest.total_frames>100000000 ||
+            Math.floor(manifest.total_frames)!==manifest.total_frames){return false;}
         var keys={},last={},has={V1:0,V2:0,V3:0,A1:0};
         for(var i=0;i<manifest.operations.length;i++){
             var op=manifest.operations[i],id=op&&op.item_id;
@@ -82,16 +101,40 @@ $._AIJSON_TRACK_PLACER_V1 = (function () {
             if(op.track==="A1" && (id!=="SOURCE_AUDIO"||op.slot!=="AUDIO")){return false;}
             if((op.track==="V2"||op.track==="V3") &&
                 (id.indexOf("ASSET_")!==0||op.slot!=="VISUAL")){return false;}
-            if(last[op.track]!==undefined &&
-                op.start_frame<last[op.track]){return false;}
             if(typeof op.start_frame!=="number" || typeof op.end_frame!=="number" ||
+                typeof op.source_in_frame!=="number" || typeof op.source_out_frame!=="number" ||
                 op.start_frame<0||op.end_frame<=op.start_frame ||
+                op.end_frame>manifest.total_frames ||
+                op.source_in_frame<0||op.source_out_frame<=op.source_in_frame ||
+                op.end_frame-op.start_frame!==op.source_out_frame-op.source_in_frame ||
                 Math.floor(op.start_frame)!==op.start_frame ||
-                Math.floor(op.end_frame)!==op.end_frame){return false;}
+                Math.floor(op.end_frame)!==op.end_frame ||
+                Math.floor(op.source_in_frame)!==op.source_in_frame ||
+                Math.floor(op.source_out_frame)!==op.source_out_frame ||
+                exactTicks(op.start_frame,manifest.ticks_per_frame)!==op.start_ticks ||
+                exactTicks(op.end_frame,manifest.ticks_per_frame)!==op.end_ticks ||
+                exactTicks(op.end_frame-op.start_frame,manifest.ticks_per_frame)!==op.duration_ticks ||
+                exactTicks(op.source_in_frame,manifest.ticks_per_frame)!==op.source_in_ticks ||
+                exactTicks(op.source_out_frame,manifest.ticks_per_frame)!==op.source_out_ticks ||
+                (last[op.track]!==undefined && op.start_frame<last[op.track])){
+                return false;
+            }
             last[op.track]=op.end_frame;
             keys[op.key]=true;has[op.track]++;
         }
-        return has.V1>0&&has.V2>0&&has.A1===1;
+        // Video background must cover the full sequence, without unplanned gaps.
+        if(has.V1<1||has.V2<1||has.A1!==1){return false;}
+        var nextBg=0,validAudio=false;
+        for(var z=0;z<manifest.operations.length;z++){
+            var clip=manifest.operations[z];
+            if(clip.track==="V1"){
+                if(clip.start_frame!==nextBg){return false;}
+                nextBg=clip.end_frame;
+            }
+            if(clip.track==="A1" && clip.start_frame===0 &&
+                clip.end_frame===manifest.total_frames){validAudio=true;}
+        }
+        return nextBg===manifest.total_frames && validAudio;
     }
     function placeCandidate(manifest,seq,sourceMap,authorization){
         try{

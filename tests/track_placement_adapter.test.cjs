@@ -155,3 +155,29 @@ test("adapter never modifies master media, deletes timeline, or exports",()=>{
   assert.equal(source.includes(forbidden),false,forbidden);
  }
 });
+
+test("manifest tick strings must equal exact frame arithmetic",()=>{
+ const one=mock();
+ one.manifest.operations[0].end_ticks=String(120*TPF+1);
+ assert.equal(one.run(),"S7|1|BLOCKED|PLACEMENT_MANIFEST_INVALID");
+ const two=mock();
+ two.manifest.operations[0].source_out_frame=121;
+ assert.equal(two.run(),"S7|1|BLOCKED|PLACEMENT_MANIFEST_INVALID");
+ const three=mock();
+ three.manifest.operations[2].duration_ticks="999999999999999999999";
+ assert.equal(three.run(),"S7|1|BLOCKED|PLACEMENT_MANIFEST_INVALID");
+});
+test("background gap and incomplete narration are rejected",()=>{
+ const a=mock();
+ a.manifest.operations[1].start_frame=121;
+ a.manifest.operations[1].start_ticks=String(121*TPF);
+ assert.equal(a.run(),"S7|1|BLOCKED|PLACEMENT_MANIFEST_INVALID");
+ const b=mock();
+ const narration=b.manifest.operations[5];
+ narration.end_frame=329;
+ narration.end_ticks=String(329*TPF);
+ narration.duration_ticks=String(329*TPF);
+ narration.source_out_frame=329;
+ narration.source_out_ticks=String(329*TPF);
+ assert.equal(b.run(),"S7|1|BLOCKED|PLACEMENT_MANIFEST_INVALID");
+});
