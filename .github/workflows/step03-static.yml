@@ -33,11 +33,43 @@ jobs:
       - run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Build deterministic unsigned P0 development test ZIP
         run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Verify PowerShell P0 inspector and explicit stage on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $script = "./tools/windows/P0_Windows_Pilot.ps1"
+          $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
+          $check = & $script -Mode Inspect -ZipPath $zip
+          if ($check -notcontains "P0_INSPECT=PASS") { throw "Read-only pilot inspector failed" }
+          $sandbox = Join-Path $env:RUNNER_TEMP "safe-cep-p0-test"
+          try {
+            & $script -Mode Stage -ZipPath $zip -ExtensionDirectory $sandbox | Out-Null
+            throw "Stage without explicit consent unexpectedly succeeded"
+          } catch {
+            if ($_.Exception.Message -notmatch "P0_STAGE_REQUIRES_EXPLICIT_CONFIRMATION") { throw }
+          }
+          if (Test-Path $sandbox) { throw "Stage consent check changed filesystem" }
+          $staged = & $script -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $sandbox
+          if ($staged -notcontains "P0_STAGE=PASS_USER_APPROVED") { throw "Explicit stage failed" }
+          $extension = Join-Path $sandbox "AI_JSON_Premiere_P0_Pilot"
+          if (-not (Test-Path (Join-Path $extension "CSXS/manifest.xml"))) { throw "Missing manifest after stage" }
+          try {
+            & $script -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $sandbox | Out-Null
+            throw "An existing target was overwritten"
+          } catch {
+            if ($_.Exception.Message -notmatch "P0_TARGET_ALREADY_EXISTS") { throw }
+          }
+          $evidence = Join-Path $env:RUNNER_TEMP "p0-evidence-test"
+          $template = & $script -Mode Evidence -ZipPath $zip -EvidenceDirectory $evidence
+          if (-not (Test-Path (Join-Path $evidence "G3_HOST_TEST_TEMPLATE.txt"))) { throw "Missing evidence template" }
+          if ((Get-Content (Join-Path $evidence "G3_HOST_TEST_TEMPLATE.txt") -Raw) -notmatch "NOT_VERIFIED") { throw "Fake G3 success" }
       - name: Publish Windows P0 development pilot only
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
           name: AI_JSON_Premiere_STEP03_P0_TEST_ONLY_Windows
-          path: dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+          path: |
+            dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+            tools/windows/P0_Windows_Pilot.ps1
           retention-days: 7
           if-no-files-found: error
