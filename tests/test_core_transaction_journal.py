@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from core.transaction_journal import (
-    JournalError, TransactionJournal, read_journal,
+    JournalError, TransactionJournal, read_journal, inspect_resume,
 )
 
 JOB = "RUN_20261010_001"
@@ -192,6 +192,37 @@ class TransactionJournalTests(unittest.TestCase):
                                 0, "INCOMPLETE", s))
         self.assertEqual(read_journal(self.root, JOB)["status"],
                          "UNKNOWN_AFTER_INTENT")
+
+    def test_resume_checks_against_original_plan_and_never_authorizes(self):
+        original = candidate()
+        j = self.create(payload=original)
+        resume = inspect_resume(self.root, JOB, original, max_operations=10)
+        self.assertEqual(resume["next_index"], 0)
+        self.assertEqual(resume["status"], "NEXT_STEP_AWAITING_HOST_APPROVAL")
+        self.assertFalse(resume["can_execute"])
+        self.assertFalse(resume["can_retry"])
+        j.record_intent(0)
+        self.check_code("E_JOURNAL_MANUAL_REVIEW_REQUIRED",
+                        lambda: inspect_resume(self.root, JOB, original,
+                                               max_operations=10))
+        j.record_result(0, "READBACK_MATCHED", "HOST_READBACK_MATCHED")
+        next_step = inspect_resume(self.root, JOB, original, max_operations=10)
+        self.assertEqual(next_step["next_index"], 1)
+        self.assertFalse(next_step["can_assemble"])
+
+    def test_resume_rejects_candidate_modified_after_start(self):
+        original = candidate()
+        self.create(payload=original)
+        changed = copy.deepcopy(original)
+        changed["placements"][0]["end_ticks"] = "123456789"
+        self.check_code("E_JOURNAL_PLAN_CHANGED",
+                        lambda: inspect_resume(self.root, JOB, changed,
+                                               max_operations=10))
+        changed = copy.deepcopy(original)
+        changed["operation_sha256"] = "c" * 64
+        self.check_code("E_JOURNAL_PLAN_CHANGED",
+                        lambda: inspect_resume(self.root, JOB, changed,
+                                               max_operations=10))
 
     def test_reopen_uses_durable_history_not_in_memory_progress(self):
         j = self.create()

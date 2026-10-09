@@ -130,6 +130,7 @@ def _decode_lines(raw: bytes) -> list[dict[str, Any]]:
 def _state(records: list[dict[str, Any]]) -> dict[str, Any]:
     prev = "0" * 64
     job_id: str | None = None
+    plan_sha256: str | None = None
     hashes: list[str] | None = None
     completed = 0
     pending: int | None = None
@@ -159,6 +160,7 @@ def _state(records: list[dict[str, Any]]) -> dict[str, Any]:
                     JOB_ID.fullmatch(row["job_id"]) is None):
                 raise JournalError("E_JOURNAL_CORRUPT")
             hashes = h
+            plan_sha256 = row["plan_sha256"]
             job_id = row["job_id"]
             status = "OPEN_NOT_AUTHORIZED"
         elif job_id is None or row["job_id"] != job_id or hashes is None:
@@ -200,7 +202,8 @@ def _state(records: list[dict[str, Any]]) -> dict[str, Any]:
     if job_id is None or hashes is None:
         raise JournalError("E_JOURNAL_CORRUPT")
     return {
-        "status": status, "job_id": job_id, "operation_count": len(hashes),
+        "status": status, "job_id": job_id, "plan_sha256": plan_sha256,
+        "operation_count": len(hashes),
         "completed_count": completed, "pending_index": pending,
         "last_sha256": prev, "next_seq": len(records), "operation_hashes": hashes,
         "can_retry": False, "can_assemble": False, "host_verified": False,
@@ -220,6 +223,32 @@ def read_journal(root: Path, job_id: str) -> dict[str, Any]:
     if state["job_id"] != job_id:
         raise JournalError("E_JOURNAL_CORRUPT")
     return state
+
+
+def inspect_resume(root: Path, job_id: str, candidate: dict[str, Any],
+                   *, max_operations: int) -> dict[str, Any]:
+    """Compare a freshly supplied *offline* plan against journal history.
+
+    This only identifies the next intended index. It can NEVER grant host
+    approval or retry pending/partial operations. The dispatcher must still
+    validate sources, capabilities, and explicit owner consent independently.
+    """
+    state = read_journal(root, job_id)
+    expected = _check_candidate(candidate, max_operations)
+    if (candidate["operation_sha256"] != state["plan_sha256"] or
+            expected != state["operation_hashes"]):
+        raise JournalError("E_JOURNAL_PLAN_CHANGED")
+    if state["status"] != "OPEN_NOT_AUTHORIZED":
+        raise JournalError("E_JOURNAL_MANUAL_REVIEW_REQUIRED")
+    if state["completed_count"] >= state["operation_count"]:
+        raise JournalError("E_JOURNAL_NO_OPERATIONS_LEFT")
+    return {
+        "status": "NEXT_STEP_AWAITING_HOST_APPROVAL",
+        "next_index": state["completed_count"],
+        "operation_hash": expected[state["completed_count"]],
+        "can_execute": False, "can_retry": False,
+        "can_assemble": False, "host_verified": False,
+    }
 
 
 class TransactionJournal:
