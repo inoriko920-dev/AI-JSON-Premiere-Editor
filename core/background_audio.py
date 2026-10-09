@@ -105,9 +105,10 @@ def prepare_video_only_background(
     try:
         root = Path(media_root).resolve(strict=True)
         source = resolved_path(root, relative_source)
-        cache = Path(cache_root).resolve(strict=True)
+        raw_cache = Path(cache_root)
+        cache = raw_cache.resolve(strict=True)
         if (not cache.is_dir() or cache == root or cache.is_relative_to(root)
-                or root.is_relative_to(cache) or cache.is_symlink()):
+                or root.is_relative_to(cache) or raw_cache.is_symlink()):
             raise ValueError("cache overlaps media root")
     except (TypeError, OSError, ValueError) as exc:
         raise BackgroundIsolationError("E_BACKGROUND_PATH_INVALID") from exc
@@ -119,10 +120,22 @@ def prepare_video_only_background(
             raise BackgroundIsolationError("E_BACKGROUND_SOURCE_CHANGED")
     except BackgroundIsolationError:
         raise
-    except (OSError, ValueError) as exc:
+    except ValueError as exc:
+        if str(exc) == "E_RESOURCE_LIMIT":
+            raise BackgroundIsolationError("E_RESOURCE_LIMIT") from exc
+        raise BackgroundIsolationError("E_BACKGROUND_SOURCE_CHANGED") from exc
+    except OSError as exc:
         raise BackgroundIsolationError("E_BACKGROUND_SOURCE_CHANGED") from exc
     profile = _probe(source, ffprobe, runner)
     if profile["audio_streams"] == 0:
+        try:
+            current_digest, current_size, _ = _bounded_hash(source, max_input_bytes)
+            current_time = source.stat().st_mtime_ns
+        except (OSError, ValueError) as exc:
+            raise BackgroundIsolationError("E_BACKGROUND_SOURCE_CHANGED") from exc
+        if (current_digest != digest or current_size != count or
+                current_time != initial.st_mtime_ns):
+            raise BackgroundIsolationError("E_BACKGROUND_SOURCE_CHANGED")
         return {"status": "ALREADY_VIDEO_ONLY_UNVERIFIED",
                 "can_import": False, "can_assemble": False,
                 "sha256": digest, "byte_size": count,
@@ -133,7 +146,6 @@ def prepare_video_only_background(
     fd, tmpname = tempfile.mkstemp(prefix=".bg_work_", suffix=".mp4", dir=cache)
     os.close(fd)
     temp = Path(tmpname)
-    committed = False
     try:
         args = [
             str(ffmpeg), "-nostdin", "-hide_banner", "-loglevel", "error",
@@ -172,7 +184,6 @@ def prepare_video_only_background(
             raise BackgroundIsolationError("E_BACKGROUND_CACHE_TARGET_EXISTS") from exc
         except OSError as exc:
             raise BackgroundIsolationError("E_BACKGROUND_CACHE_WRITE_FAILED") from exc
-        committed = True
         return {"status": "VIDEO_ONLY_CANDIDATE_UNVERIFIED",
                 "can_import": False, "can_assemble": False,
                 "sha256": final_digest, "source_sha256": digest,

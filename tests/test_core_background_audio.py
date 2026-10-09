@@ -131,7 +131,20 @@ class BackgroundIsolationTests(unittest.TestCase):
         self.assertEqual(self.calls,[])
 
     def test_source_and_output_caps_enforced(self):
+        self.assert_error("E_RESOURCE_LIMIT",max_input_bytes=3)
         self.assert_error("E_RESOURCE_LIMIT",max_output_bytes=3)
+        self.assertFalse(list(self.cache.glob("*.mp4")))
+
+    def test_audio_free_source_changed_during_probe_rejected(self):
+        self.input_has_audio=False
+        original_runner=self.runner
+        def mutate_after_probe(args,**kwargs):
+            result=original_runner(args,**kwargs)
+            if args[0] == str(self.ffprobe) and args[-1] == str(self.original):
+                self.original.write_bytes(b"CHANGED DURING READ")
+            return result
+        self.runner=mutate_after_probe
+        self.assert_error("E_BACKGROUND_SOURCE_CHANGED")
         self.assertFalse(list(self.cache.glob("*.mp4")))
 
 if __name__=="__main__":
