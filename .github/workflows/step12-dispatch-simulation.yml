@@ -1,0 +1,35 @@
+name: STEP12 Operation Dispatcher (Simulation ONLY, no Premiere)
+on:
+  push:
+    branches:
+      - 'sol/step12-*'
+  pull_request:
+    paths:
+      - 'core/transaction_dispatcher.py'
+      - 'core/transaction_journal.py'
+      - 'tests/test_core_transaction_dispatcher.py'
+      - '.github/workflows/step12-dispatch-simulation.yml'
+jobs:
+  dispatch:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run simulated durable dispatcher tests
+        run: python -m unittest tests.test_core_transaction_dispatcher -v
+      - name: Run all Python / journal regressions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run all CEP, ES3 and bridge mock regressions
+        run: npm test
+      - name: Assert no STEP12 live Adobe host-write route
+        run: python -c "from pathlib import Path; x=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in x; assert 'transaction_dispatcher.py' not in x and 'track_placement_adapter.jsx' not in x; print('NO_LIVE_HOST_MUTATION=PASS')"
