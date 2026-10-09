@@ -1,18 +1,17 @@
 # SOL STEP03 status — 9 Oktober 2026
 
-**G1A SPEC PASS · G2 UI FINAL PASS · SOL STEP03 P0 code advanced · G3 BLOCKED_HOST**.
+**G1A PASS · G2 PASS · STEP03 P0 coded/test package available · G3 BLOCKED_HOST**.
 
-### Implemented in development branch
+### Completed
+- CEP 24.x-only panel skeleton, fixed ExtendScript host version readback, Node mixed-context browser global fix, Windows Python helper no-shell, fail-closed/timeouts. Import, preflight, assembly, animations and export remain disabled/unimplemented.
+- Deterministic unsigned **test-only** CEP extension ZIP with allowlisted 8 runtime source files + README + nine SHA-256 checks.
+- New Windows PowerShell **read-only default inspector**, which verifies inner ZIP SHA and file allowlist; optional staging requires `-Mode Stage -ConfirmStage`, refuses overwrite and does not modify registry/security settings.
+- New GitHub Windows CI stages only into a temporary runner folder, tests absent consent/duplicate-stage rejection, and creates a **blank evidence template** (not proof).
+- [GitHub Actions #37962129971 SUCCESS](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/actions/runs/37962129971) on code SHA `7345bc1d`. **Windows: 24/24 JavaScript + 6/6 Python PASS; Ubuntu: 23 JavaScript PASS, 1 Windows-only SKIP + 6/6 Python PASS**.
+- Downloaded latest Windows artifact id `11631521486` and verified both files are side-by-side, outer ZIP CRC and inner ZIP CRC PASS, SHA-256 checks 9/9 PASS. See [evidence](evidence/STEP03/P0_WINDOWS_INSPECTOR_AND_CI_2026-10-09.md) and [Windows instructions](testing/STEP03_WINDOWS_P0_PILOT.md).
+- No approved UI PNG modified, no system change or main merge.
 
-- CEP 24.x-only manifest, Indonesian white/blue diagnostic panel, safe fixed JSX host version probe, Windows helper Python handshake via strict no-shell `execFile`; unsupported host, stale callback, timeout and malformed response fail closed.
-- Fixed CEP mixed-context global export and Windows URI paths with Unicode/spaces/#. The source and 12 owner-approved UI image artifacts remain unchanged by this work.
-- New allowlisted **deterministic TEST-ONLY CEP ZIP build**; contains only 8 required runtime files, warning/readme and 9-file SHA manifest. This is not an installer, production portable or Release.
-- **[Windows/Linux CI #37960954035 SUCCESS](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/actions/runs/37960954035)** on SHA `88010b40`. Windows: 24/24 JS + 6/6 Python PASS. Ubuntu: 23 JS PASS, 1 Windows-only SKIP, 6 Python PASS.
-- [Artifact evidence](evidence/STEP03/P0_PILOT_PACKAGE_AND_CI_2026-10-09.md); downloaded ZIP inner hash `655838bfb8d1e3a1766c7052f53f4a246b8167e126ad8f0b4f4730a9e3a00f95`, all 9 entries checked.
-- All file picker/preflight/assembly buttons remain disabled; no JSON parser, effects, timeline mutation, FFmpeg final export or user project changes.
+### What remains
+**G3 BLOCKED_HOST**: an actual Windows 11 Adobe Premiere Pro 2024 v24.x tester must verify CEP menu, panel docking/open/reopen, JSX version, optional Python helper, absence of timeline changes, and submit screenshots/logs. GitHub Windows runner does **not** have Premiere installed. Do not mark G3 PASS based on CI or test script, and do not start STEP04 prematurely.
 
-### Blocker
-
-**G3 = BLOCKED_HOST** because no licensed Windows 11 Adobe Premiere Pro 2024 24.x runtime in this session; no real CEP panel load, actual JSX probe, docking, close/reopen, helper bridge, host logs or screenshots. User/tester host evidence is required before G3 PASS. No fabricated host test.
-
-G1B executable schema tests and STEP04 NOT_STARTED. Host AC01–AC30 0/30 confirmed, animations 0/21 host-verified. Separate Draft PR #3, no merge into main.
+**G1B executable JSON schema tests NOT_STARTED**. Premiere host AC01–AC30 0/30 verified, 21 animated presets 0/21 host-verified. PR #3 stays Draft targeting ASTRA branch; `main` untouched.
