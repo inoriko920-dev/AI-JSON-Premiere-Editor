@@ -28,7 +28,11 @@ class PilotPackageTests(unittest.TestCase):
                     f"{PILOT}/{path}" for path in (
                         "CSXS/manifest.xml", "panel/index.html", "panel/styles.css",
                         "panel/bridge.js", "panel/helper_bridge.js",
-                        "panel/app.js", "host/step03.jsx", "helper/handshake.py"
+                        "panel/validation_bridge.js", "panel/validation_ui.js",
+                        "panel/app.js", "host/step03.jsx", "helper/handshake.py",
+                        "helper/validate_request.py", "core/__init__.py",
+                        "core/contracts.py", "core/draft_compiler.py", "core/ffprobe.py", "core/media.py",
+                        "core/validate_cli.py", "core/direction_registry.json"
                     )
                 }
                 self.assertEqual(names, expected | {
@@ -39,7 +43,7 @@ class PilotPackageTests(unittest.TestCase):
                     self.assertEqual(z.read(file), original)
                 sums = z.read(f"{PILOT}/P0_SHA256SUMS.txt").decode("ascii")
                 lines = sums.splitlines()
-                self.assertEqual(len(lines), 9)
+                self.assertEqual(len(lines), 19)
                 for line in lines:
                     digest, rel = line.split("  ", 1)
                     self.assertEqual(hashlib.sha256(z.read(f"{PILOT}/{rel}")).hexdigest(), digest)

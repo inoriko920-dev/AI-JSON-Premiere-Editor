@@ -18,9 +18,12 @@ $ErrorActionPreference = 'Stop'
 $PilotFolder = 'AI_JSON_Premiere_P0_Pilot'
 $Files = @(
     'CSXS/manifest.xml','panel/index.html','panel/styles.css',
-    'panel/bridge.js','panel/helper_bridge.js','panel/app.js',
-    'host/step03.jsx','helper/handshake.py','P0_TEST_ONLY_README.txt',
-    'P0_SHA256SUMS.txt'
+    'panel/bridge.js','panel/helper_bridge.js','panel/validation_bridge.js',
+    'panel/validation_ui.js','panel/app.js',
+    'host/step03.jsx','helper/handshake.py','helper/validate_request.py',
+    'core/__init__.py','core/contracts.py','core/draft_compiler.py','core/ffprobe.py','core/media.py',
+    'core/validate_cli.py','core/direction_registry.json',
+    'P0_TEST_ONLY_README.txt','P0_SHA256SUMS.txt'
 )
 $Allowed = @{}
 foreach ($file in $Files) { $Allowed["$PilotFolder/$file"] = $true }
@@ -42,7 +45,7 @@ $archive = [System.IO.Compression.ZipFile]::OpenRead([System.IO.Path]::GetFullPa
 $payloads = @{}
 try {
     if ($archive.Entries.Count -ne $Files.Count) {
-        throw "P0_UNEXPECTED_ENTRIES: expected exactly 10 files."
+        throw "P0_UNEXPECTED_ENTRIES: expected exactly 20 files."
     }
     foreach ($entry in $archive.Entries) {
         $name = $entry.FullName
@@ -74,7 +77,7 @@ try {
 $sumName = "$PilotFolder/P0_SHA256SUMS.txt"
 $manifestText = [System.Text.Encoding]::UTF8.GetString($payloads[$sumName])
 $sumRows = @($manifestText.Trim().Split([char]10) | Where-Object { $_.Trim().Length -gt 0 })
-if ($sumRows.Count -ne 9) { throw "P0_SHA_MANIFEST_INVALID: expected 9 hash records." }
+if ($sumRows.Count -ne 19) { throw "P0_SHA_MANIFEST_INVALID: expected 9 hash records." }
 $seen = @{}
 $sha = [System.Security.Cryptography.SHA256]::Create()
 try {
@@ -94,12 +97,12 @@ try {
         }
     }
 } finally { $sha.Dispose() }
-if ($seen.Count -ne 9) { throw "P0_SHA_MANIFEST_INVALID: missing records." }
+if ($seen.Count -ne 19) { throw "P0_SHA_MANIFEST_INVALID: missing records." }
 Write-Output ('P0_ZIP_SHA256=' + $zipDigest)
 Write-Output ('P0_PROVENANCE=' + $(if ($ExpectedZipSha256) {'MATCHED_EXTERNAL_SHA256'} else {'SELF_INTEGRITY_ONLY'}))
 Write-Output 'P0_INSPECT=PASS'
-Write-Output 'P0_FILES=10'
-Write-Output 'P0_SHA256_ENTRIES=9'
+Write-Output 'P0_FILES=20'
+Write-Output 'P0_SHA256_ENTRIES=19'
 Write-Output 'P0_G3=NOT_TESTED_IN_PREMIERE'
 
 if ($Mode -eq 'Stage') {

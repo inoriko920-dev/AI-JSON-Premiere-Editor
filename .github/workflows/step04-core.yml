@@ -1,0 +1,86 @@
+name: STEP04 CEP and offline validator (NOT Premiere Host)
+on:
+  push:
+    branches:
+      - 'sol/step04-*'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'panel/**'
+      - 'helper/**'
+      - 'tests/**'
+      - 'tools/**'
+      - '.github/workflows/step04-core.yml'
+jobs:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run all JavaScript/CEP bridge unit tests
+        run: npm test
+      - name: Run all Python/ZIP contract unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Build deterministic unsigned offline validation test ZIP
+        run: python tools/build_p0_pilot.py --output dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+      - name: Check no assembly authorization
+        run: python -c "from core.contracts import validate_pair; assert validate_pair({}, {})['can_assemble'] is False; print('NO_PREMIERE_HOST_CLAIM=PASS')"
+      - name: Copy Windows test inspector next to ZIP
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: Copy-Item -LiteralPath "tools/windows/P0_Windows_Pilot.ps1" -Destination "dist/P0_Windows_Pilot.ps1"
+      - name: Test Windows ZIP installer safety and nested validator packaging
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $script = "./dist/P0_Windows_Pilot.ps1"
+          $zip = "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip"
+          $inspect = & $script -Mode Inspect -ZipPath $zip
+          if ($inspect -notcontains "P0_INSPECT=PASS") { throw "ZIP validation failed" }
+          if ($inspect -notcontains "P0_FILES=20") { throw "Incomplete STEP04 runtime ZIP" }
+          if ($inspect -notcontains "P0_SHA256_ENTRIES=19") { throw "Incorrect SHA256 manifest" }
+          $safeDir = Join-Path $env:RUNNER_TEMP "step04-cep-test"
+          try {
+            & $script -Mode Stage -ZipPath $zip -ExtensionDirectory $safeDir | Out-Null
+            throw "Non-consensual staging accepted"
+          } catch {
+            if ($_.Exception.Message -notmatch "P0_STAGE_REQUIRES_EXPLICIT_CONFIRMATION") { throw }
+          }
+          if (Test-Path $safeDir) { throw "Staging without consent wrote files" }
+          $staged = & $script -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $safeDir
+          if ($staged -notcontains "P0_STAGE=PASS_USER_APPROVED") { throw "Approved staging did not succeed" }
+          $root = Join-Path $safeDir "AI_JSON_Premiere_P0_Pilot"
+          foreach ($rel in @("core/contracts.py","core/draft_compiler.py","core/ffprobe.py","core/media.py","core/validate_cli.py","helper/validate_request.py","panel/validation_ui.js","panel/validation_bridge.js")) {
+            if (-not (Test-Path (Join-Path $root $rel))) { throw "Missing packaged STEP04 file $rel" }
+          }
+          try {
+            & $script -Mode Stage -ConfirmStage -ZipPath $zip -ExtensionDirectory $safeDir | Out-Null
+            throw "Existing target overwrite accepted"
+          } catch {
+            if ($_.Exception.Message -notmatch "P0_TARGET_ALREADY_EXISTS") { throw }
+          }
+      - name: Reject malformed/hostile Windows ZIPs
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          & "./tools/windows/Test_P0_Negative.ps1" -ZipPath "./dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip" -InspectorPath "./dist/P0_Windows_Pilot.ps1" -TempDirectory (Join-Path $env:RUNNER_TEMP "step04-negative-archive")
+      - name: Publish Windows STEP04 test package only
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_JSON_Premiere_STEP04_OFFLINE_VALIDATOR_TEST_ONLY_Windows
+          path: |
+            dist/AI_JSON_Premiere_P0_Pilot_TEST_ONLY.zip
+            dist/P0_Windows_Pilot.ps1
+          if-no-files-found: error
+          retention-days: 7

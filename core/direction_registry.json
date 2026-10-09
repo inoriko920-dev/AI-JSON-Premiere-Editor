@@ -1,0 +1,107 @@
+{
+  "schema_version": "direction-registry-preview-v1",
+  "status": "OWNER_APPROVED_PROPOSED_DIRECTIONS__HOST_UNVERIFIED",
+  "notice": "Candidate key/direction enums for structural validation only. Not timing/speed/effect backend certification.",
+  "directions": {
+    "BRUSH": [
+      "LEFT_TO_RIGHT",
+      "RIGHT_TO_LEFT",
+      "TOP_TO_BOTTOM",
+      "BOTTOM_TO_TOP",
+      "DIAGONAL_TL_BR",
+      "DIAGONAL_BR_TL"
+    ],
+    "INK": [
+      "CENTER",
+      "FROM_LEFT",
+      "FROM_RIGHT",
+      "FROM_TOP",
+      "FROM_BOTTOM"
+    ],
+    "DIGITAL": [
+      "LEFT_TO_RIGHT",
+      "RIGHT_TO_LEFT",
+      "TOP_TO_BOTTOM",
+      "BOTTOM_TO_TOP",
+      "RADIAL"
+    ],
+    "SPRAY_PAINT": [
+      "UNIFORM",
+      "SWEEP_LEFT_TO_RIGHT",
+      "SWEEP_RIGHT_TO_LEFT",
+      "ORIGIN_BURST"
+    ],
+    "SKETCH": [
+      "DIAGONAL_TL_BR",
+      "DIAGONAL_BR_TL"
+    ],
+    "GRADIENT": [
+      "LEFT_TO_RIGHT",
+      "RIGHT_TO_LEFT",
+      "TOP_TO_BOTTOM",
+      "BOTTOM_TO_TOP",
+      "RADIAL"
+    ],
+    "RISE": [
+      "FROM_BOTTOM",
+      "FROM_TOP"
+    ],
+    "PAN": [
+      "FROM_LEFT",
+      "FROM_RIGHT",
+      "FROM_TOP",
+      "FROM_BOTTOM"
+    ],
+    "FADE": [
+      "NONE"
+    ],
+    "POP": [
+      "NONE"
+    ],
+    "WIPE": [
+      "LEFT_TO_RIGHT",
+      "RIGHT_TO_LEFT",
+      "TOP_TO_BOTTOM",
+      "BOTTOM_TO_TOP"
+    ],
+    "BLUR": [
+      "NONE"
+    ],
+    "SUCCESSION": [
+      "NONE"
+    ],
+    "BREATHE": [
+      "NONE"
+    ],
+    "BASELINE": [
+      "FROM_BOTTOM",
+      "FROM_TOP"
+    ],
+    "DRIFT": [
+      "FROM_LEFT",
+      "FROM_RIGHT",
+      "FROM_TOP",
+      "FROM_BOTTOM",
+      "DIAGONAL_TL_BR",
+      "DIAGONAL_BR_TL"
+    ],
+    "TECTONIC": [
+      "HORIZONTAL",
+      "VERTICAL"
+    ],
+    "TUMBLE": [
+      "CLOCKWISE",
+      "COUNTERCLOCKWISE"
+    ],
+    "NEON": [
+      "NONE"
+    ],
+    "SCRAPBOOK": [
+      "CLOCKWISE",
+      "COUNTERCLOCKWISE"
+    ],
+    "STOMP": [
+      "NONE"
+    ]
+  }
+}
