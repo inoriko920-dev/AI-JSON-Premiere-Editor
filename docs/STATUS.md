@@ -1,13 +1,10 @@
 # Status proyek — 9 Oktober 2026 WIB
 
-**STEP01 G1A SPEC PASS**; pemilik menyetujui B02 pada [Issue #2](https://github.com/inoriko920-dev/AI-JSON-Premiere-Editor/issues/2) dan issue ditutup.
+**STEP01 G1A SPEC PASS; B02 approved. STEP02 12 UI GENERATED IN CHAT AND AUDITED — G2 BLOCKED BY REVISION/APPROVAL.**
 
-**STEP02 PROMPTS COMPLETE → STOP_WAITS_FOR_UI_IMAGES.**
-
-- 12 prompt UI terpisah tersedia di docs/ui/prompts/; [Master MD](ui/STEP02_UI_PROMPT_PACK_2026-10-09.md), [TXT](ui/STEP02_UI_PROMPT_PACK_2026-10-09.txt), dan [manifest](ui/STEP02_SCREEN_MANIFEST.csv).
-- 0/12 PNG final dibuat, 0/12 disetujui, dan **UI_REFERENCE_FINAL.docx belum ada**. **G2 WAIT_UI_IMAGES**; G1B executable schema tests NOT_STARTED.
-- Target panel CEP Premiere Pro 2024 putih-biru dockable Bahasa Indonesia, MEDIUM pilot dan FAST/SLOW kemudian, semua efek host UNVERIFIED.
-- AC01–AC30 0/30, host presets 0/21. Tidak ada aplikasi, installer, ZIP portable, atau MP4. Main tidak di-merge.
-
-**STOP WAJIB** setelah prompt jadi. Tunggu instruksi baru pengguna untuk gambar UI/revisi/approval; jangan coding.
-**Kemasan prompt per batch:** [BATCH 01 — 10 UI](ui/batches/BATCH_01_UI01-UI10.txt) dan [BATCH 02 — 2 UI](ui/batches/BATCH_02_UI11-UI12.txt). Setiap prompt sudah mencantumkan instruksi global secara lengkap sehingga bisa dipakai sendiri. Total tetap 12 UI; 0 PNG dihasilkan, G2 WAIT_IMAGES dan STOP UI tetap berlaku.
+- Pengguna menyatakan Batch1 10 UI dan Batch2 2 UI gambar telah selesai. Audit langsung menemukan 12/12 gambar dan memeriksa SHA256 di working container; **belum diarsipkan ke GitHub**.
+- Semua PNG asli 1672x941 meskipun prompt menargetkan 1920x1080. 3 SESUAI, 2 CATATAN, 7 REVISI (5 wajib/2 terarah).
+- [Audit visual](ui/STEP02_VISUAL_QA_REVIEW_2026-10-09.md), [manifest QA SHA256](ui/STEP02_IMAGE_QA_MANIFEST.csv), dan [revisi 7 UI (1 TXT)](ui/revisions/STEP02_REVISION_BATCH_01_7_UI.txt) sudah menjadi acuan berikutnya.
+- Dokumen QA bergambar dan ZIP 12 mockup tersedia pada percakapan (lokal). **Jangan klaim semua 12 sudah di-upload GitHub atau disetujui**.
+- `UI_REFERENCE_FINAL.docx` belum ada; belum ada approval 12 UI final; **G2 WAIT_REVISION_AND_EXPLICIT_APPROVAL**. G1B executable tests NOT_STARTED, host proof 0/21, AC 0/30.
+- PR Draft dan `main` tetap tak di-merge. Coding SOL, packaging, final MP4 dilarang sampai G2 PASS dan seluruh DOCX/image reference final di repo.
