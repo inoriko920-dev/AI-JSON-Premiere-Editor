@@ -74,7 +74,7 @@ class MediaTests(unittest.TestCase):
 
         def swap_before_open(path,flags,*args,**kwargs):
             nonlocal swapped
-            if not swapped and Path(path)==audio:
+            if not swapped and Path(path).resolve()==audio.resolve():
                 os.replace(replacement,audio)
                 swapped=True
             return original_open(path,flags,*args,**kwargs)
@@ -92,13 +92,17 @@ class MediaTests(unittest.TestCase):
         srt=self.root/"sub/narasi.srt"
         changed=SRT.replace(b"00:00:00,000",b"00:00:01,000",1)
         self.assertEqual(len(changed),len(SRT))
+        mutated=False
         def swap_after_hash(path,limit):
+            nonlocal mutated
             result=_bounded_hash(path,limit)
-            if path==srt:
+            if path.resolve()==srt.resolve():
                 srt.write_bytes(changed)
+                mutated=True
             return result
         with patch("core.media._bounded_hash",side_effect=swap_after_hash):
             report=self.inspect()
+        self.assertTrue(mutated,"SRT mutation fixture must run on Windows too")
         self.assertEqual(report["status"],"PREFLIGHT_FAIL")
         self.assertIn("E_MEDIA_CHANGED",codes(report))
         self.assertFalse(report["can_assemble"])
@@ -107,13 +111,17 @@ class MediaTests(unittest.TestCase):
         from core.media import _bounded_hash
         srt=self.root/"sub/narasi.srt"
         max_bytes=8192
+        mutated=False
         def grow_after_hash(path,limit):
+            nonlocal mutated
             result=_bounded_hash(path,limit)
-            if path==srt:
+            if path.resolve()==srt.resolve():
                 srt.write_bytes(SRT+b"x"*(max_bytes+1))
+                mutated=True
             return result
         with patch("core.media._bounded_hash",side_effect=grow_after_hash):
             report=self.inspect(max_bytes=max_bytes)
+        self.assertTrue(mutated,"SRT growth fixture must run on Windows too")
         self.assertEqual(report["status"],"PREFLIGHT_FAIL")
         self.assertIn("E_RESOURCE_LIMIT",codes(report))
         self.assertFalse(report["can_assemble"])
