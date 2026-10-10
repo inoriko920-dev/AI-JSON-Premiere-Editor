@@ -34,6 +34,7 @@ def _component_name(token: str) -> str:
         raise NativeHostInspectError("E_FX_HOST_PROBE_MALFORMED") from error
     if (not 1 <= len(value) <= 80 or
             any(ord(c) < 32 or ord(c) == 127 for c in value) or
+            "%" in value or
             quote(value, safe="~!*'()-._") != token):
         raise NativeHostInspectError("E_FX_HOST_PROBE_MALFORMED")
     return value
