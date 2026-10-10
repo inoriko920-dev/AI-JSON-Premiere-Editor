@@ -77,13 +77,15 @@ def compile_filter(item: dict) -> dict:
     direction,frames,inside,outside = _check(item)
     preset = item["preset"]
     # N is the local *frame* number used by FFmpeg geq, not scene-global time.
+    # geq has NO D (duration) variable: embed the verified integer frame total.
+    # This matters at execution time: a symbolic D previously failed FFmpeg parsing.
     # The first IN frame is entirely transparent; the last IN frame is
     # fully visible. Likewise OUT starts fully visible and ends at zero.
     # B02 FADE/WIPE references all have IN/OUT >= 2 frames.
     progress = ("if(lt(N,{ins}),N/{lastin},"
-                "if(lt(N,{cut}),1,max(0,(D-N-1)/{lastout})))").format(
+                "if(lt(N,{cut}),1,max(0,({total}-N-1)/{lastout})))").format(
                    ins=inside,lastin=inside-1,cut=frames-outside,
-                   D=frames,lastout=outside-1)
+                   total=frames,lastout=outside-1)
     if preset == "FADE":
         alpha = "alpha(X,Y)*(" + progress + ")"
     else:
