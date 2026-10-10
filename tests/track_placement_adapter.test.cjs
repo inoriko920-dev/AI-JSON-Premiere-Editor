@@ -235,3 +235,26 @@ test("unexpected linked video from narration stops before further operations",()
  assert.equal(x.userBin.name,"User Originals");
  assert.equal(x.run(),"S7|1|BLOCKED|TARGET_NOT_EMPTY");
 });
+
+test("SINGLE candidate with three placements has no dummy V3 or linked writes",()=>{
+ const x=setup();
+ x.plan.total_frames=150;
+ x.plan.placements=x.plan.placements.slice(0,3);
+ const background=x.plan.placements[0];
+ background.end_frame=150;
+ background.end_ticks=String(150*Number(TB));
+ background.source_out_frame=150;
+ const audio=x.plan.placements[2];
+ audio.end_frame=150;
+ audio.end_ticks=String(150*Number(TB));
+ audio.source_out_frame=150;
+ assert.equal(x.run(),"S7|1|PLACED_IN_NEW_SEQUENCE|3");
+ assert.deepEqual(x.v.map(t=>t.clips.length),[1,1,0]);
+ assert.equal(x.a[0].clips.length,1);
+ assert.equal(x.writes(),3);
+ const bad=setup();
+ bad.plan.placements=bad.plan.placements.filter(p=>p.target_track!=="V2");
+ assert.equal(bad.run(),"S7|1|BLOCKED|PLAN_INVALID");
+ assert.equal(bad.writes(),0);
+});
+
