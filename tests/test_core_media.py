@@ -64,6 +64,29 @@ class MediaTests(unittest.TestCase):
         self.assertIn("E_MEDIA_DECODE_UNVERIFIED",codes(report))
         self.assertEqual(report["files"][-1]["width"],1280)
 
+    def test_same_bytes_inode_swap_during_media_hash_is_rejected(self):
+        # A same-byte replacement must not pass merely because SHA matches.
+        audio=self.root/"audio/narasi.wav"
+        replacement=self.root/"audio/replacement.wav"
+        replacement.write_bytes(audio.read_bytes())
+        original_open=os.open
+        swapped=False
+
+        def swap_before_open(path,flags,*args,**kwargs):
+            nonlocal swapped
+            if not swapped and Path(path)==audio:
+                os.replace(replacement,audio)
+                swapped=True
+            return original_open(path,flags,*args,**kwargs)
+
+        with patch("core.media.os.open",side_effect=swap_before_open):
+            report=self.inspect()
+        self.assertTrue(swapped)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_MEDIA_CHANGED",codes(report))
+        self.assertFalse(report["can_assemble"])
+        self.assertEqual(audio.read_bytes(),WAV_HEADER)
+
     def test_srt_modified_after_hash_cannot_certify_old_exact_cue(self):
         from core.media import _bounded_hash
         srt=self.root/"sub/narasi.srt"
