@@ -1,7 +1,9 @@
 """Import candidate inventory security and change-detection regression tests."""
 from __future__ import annotations
 
+import copy
 import hashlib
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -162,6 +164,50 @@ class ImportSnapshotTests(unittest.TestCase):
                 ).encode("utf-8")).hexdigest()
                 self.assertFalse(recheck_media_snapshot(
                     copied,max_file_bytes=100000))
+
+    def test_recheck_rejects_promoted_or_inconsistent_authority_flags(self):
+        snapshot=self.snapshot()
+        self.assertTrue(recheck_media_snapshot(snapshot,max_file_bytes=100000))
+        for field,value in (
+            ("status","READY"),
+            ("status","CANDIDATE_EXECUTABLE"),
+            ("can_import",True),
+            ("can_assemble",True),
+            ("import_count",0),
+            ("import_count",True),
+            ("item_count",True),
+        ):
+            with self.subTest(field=field,value=value):
+                tampered=copy.deepcopy(snapshot)
+                tampered[field]=value
+                self.assertFalse(recheck_media_snapshot(
+                    tampered,max_file_bytes=100000))
+        # Mutating a detached snapshot cannot grant import or assembly.
+        self.assertFalse(snapshot["can_import"])
+        self.assertFalse(snapshot["can_assemble"])
+
+    def test_recheck_rejects_role_tampering_even_with_recomputed_digest(self):
+        snapshot=self.snapshot()
+        for role, field, value in (
+            ("SOURCE_SRT","import_to_premiere",True),
+            ("SOURCE_AUDIO","import_to_premiere",False),
+            ("SOURCE_BACKGROUND","kind","png"),
+            ("ASSET_A001","kind","srt"),
+            ("ASSET_A001","item_id","SOURCE_AUDIO"),
+        ):
+            with self.subTest(role=role,field=field):
+                tampered=copy.deepcopy(snapshot)
+                entry=next(x for x in tampered["items"] if x["item_id"]==role)
+                entry[field]=value
+                tampered["import_count"]=sum(
+                    x["import_to_premiere"] for x in tampered["items"])
+                tampered["inventory_sha256"]=hashlib.sha256(
+                    json.dumps(tampered["items"],sort_keys=True,
+                               ensure_ascii=False,separators=(",",":"),
+                               allow_nan=False).encode("utf-8")).hexdigest()
+                self.assertFalse(recheck_media_snapshot(
+                    tampered,max_file_bytes=100000))
+        self.assertTrue(recheck_media_snapshot(snapshot,max_file_bytes=100000))
 
     def test_stale_file_rejected_even_same_length(self):
         r = self.snapshot()
