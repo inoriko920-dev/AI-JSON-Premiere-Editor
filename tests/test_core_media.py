@@ -18,12 +18,13 @@ MP4_HEADER = b"\x00\x00\x00\x18ftypisom"+b"\x00"*20
 
 def cases():
     return {
+      "canvas":{"fps_num":30,"fps_den":1},
       "sources":{
         "srt":{"path":"sub/narasi.srt"},
         "audio":{"path":"audio/narasi.wav"},
         "background":{"path":"video/background.mp4","required":True,"audio_policy":"MUTE"}},
       "assets":{"A001":{"path":"assets/A001.png"}},
-      "scenes":[{"assets":[{"asset_id":"A001","entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}]
+      "scenes":[{"assets":[{"asset_id":"A001","start_frame":0,"entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}]
     }
 
 
