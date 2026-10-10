@@ -269,6 +269,28 @@ class TrackPreflightTests(unittest.TestCase):
         self.assertIsNone(report["track_candidate"])
         self.assertFalse(report["can_assemble"])
 
+    def test_container_stream_duration_conflict_blocks_track_candidate(self):
+        original=self.runner
+        for extension in (".wav", ".mp4"):
+            with self.subTest(extension=extension):
+                def mismatched(args, **kwargs):
+                    response=original(args,**kwargs)
+                    if Path(args[-1]).suffix.lower()==extension:
+                        payload=json.loads(response.stdout)
+                        # The container claims a full source while its only
+                        # selected stream is materially shorter.
+                        payload["streams"][0]["duration"]="1.000"
+                        return subprocess.CompletedProcess(
+                            args,0,json.dumps(payload).encode("utf-8"),b"")
+                    return response
+                self.runner=mismatched
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_CONFLICT",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_import"])
+                self.assertFalse(report["can_assemble"])
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
