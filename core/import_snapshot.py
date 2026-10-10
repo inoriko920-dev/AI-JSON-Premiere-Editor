@@ -197,17 +197,53 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
     """
     if (type(snapshot) is not dict or
             snapshot.get("schema_version") != "verified-media-snapshot-v1" or
+            snapshot.get("status") != "CANDIDATE_NOT_AUTHORIZED" or
             snapshot.get("can_import") is not False or
+            snapshot.get("can_assemble") is not False or
             type(max_file_bytes) is not int or max_file_bytes <= 0 or
             type(snapshot.get("items")) is not list):
         return False
     items = snapshot["items"]
-    if snapshot.get("item_count") != len(items) or not items:
+    if (type(snapshot.get("item_count")) is not int or
+            snapshot["item_count"] != len(items) or not items or
+            type(snapshot.get("import_count")) is not int):
         return False
     try:
         canonical = json.dumps(items, sort_keys=True, ensure_ascii=False,
                                separators=(",", ":"), allow_nan=False).encode("utf-8")
         if hashlib.sha256(canonical).hexdigest() != snapshot["inventory_sha256"]:
+            return False
+        # Inventory role and import-count declarations are part of the
+        # immutable read-only contract. A recomputed digest cannot promote
+        # source-only SRT to an importable Premiere clip.
+        required_sources = {
+            "SOURCE_SRT": ("srt", False),
+            "SOURCE_AUDIO": ("audio", True),
+            "SOURCE_BACKGROUND": ("background", True),
+        }
+        seen_ids: set[str] = set()
+        import_total = 0
+        for item in items:
+            if type(item) is not dict:
+                return False
+            item_id = item.get("item_id")
+            kind = item.get("kind")
+            imported = item.get("import_to_premiere")
+            if (type(item_id) is not str or item_id in seen_ids or
+                    type(imported) is not bool):
+                return False
+            seen_ids.add(item_id)
+            if item_id in required_sources:
+                if (kind, imported) != required_sources[item_id]:
+                    return False
+            elif not (item_id.startswith("ASSET_") and
+                      re.fullmatch(r"ASSET_[A-Za-z0-9][A-Za-z0-9_.-]*", item_id)
+                      and kind == "png" and imported is True):
+                return False
+            import_total += int(imported)
+        if (not set(required_sources).issubset(seen_ids) or
+                len(seen_ids) <= len(required_sources) or
+                import_total != snapshot["import_count"]):
             return False
         for item in items:
             # Snapshot versions without immutable file identity metadata
