@@ -222,6 +222,11 @@ def _structure_and_pairs(edit: dict, anim: dict, issues: list[dict[str, str]]):
                        "start_frame", "end_frame", "assets", "transition_policy",
                        "semantic_relation", "locked"}, issues, p,
                forbidden=DISALLOWED_SPLIT)
+        # Contract currently supports CUT only. Unknown transitions must
+        # never compile as an implicit CUT (nor share its review digest).
+        if type(scene.get("transition_policy")) is not str or scene["transition_policy"] != "CUT":
+            _issue(issues, "E_JSON_SCHEMA", f"{p}/transition_policy",
+                   "Kebijakan transisi tidak didukung; hanya CUT yang disetujui.")
         sid = scene.get("scene_id")
         if not _is_name(sid) or sid in seen_scenes:
             _issue(issues, "E_PLAN_PAIR", f"{p}/scene_id",
