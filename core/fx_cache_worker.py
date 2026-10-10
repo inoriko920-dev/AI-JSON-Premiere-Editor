@@ -287,6 +287,68 @@ def verify_cached_report(
         "canva_fidelity_verified": False
     }
 
+def verify_cache_for_candidate(
+    report: dict[str, Any], item: dict[str, Any], *,
+    expected_source_sha256: str, expected_source_dimensions: tuple[int, int],
+    cache_root: Path, ffprobe_exe: Path, max_cached_bytes: int,
+    timeout_seconds: int,
+    runner: Callable[..., Any] = subprocess.run
+) -> dict[str, Any]:
+    """Read-only cache use preflight tied to one approved animation and source.
+
+    STEP20 verified the integrity of the MOV named by a *trusted* report.
+    It did not ensure the report belongs to the currently requested source,
+    preset/direction or timing. This extra preflight rejects that confusion
+    BEFORE launching ffprobe or returning any positive metadata.
+    """
+    if (not _is_hash(expected_source_sha256) or
+            type(expected_source_dimensions) is not tuple or
+            len(expected_source_dimensions) != 2 or
+            any(type(n) is not int or n < 1 for n in
+                expected_source_dimensions)):
+        raise AlphaCacheError("E_FX_CACHE_INPUT_UNPINNED")
+    try:
+        compiled = compile_filter(item)
+    except AlphaBackendError as error:
+        raise AlphaCacheError(error.code) from error
+    if (type(report) is not dict or
+            report.get("preset") != compiled["preset"] or
+            type(report.get("frames")) is not int or
+            report["frames"] != compiled["frames"] or
+            report.get("size") != list(expected_source_dimensions) or
+            report.get("cache_key_sha256") !=
+                _cache_key(compiled, expected_source_sha256)):
+        raise AlphaCacheError("E_FX_CACHE_CANDIDATE_MISMATCH")
+    audited = verify_cached_report(
+        report, cache_root=cache_root, ffprobe_exe=ffprobe_exe,
+        max_cached_bytes=max_cached_bytes,
+        timeout_seconds=timeout_seconds, runner=runner)
+    return {
+        **audited,
+        "cache_input_binding":
+            "DECLARED_SOURCE_SHA_EFFECT_TIMING_AND_SIZE_MATCHED",
+        "candidate_preset": compiled["preset"],
+        "candidate_direction": compiled["direction"],
+        "source_bytes_reverified": False,
+        "alpha_pixels_reverified": False,
+        "host_verified": False,
+        "can_assemble": False,
+    }
+
+
+def _cache_key(compiled: dict[str, Any], source_sha256: str) -> str:
+    # One canonical cache-key algorithm for initial render and reuse check.
+    material = {
+        "version": "fx-alpha-cache-v2-alpha-sampled",
+        "source_sha256": source_sha256, "preset": compiled["preset"],
+        "direction": compiled["direction"], "frames": compiled["frames"],
+        "filtergraph": compiled["filtergraph"], "codec": compiled["codec"],
+    }
+    return hashlib.sha256(json.dumps(
+        material, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()).hexdigest()
+
+
 def render_candidate(
     item: dict[str, Any], *, source_png: Path, media_root: Path,
     cache_root: Path, expected_sha256: str, ffmpeg_exe: Path,
@@ -323,14 +385,7 @@ def render_candidate(
     if source.suffix.lower() != ".png":
         raise AlphaCacheError("E_FX_SOURCE_PATH")
 
-    material = {
-        "version": "fx-alpha-cache-v2-alpha-sampled",
-        "source_sha256": expected_sha256, "preset": compiled["preset"],
-        "direction": compiled["direction"], "frames": compiled["frames"],
-        "filtergraph": compiled["filtergraph"], "codec": compiled["codec"]
-    }
-    key = hashlib.sha256(json.dumps(material, sort_keys=True,
-        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    key = _cache_key(compiled, expected_sha256)
     final = cache / ("fx_" + key + ".mov")
     if final.exists() or final.is_symlink():
         raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE")
