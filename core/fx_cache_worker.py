@@ -3,7 +3,7 @@
 Only FADE/WIPE filters from STEP16. The source is copied + SHA-256 pinned
 into a private cache work directory BEFORE FFmpeg reads it; user PNG is
 never edited. Candidate MOV is checked by actual FFprobe metadata. This
-is NOT full alpha pixel QA, Canva equivalence or Premiere host approval.
+is NOT Canva equivalence, whole-frame verification or Premiere host approval.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from typing import Any, Callable
 
 from .fx_alpha_backend import compile_filter, build_ffmpeg_command, AlphaBackendError
 from .media import resolved_path
+from .fx_alpha_verify import verify_alpha_pixels, AlphaPixelError
 
 _SHA = frozenset("0123456789abcdef")
 _PNG = b"\x89PNG\r\n\x1a\n"
@@ -171,7 +172,7 @@ def render_candidate(
         raise AlphaCacheError("E_FX_SOURCE_PATH")
 
     material = {
-        "version": "fx-alpha-cache-v1",
+        "version": "fx-alpha-cache-v2-alpha-sampled",
         "source_sha256": expected_sha256, "preset": compiled["preset"],
         "direction": compiled["direction"], "frames": compiled["frames"],
         "filtergraph": compiled["filtergraph"], "codec": compiled["codec"]
@@ -204,6 +205,25 @@ def render_candidate(
             raise AlphaCacheError("E_FX_RENDER_EMPTY")
         _probe(ffprobe, output, width, height, compiled["frames"],
                runner, timeout_seconds)
+        # Metadata alone is insufficient. Source and output must both decode
+        # to expected RGBA alpha pixels before the MOV can enter the cache.
+        try:
+            alpha = verify_alpha_pixels(
+                ffmpeg_exe=ffmpeg, source_png=staged, output_mov=output,
+                width=width, height=height, frames=compiled["frames"],
+                in_frames=compiled["in_frames"], out_frames=compiled["out_frames"],
+                preset=compiled["preset"], direction=compiled["direction"],
+                timeout_seconds=timeout_seconds, runner=runner)
+        except AlphaPixelError as error:
+            raise AlphaCacheError(error.code) from error
+        if alpha.get("pixel_alpha_checked") is not True:
+            raise AlphaCacheError("E_FX_ALPHA_UNVERIFIED")
+        # Hash the verified private candidate BEFORE atomic publication.
+        # A later hash read failure cannot leave a published but unreported MOV.
+        output_hash = hashlib.sha256()
+        with output.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                output_hash.update(chunk)
         # Hard link is atomic and fails if destination exists; unlike replace()
         # this cannot overwrite an existing cache file even with races.
         try:
@@ -212,18 +232,18 @@ def render_candidate(
             raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE") from error
         except OSError as error:
             raise AlphaCacheError("E_FX_CACHE_COMMIT_FAILED") from error
-        output_hash = hashlib.sha256()
-        with final.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024*1024), b""):
-                output_hash.update(chunk)
         return {
             "schema_version": "alpha-cache-render-report-v1",
-            "status": "RENDERED_METADATA_CHECKED_NOT_HOST_OR_ALPHA_CERTIFIED",
+            "status": "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED",
             "preset": compiled["preset"], "frames": compiled["frames"],
             "size": [width, height], "cache_key_sha256": key,
             "output_sha256": output_hash.hexdigest(),
             "can_assemble": False, "host_verified": False,
-            "alpha_pixels_verified": False, "canva_fidelity_verified": False
+            "alpha_pixels_verified": True,
+            "alpha_sampled_frames": alpha["sampled_frames"],
+            "alpha_checked_samples": alpha["checked_alpha_samples"],
+            "whole_frame_verified": False,
+            "canva_fidelity_verified": False
         }
     finally:
         # Only our unique private work directory is removed; source and any
