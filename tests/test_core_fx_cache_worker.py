@@ -5,6 +5,7 @@ No real Adobe host, ffmpeg codec/alpha pixel correctness or UI artwork is claime
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -235,6 +236,47 @@ class AlphaCacheTests(unittest.TestCase):
         self.assert_code("E_FX_PROBE_FAILED")
         self.assertEqual(self.source.read_bytes(),HEADER)
         self.assertEqual(list(self.cache.iterdir()),[])
+
+    def test_publish_rechecks_sha_on_final_path_after_atomic_link(self):
+        # Simulate an outside writer modifying the newly published inode
+        # during the gap between pre-publication SHA and final report.
+        real_link=os.link
+        def link_then_modify(source,destination):
+            real_link(source,destination)
+            Path(destination).write_bytes(b"changed after first SHA")
+        with patch("core.fx_cache_worker.os.link",side_effect=link_then_modify):
+            self.assert_code("E_FX_CACHE_CHANGED")
+        # Do not silently delete modified media; a subsequent attempt must
+        # refuse overwrite rather than reuse an untrusted cache entry.
+        files=list(self.cache.glob("fx_*.mov"))
+        self.assertEqual(len(files),1)
+        self.assertEqual(files[0].read_bytes(),b"changed after first SHA")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertFalse(list(self.cache.glob(".fx_work_*")))
+        self.assert_code("E_FX_CACHE_EXISTS_NO_OVERWRITE")
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
+
+    def test_publish_rejects_replaced_target_after_link(self):
+        real_link=os.link
+        def link_then_replace(source,destination):
+            real_link(source,destination)
+            replacement=Path(destination).with_suffix(".tmp")
+            replacement.write_bytes(Path(destination).read_bytes())
+            os.replace(replacement,destination)
+        with patch("core.fx_cache_worker.os.link",side_effect=link_then_replace):
+            self.assert_code("E_FX_CACHE_CHANGED")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
+        self.assertFalse(list(self.cache.glob(".fx_work_*")))
+
+    def test_successful_publish_sha_survives_restart_audit(self):
+        report=self.go()
+        audit=self.audit(report)
+        self.assertEqual(audit["output_sha256"],report["output_sha256"])
+        self.assertEqual(report["output_sha256"],
+                         hashlib.sha256(next(self.cache.glob("fx_*.mov"))
+                                        .read_bytes()).hexdigest())
+        self.assertFalse(audit["host_verified"])
 
     def test_reopen_cache_report_checks_sha_and_codec_read_only(self):
         report=self.go()
