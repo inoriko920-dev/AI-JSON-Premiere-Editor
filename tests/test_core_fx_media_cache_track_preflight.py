@@ -120,13 +120,16 @@ class MediaCacheTrackPreflightTests(unittest.TestCase):
                          self.sources["ASSET_A001"]["sha256"])
         self.assertEqual(result["cache_key_sha256"],"a"*64)
         self.assertTrue(result["source_recheck_at_preflight"])
+        self.assertTrue(result["source_recheck_after_cache_audit"])
         self.assertFalse(result["source_recheck_at_host_transaction"])
         self.assertFalse(result["host_verified"])
         self.assertFalse(result["can_assemble"])
         self.assertFalse(result["can_import"])
         self.assertFalse(result["real_premiere_readback_verified"])
-        self.recheck.assert_called_once_with(
-            self.snapshot,max_file_bytes=10000)
+        self.assertEqual(self.recheck.call_count,2)
+        for call in self.recheck.call_args_list:
+            self.assertIs(call.args[0],self.snapshot)
+            self.assertEqual(call.kwargs["max_file_bytes"],10000)
         self.dimensions.assert_called_once_with(
             self.snapshot,self.sources["ASSET_A001"],50000)
         self.audit.assert_called_once()
@@ -142,6 +145,25 @@ class MediaCacheTrackPreflightTests(unittest.TestCase):
         self.fail("E_FX_MEDIA_SNAPSHOT_STALE")
         self.assertFalse(self.audit.called)
         self.assertFalse(self.dimensions.called)
+
+    def test_media_changes_during_ffprobe_abort_even_after_good_first_hash(self):
+        # The first owner-file rehash passes; while the MOV is being probed,
+        # the user can modify MP4/SRT/audio/PNG. No successful report allowed.
+        self.recheck.side_effect=[True,False]
+        self.fail("E_FX_MEDIA_SNAPSHOT_STALE")
+        self.assertEqual(self.recheck.call_count,2)
+        self.assertEqual(self.audit.call_count,1)
+        self.assertEqual(self.dimensions.call_count,1)
+
+    def test_media_changed_between_header_check_and_end_audit_fails_closed(self):
+        # An unchanged cache SHA alone is insufficient to accept stale media.
+        def simulate_probe(*args,**kwargs):
+            self.recheck.return_value=False
+            return self.audit_response
+        self.audit.side_effect=simulate_probe
+        self.fail("E_FX_MEDIA_SNAPSHOT_STALE")
+        self.assertEqual(self.audit.call_count,1)
+        self.assertEqual(self.recheck.call_count,2)
 
     def test_valid_snapshot_content_with_wrong_inventory_digest_rejected(self):
         tampered=copy.deepcopy(self.snapshot)
