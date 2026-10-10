@@ -52,7 +52,9 @@ def _stable_media_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes, os.
         if not stat.S_ISREG(opened.st_mode):
             raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
         while True:
-            chunk = stream.read(1024 * 1024)
+            # Bound each read to the remaining caller budget plus one byte,
+            # so concurrent file growth cannot trigger a 1-MiB over-read.
+            chunk = stream.read(min(1024 * 1024, max_bytes - size + 1))
             if not chunk:
                 break
             size += len(chunk)
