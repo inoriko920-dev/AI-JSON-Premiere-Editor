@@ -324,6 +324,44 @@ class AlphaCacheTests(unittest.TestCase):
         self.assertEqual(self.source.read_bytes(),HEADER)
         self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
 
+    def test_stage_mov_modified_during_ffprobe_never_reaches_cache(self):
+        # The mocked probe reports success but another writer changes the
+        # private output immediately afterward. Prior to STEP30, such bytes
+        # could be alpha-verified by a mock then published with a fresh SHA.
+        def mutate_after_probe(argv,**kwargs):
+            result=self.runner(argv,**kwargs)
+            if Path(argv[0]).samefile(self.ffprobe):
+                Path(argv[-1]).write_bytes(b"changed after probed")
+            return result
+        self.assert_code("E_FX_CACHE_CHANGED",runner=mutate_after_probe)
+        self.assertEqual(list(self.cache.iterdir()),[])
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_stage_mov_modified_during_alpha_readback_never_publishes(self):
+        original=self.alpha_checker.return_value
+        def mutate_alpha(*args,**kwargs):
+            Path(kwargs["output_mov"]).write_bytes(b"changed during pixels")
+            return original
+        self.alpha_checker.side_effect=mutate_alpha
+        self.assert_code("E_FX_CACHE_CHANGED")
+        self.assertEqual(list(self.cache.iterdir()),[])
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.alpha_checker.assert_called_once()
+
+    def test_identical_mov_bytes_replaced_inode_during_alpha_is_rejected(self):
+        original=self.alpha_checker.return_value
+        def swap_inode(*args,**kwargs):
+            path=Path(kwargs["output_mov"])
+            replacement=path.with_suffix(".swapped")
+            replacement.write_bytes(path.read_bytes())
+            os.replace(replacement,path)
+            return original
+        self.alpha_checker.side_effect=swap_inode
+        self.assert_code("E_FX_CACHE_CHANGED")
+        self.assertEqual(list(self.cache.iterdir()),[])
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.alpha_checker.assert_called_once()
+
     def test_publish_rechecks_sha_on_final_path_after_atomic_link(self):
         # Simulate an outside writer modifying the newly published inode
         # during the gap between pre-publication SHA and final report.
