@@ -57,7 +57,7 @@ test("STEP22 returns untrusted component names only, without any setter or host 
         "S22|1|OBSERVED_UNCERTIFIED|24.6.3|2|"+
         "Mock.Component.Opacity:Opacity;Mock.Component.Motion:Motion%20Scale");
     assert.equal(h.forbidden,0);
-    assert.ok(!result.includes("CERTIFIED|"));
+    assert.doesNotMatch(result,/^S22\|1\|CERTIFIED\|/);
     assert.doesNotMatch(script,/\bsetValue\s*\(|\baddKey\s*\(|\.overwriteClip\s*\(|\.importFiles\s*\(|\.setTimeVarying\s*\(/);
 });
 test("STEP22 refuses unexpected Premiere version and missing project",()=>{
