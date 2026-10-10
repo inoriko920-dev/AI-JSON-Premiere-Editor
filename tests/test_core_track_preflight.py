@@ -378,6 +378,30 @@ class TrackPreflightTests(unittest.TestCase):
                 self.assertFalse(report["can_import"])
                 self.assertFalse(report["can_assemble"])
 
+    def test_unrepresentable_ffprobe_json_exponent_blocks_four_track(self):
+        original=self.runner
+        for suffix in (".wav", ".mp4"):
+            with self.subTest(source_suffix=suffix):
+                def broken_probe(args, **kwargs):
+                    response=original(args,**kwargs)
+                    if Path(args[-1]).suffix.lower()==suffix:
+                        payload=response.stdout.replace(
+                            b'"duration": "11.000"' if suffix==".wav"
+                            else b'"duration": "6.000"',
+                            b'"duration": 1e99999999999999999999999999999')
+                        self.assertNotEqual(payload,response.stdout)
+                        return subprocess.CompletedProcess(args,0,payload,b"")
+                    return response
+                self.runner=broken_probe
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_import"])
+                self.assertFalse(report["can_assemble"])
+                # A malformed number may not authorize any host action.
+                self.runner=original
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
