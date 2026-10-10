@@ -270,6 +270,64 @@ class FFProbeTests(unittest.TestCase):
         self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,6000])
         self.assertFalse(report["can_assemble"])
 
+    def test_numeric_json_duration_preserves_submillisecond_narration_tail(self):
+        # JSON numeric 11.000...01 is rounded to float(11.0) by json.loads
+        # unless parse_float=Decimal; this must not defeat strict audio timing.
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.500"}}).encode()
+            if audio:
+                raw=raw.replace(b'"duration": "11.500"',
+                                b'"duration": 11.00000000000000000000000000001')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertFalse(any(x["pointer"]=="/sources/audio" for x in report["streams"]))
+        self.assertFalse(report["can_assemble"])
+
+    def test_numeric_json_duration_conflicts_with_selected_stream(self):
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000","duration":"11.000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.000"}}).encode()
+            if audio:
+                raw=raw.replace(b'"format": {"duration": "11.000"}',
+                                b'"format": {"duration": 11.00000000000000000000000000001}')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertTrue(any(x["code"]=="E_FFPROBE_DURATION_CONFLICT" and
+                            x["pointer"]=="/sources/audio" for x in report["issues"]))
+        self.assertFalse(report["can_assemble"])
+
+    def test_numeric_json_background_duration_floors_without_float_rounding(self):
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.000"}}).encode()
+            if not audio:
+                raw=raw.replace(b'"duration": "11.000"',
+                                b'"duration": 10.9999999999999999999999999999')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,10999])
+        self.assertFalse(report["can_assemble"])
+
     def test_missing_duration_requires_review(self):
         body = fixture().decode().replace('"11.500"', '"N/A"')
         r = self.inspect(payload=body.encode())
