@@ -214,6 +214,53 @@ class FFProbeTests(unittest.TestCase):
         r = self.inspect(payload=body.encode())
         self.assertIn("E_FFPROBE_DURATION_UNVERIFIED", codes(r))
 
+    def test_narration_precision_beyond_decimal_context_is_not_rounded_off(self):
+        # Decimal's default 28 digits would turn this into exactly 11000 ms.
+        for value in ("11.00000000000000000000000000001",
+                      "10.9999999999999999999999999999",
+                      "0.00000000000000000000000000001"):
+            with self.subTest(duration=value):
+                def runner(argv, **_kwargs):
+                    audio = str(argv[-1]).endswith(".wav")
+                    record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                               "sample_rate":"48000"} if audio else
+                              {"codec_type":"video","codec_name":"h264",
+                               "width":1920,"height":1080})
+                    data = {"streams":[record],
+                            "format":{"duration":value if audio else "11.500"}}
+                    return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+                self.assertFalse(any(x["pointer"]=="/sources/audio"
+                                     for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_background_fraction_beyond_decimal_context_never_rounds_up(self):
+        # Background policy is floor-to-available milliseconds. Near a
+        # frame edge, Decimal * 1000 previously rounded 10999.999... to 11000.
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080})
+            value = "11.000" if audio else "10.9999999999999999999999999999"
+            data={"streams":[record],"format":{"duration":value}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,10999])
+        self.assertFalse(report["can_assemble"])
+
+    def test_millisecond_trailing_zeros_remain_valid_and_unchanged(self):
+        value="11.00000000000000000000000000000"
+        report=self.inspect(payload=fixture().decode().replace(
+            '"11.500"','"'+value+'"').encode())
+        self.assertNotIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,11000])
+
     def test_extremely_long_sample_rate_returns_error_without_int_crash(self):
         # Python 3.11 rejects int() of thousands of digits; never let
         # malicious metadata escape the structured FFprobe issue protocol.
