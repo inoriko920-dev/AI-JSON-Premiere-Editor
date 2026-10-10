@@ -37,6 +37,28 @@ def _duration(value: Any) -> Decimal | None:
             0 < number <= MAX_DURATION_SECONDS else None)
 
 
+def _exact_duration_milliseconds(value: Decimal) -> tuple[int, bool]:
+    """Convert a positive bounded FFprobe duration without context rounding.
+
+    Decimal multiplication uses the current 28-digit precision by default:
+    11.00000000000000000000000000001 * 1000 wrongly becomes 11000.
+    Work directly from the coefficient and base-10 exponent so a sub-ms
+    narration tail stays detectable and background milliseconds floor safely.
+    The maximum accepted seconds bounds the integer prefix to 19 digits.
+    """
+    parts = value.as_tuple()
+    exponent = parts.exponent + 3
+    digits = parts.digits
+    if exponent >= 0:
+        return int("".join(map(str, digits))) * (10 ** exponent), True
+    integer_length = len(digits) + exponent
+    if integer_length <= 0:
+        return 0, False
+    milliseconds = int("".join(map(str, digits[:integer_length])))
+    has_fraction = any(digits[integer_length:])
+    return milliseconds, not has_fraction
+
+
 def inspect_ffprobe(
     edit: dict[str, Any],
     media_root: Path,
@@ -176,22 +198,22 @@ def inspect_ffprobe(
                     if isinstance(format_data, dict) else None)
         if duration is None:
             duration = _duration(stream.get("duration"))
+        duration_ms = None
         if duration is None:
             issues.append(issue("E_FFPROBE_DURATION_UNVERIFIED", pointer,
                                 "Durasi aktual tidak ditemukan.", "REVIEW"))
-        # Narration must match the full timeline exactly. Truncating an
-        # FFprobe duration such as 11.000001 seconds to 11000 ms would
-        # bypass the strict tail guard in STEP34's existing track planner.
-        if source == "audio" and duration is not None:
-            exact_ms = duration * 1000
-            if exact_ms != exact_ms.to_integral_value():
+        else:
+            duration_ms, exact_millisecond = _exact_duration_milliseconds(duration)
+            # Never round away even a tiny narration tail. Background video
+            # remains conservatively floored to fully available milliseconds.
+            if source == "audio" and not exact_millisecond:
                 issues.append(issue("E_FFPROBE_DURATION_PRECISION_UNVERIFIED", pointer,
                                     "Durasi narasi memiliki pecahan milidetik tanpa kebijakan potong terverifikasi."))
                 continue
         records.append({
             "pointer": pointer, "stream_kind": media_kind,
             "codec": codec,
-            "duration_ms": int(duration * 1000) if duration is not None else None,
+            "duration_ms": duration_ms,
             **({"width": stream["width"], "height": stream["height"]}
                if source == "background" else
                {"sample_rate": int(stream["sample_rate"])})
