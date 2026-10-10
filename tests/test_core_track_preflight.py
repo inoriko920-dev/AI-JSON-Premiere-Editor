@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -148,6 +149,31 @@ class TrackPreflightTests(unittest.TestCase):
         report=self.check()
         self.assertIn("E_MEDIA_SNAPSHOT_STALE",codes(report))
         self.assertIsNone(report["track_candidate"])
+
+    def test_same_bytes_same_mtime_audio_swap_during_ffprobe_blocks_candidate(self):
+        # Rechecking only SHA/size/mtime cannot detect an identical file
+        # replacement while FFprobe is running. It must bind the original
+        # source identity from STEP06's non-authorizing snapshot.
+        audio=self.root/self.edit["sources"]["audio"]["path"]
+        before=audio.stat()
+        payload=audio.read_bytes()
+        def replace_identical_audio():
+            replacement=self.root/"snapshot-swap-audio.wav"
+            replacement.write_bytes(payload)
+            os.utime(replacement,ns=(before.st_atime_ns,before.st_mtime_ns))
+            os.replace(replacement,audio)
+        self.mutate_during_probe=replace_identical_audio
+        report=self.check()
+        after=audio.stat()
+        self.assertEqual(audio.read_bytes(),payload)
+        self.assertEqual(before.st_size,after.st_size)
+        self.assertEqual(before.st_mtime_ns,after.st_mtime_ns)
+        self.assertNotEqual((before.st_dev,before.st_ino,before.st_ctime_ns),
+                            (after.st_dev,after.st_ino,after.st_ctime_ns))
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_MEDIA_SNAPSHOT_STALE",codes(report))
+        self.assertIsNone(report["track_candidate"])
+        self.assertFalse(report["can_assemble"])
 
     def test_unresolved_srt_reference_blocks_before_probe(self):
         self.edit["scenes"][0]["assets"][0]["entry_evidence"]["cue_id"]=999
