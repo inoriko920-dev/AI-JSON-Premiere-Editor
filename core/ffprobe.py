@@ -25,7 +25,7 @@ VIDEO_CODECS_PREVIEW = {"h264", "hevc"}
 
 
 def _duration(value: Any) -> Decimal | None:
-    if not isinstance(value, (str, int, float)):
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
         return None
     try:
         number = Decimal(str(value))
@@ -121,8 +121,12 @@ def inspect_ffprobe(
                                 "Hasil FFprobe gagal, tidak terbaca, atau terlalu besar."))
             continue
         try:
-            data = json.loads(output, parse_constant=lambda name: (_ for _ in ()).throw(
-                ValueError("nonfinite numeric constant")))
+            # Preserve numerical FFprobe durations exactly when JSON encodes
+            # them as numbers rather than strings. Default float parsing can
+            # erase a sub-ms audio tail before duration validation sees it.
+            data = json.loads(output, parse_float=Decimal,
+                              parse_constant=lambda name: (_ for _ in ()).throw(
+                                  ValueError("nonfinite numeric constant")))
         except (UnicodeError, ValueError, TypeError, RecursionError):
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "FFprobe mengembalikan JSON rusak."))
