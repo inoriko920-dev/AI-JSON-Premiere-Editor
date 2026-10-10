@@ -16,6 +16,9 @@ from .media import resolved_path, issue
 
 MAX_STDOUT = 128 * 1024
 MAX_SECONDS = 12
+# Representation bound, not a permitted project-length policy: safely convert
+# FFprobe seconds to signed 64-bit milliseconds without giant-decimal overflow.
+MAX_DURATION_SECONDS = Decimal(2**63 - 1) / Decimal(1000)
 AUDIO_CODECS = {"mp3", "pcm_s16le", "pcm_s24le", "pcm_s32le", "pcm_f32le",
                 "pcm_f64le", "pcm_u8", "pcm_s8"}
 VIDEO_CODECS_PREVIEW = {"h264", "hevc"}
@@ -28,7 +31,10 @@ def _duration(value: Any) -> Decimal | None:
         number = Decimal(str(value))
     except InvalidOperation:
         return None
-    return number if number.is_finite() and number > 0 else None
+    # A finite but astronomical exponent can overflow Decimal arithmetic or
+    # throw while converting the duration to int milliseconds downstream.
+    return (number if number.is_finite() and
+            0 < number <= MAX_DURATION_SECONDS else None)
 
 
 def inspect_ffprobe(
@@ -158,7 +164,9 @@ def inspect_ffprobe(
                 continue
         else:
             sample_rate = stream.get("sample_rate")
-            if (not isinstance(sample_rate, str) or not sample_rate.isdecimal()
+            if (type(sample_rate) is not str or
+                    not 1 <= len(sample_rate) <= 6 or
+                    not sample_rate.isascii() or not sample_rate.isdecimal()
                     or not 1 <= int(sample_rate) <= 384000):
                 issues.append(issue("E_FFPROBE_SAMPLE_RATE", pointer,
                                     "Sample rate audio tidak valid."))
