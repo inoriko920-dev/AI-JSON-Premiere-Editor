@@ -79,7 +79,9 @@ def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
         if not stat.S_ISREG(opened.st_mode):
             raise ValueError("E_MEDIA_CHANGED")
         while True:
-            data = stream.read(1024*1024)
+            # Never request a larger read than the caller's remaining
+            # byte budget plus one detection byte, even if media grows.
+            data = stream.read(min(1024*1024, max_bytes - total + 1))
             if not data:
                 break
             total += len(data)
