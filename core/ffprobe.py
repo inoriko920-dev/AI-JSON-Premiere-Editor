@@ -59,6 +59,21 @@ def _exact_duration_milliseconds(value: Decimal) -> tuple[int, bool]:
     return milliseconds, not has_fraction
 
 
+def _reject_duplicate_json_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Fail closed on ambiguous FFprobe JSON member names.
+
+    Python json.loads normally silently accepts duplicate object fields and
+    replaces the earlier value. This is unsafe for duration and stream
+    topology checks because different readers may select different values.
+    """
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("E_FFPROBE_DUPLICATE_JSON_FIELD")
+        result[key] = value
+    return result
+
+
 def inspect_ffprobe(
     edit: dict[str, Any],
     media_root: Path,
@@ -125,6 +140,7 @@ def inspect_ffprobe(
             # them as numbers rather than strings. Default float parsing can
             # erase a sub-ms audio tail before duration validation sees it.
             data = json.loads(output, parse_float=Decimal,
+                              object_pairs_hook=_reject_duplicate_json_fields,
                               parse_constant=lambda name: (_ for _ in ()).throw(
                                   ValueError("nonfinite numeric constant")))
         except (UnicodeError, ValueError, TypeError, RecursionError, InvalidOperation):
