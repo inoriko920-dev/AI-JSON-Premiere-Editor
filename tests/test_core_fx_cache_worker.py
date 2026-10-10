@@ -15,7 +15,7 @@ from unittest.mock import patch
 from core.fx_alpha_verify import AlphaPixelError
 
 from core.animation_phases import build_both_phase_candidate
-from core.fx_cache_worker import AlphaCacheError, render_candidate
+from core.fx_cache_worker import AlphaCacheError, render_candidate, verify_cached_report
 
 ROOT=Path(__file__).resolve().parents[1]
 demo=runpy.run_path(str(ROOT/"tests/test_core_contracts.py"))["demo"]
@@ -51,6 +51,7 @@ class AlphaCacheTests(unittest.TestCase):
         self.problem=None
         self.output_codec="qtrle"
         self.frame_count="150"
+        self.extra_stream=False
         self.overwrite_race=False
         # Mocked FFmpeg creates only bogus bytes, so alpha verifier MUST be
         # explicitly mocked here; real integration is tested in STEP19 CI.
@@ -78,10 +79,18 @@ class AlphaCacheTests(unittest.TestCase):
             if self.problem=="probe-exit":
                 return subprocess.CompletedProcess(argv,2,b"",b"")
             data={"streams":[{
+                "codec_type":"video",
                 "codec_name":self.output_codec,"pix_fmt":"argb",
                 "width":64,"height":64,"nb_read_frames":self.frame_count,
                 "r_frame_rate":"30/1"
             }]}
+            if self.extra_stream:
+                data["streams"].append({
+                    "codec_type":"audio","codec_name":"aac"})
+            if self.problem=="change-cache-on-probe":
+                path=Path(argv[-1])
+                if path.name.startswith("fx_"):
+                    path.write_bytes(b"modified after sha but during probe")
             if self.problem=="probe-malformed":
                 data=b"not json"
             else:
@@ -101,6 +110,18 @@ class AlphaCacheTests(unittest.TestCase):
         args=self.kwargs()
         args.update(overrides)
         return render_candidate(**args)
+
+    def audit(self,report,**overrides):
+        kwargs=dict(report=report,cache_root=self.cache,
+                    ffprobe_exe=self.ffprobe,max_cached_bytes=100000,
+                    timeout_seconds=10,runner=self.runner)
+        kwargs.update(overrides)
+        return verify_cached_report(**kwargs)
+
+    def assert_audit_code(self,code,report,**overrides):
+        with self.assertRaises(AlphaCacheError) as ctx:
+            self.audit(report,**overrides)
+        self.assertEqual(ctx.exception.code,code)
 
     def assert_code(self,code,**overrides):
         with self.assertRaises(AlphaCacheError) as ctx:
@@ -135,6 +156,7 @@ class AlphaCacheTests(unittest.TestCase):
         self.assertEqual(ffmpeg_args[ffmpeg_args.index("-frames:v")+1],"150")
         self.assertEqual(self.calls[1][0][self.calls[1][0].index("-count_frames")],
                          "-count_frames")
+        self.assertNotIn("-select_streams",self.calls[1][0])
 
     def test_no_overwrite_even_when_cache_key_reused(self):
         original=self.go()
@@ -207,6 +229,65 @@ class AlphaCacheTests(unittest.TestCase):
         self.frame_count="149"
         self.assert_code("E_FX_PROBE_MISMATCH")
         self.assertFalse(list(self.cache.iterdir()))
+
+    def test_extra_mov_audio_stream_rejected_before_publish(self):
+        self.extra_stream=True
+        self.assert_code("E_FX_PROBE_FAILED")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertEqual(list(self.cache.iterdir()),[])
+
+    def test_reopen_cache_report_checks_sha_and_codec_read_only(self):
+        report=self.go()
+        inspected=self.audit(report)
+        self.assertEqual(inspected["cache_integrity"],
+                         "SHA256_AND_METADATA_CHECKED")
+        self.assertFalse(inspected["host_verified"])
+        self.assertFalse(inspected["alpha_pixels_reverified"])
+        self.assertFalse(inspected["can_assemble"])
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
+        self.assertNotIn("-select_streams",self.calls[-1][0])
+
+    def test_reopen_cache_rejects_corrupt_hash_without_deletion(self):
+        report=self.go()
+        cached=next(self.cache.glob("fx_*.mov"))
+        cached.write_bytes(b"damaged content")
+        self.assert_audit_code("E_FX_CACHE_HASH_MISMATCH",report)
+        self.assertEqual(cached.read_bytes(),b"damaged content")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_reopen_cache_rejects_forged_report_or_missing_file(self):
+        report=self.go()
+        invalid=dict(report,cache_key_sha256="../unsafe-path")
+        self.assert_audit_code("E_FX_CACHE_REPORT_INVALID",invalid)
+        invalid=dict(report,host_verified=True)
+        self.assert_audit_code("E_FX_CACHE_REPORT_INVALID",invalid)
+        invalid=dict(report,output_sha256="not-hash")
+        self.assert_audit_code("E_FX_CACHE_REPORT_INVALID",invalid)
+        self.assert_audit_code("E_FX_CACHE_RESOURCE_LIMIT",report,
+                               max_cached_bytes=1)
+        next(self.cache.glob("fx_*.mov")).unlink()
+        self.assert_audit_code("E_FX_CACHE_MISSING",report)
+
+    def test_reopen_cache_rejects_audio_or_mutation_during_probe(self):
+        report=self.go()
+        self.extra_stream=True
+        self.assert_audit_code("E_FX_PROBE_FAILED",report)
+        self.extra_stream=False
+        self.problem="change-cache-on-probe"
+        self.assert_audit_code("E_FX_CACHE_CHANGED",report)
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_reopen_cache_refuses_symlink_without_deleting_target(self):
+        report=self.go()
+        cached=next(self.cache.glob("fx_*.mov"))
+        cached.unlink()
+        try:
+            cached.symlink_to(self.source)
+        except (OSError, NotImplementedError):
+            self.skipTest("Creating test symlinks unavailable on this OS")
+        self.assert_audit_code("E_FX_CACHE_UNSAFE",report)
+        self.assertEqual(self.source.read_bytes(),HEADER)
 
     def test_alpha_verification_failure_blocks_publish_without_source_mutation(self):
         self.alpha_checker.side_effect=AlphaPixelError(
