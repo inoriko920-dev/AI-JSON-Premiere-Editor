@@ -1,3 +1,19 @@
+# Status pengembangan — 10 Oktober 2026 WIB
+
+## SOL — implementasi audit ASTRA B01–B06 pada Draft PR #22
+
+- Baseline audit: `22d9e0583a88eb10904ed645e2a81e545cd17ee6`, branch `sol/step19-cache-alpha-readback-20261010`.
+- FIX01 (B02/B04): candidate menolak durasi narasi pendek/panjang dan memeriksa waktu masuk EXACT_CUE dari SRT dengan integer round_half_up; stagger tanpa kebijakan tersertifikasi tetap diblokir.
+- FIX02 (B05): alpha readback memeriksa pertumbuhan alpha bahkan pada sampel transparan/batas WIPE; pekerja render tidak memublikasikan MOV ketika verifikasi gagal.
+- FIX03 (B01): ringkasan panel dan adapter ES3 menerima V3 kosong untuk project SINGLE, V1/V2/A1 tetap wajib dan host gate tetap ketat.
+- FIX04 (B03/B06): hanya transisi CUT yang diizinkan oleh kontrak saat ini; nesting JSON berlebihan dikembalikan sebagai PREFLIGHT_FAIL terstruktur tanpa traceback/path.
+- Tes regresi tambahan `tests/test_astra_fix01.py`, `tests/test_astra_fix04.py` serta tes JS adapter, bridge, alpha dan cache.
+- **Gate FIX05: CI pada HEAD terbaru BELUM DINYATAKAN PASS** sampai seluruh workflow wajib selesai sukses; perbaikan tetap draft, tidak di-merge atau dirilis.
+- **G3 Premiere Pro 2024 Windows 11: NOT_VERIFIED**. Tidak ada hasil dari host nyata, sertifikasi 21 preset, atau klaim aplikasi siap dipakai. Hanya FADE/WIPE kandidat yang telah dibangun sebelumnya.
+- Tidak ada gambar UI/aset pengguna yang dibuat atau diubah oleh perbaikan ini; sumber media asli tetap read-only.
+
+## Riwayat gate UI 9 Oktober 2026
+
 # Status proyek — 9 Oktober 2026 WIB
 
 ## G2 UI FINAL — PASS
