@@ -365,7 +365,7 @@ class TrackPreflightTests(unittest.TestCase):
                         value=(b'"duration": "11.000"' if suffix==".wav"
                                else b'"duration": "6.000"')
                         changed=response.stdout.replace(
-                            value,value[:-1]+b', "duration": "1.000"')
+                            value,value+b', "duration": "1.000"')
                         self.assertNotEqual(changed,response.stdout)
                         return subprocess.CompletedProcess(args,0,changed,b"")
                     return response
