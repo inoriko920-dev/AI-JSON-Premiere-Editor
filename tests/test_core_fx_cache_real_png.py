@@ -16,7 +16,7 @@ import tempfile
 import unittest
 
 from core.animation_phases import build_both_phase_candidate
-from core.fx_cache_worker import render_candidate, _PNG as PNG_SIGNATURE
+from core.fx_cache_worker import render_candidate, AlphaCacheError, _probe, _PNG as PNG_SIGNATURE
 from core.fx_alpha_backend import compile_filter, build_ffmpeg_command
 from core.fx_alpha_verify import verify_alpha_pixels
 
@@ -93,6 +93,25 @@ class ApprovedPNGReadonlyIntegrationTests(unittest.TestCase):
                 timeout_seconds=240)
             self.assertTrue(checked["pixel_alpha_checked"])
             self.assertFalse(checked["whole_frame_verified"])
+            # Real FFprobe must accept the isolated one-video QTRLE MOV.
+            _probe(Path(FFPROBE).resolve(),output,width,height,
+                   candidate["frames"],subprocess.run,240)
+            # Security regression: inject a genuine PCM audio stream into a
+            # temporary MOV (no new PNG or UI asset), then refuse it.
+            with_audio=Path(folder)/"extra_audio.mov"
+            mux=[str(Path(FFMPEG).resolve()),"-hide_banner","-nostdin",
+                 "-loglevel","error","-n","-i",str(output),
+                 "-f","lavfi","-i","anullsrc=r=48000:cl=mono",
+                 "-map","0:v:0","-map","1:a:0",
+                 "-c:v","copy","-c:a","pcm_s16le","-t","0.75",
+                 "-f","mov",str(with_audio)]
+            muxed=subprocess.run(mux,capture_output=True,timeout=240,check=False)
+            self.assertEqual(muxed.returncode,0,
+                             muxed.stderr.decode("utf-8",errors="replace")[:600])
+            with self.assertRaises(AlphaCacheError) as mismatch:
+                _probe(Path(FFPROBE).resolve(),with_audio,width,height,
+                       candidate["frames"],subprocess.run,240)
+            self.assertEqual(mismatch.exception.code,"E_FX_PROBE_FAILED")
         after=source.stat()
         self.assertEqual((before.st_size,before.st_mtime_ns),
                          (after.st_size,after.st_mtime_ns))
