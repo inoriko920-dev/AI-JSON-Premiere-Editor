@@ -47,16 +47,39 @@ def resolved_path(root: Path, relative: str) -> Path:
 
 
 def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
-    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes <= 0:
+    """Hash the opened regular file and reject path/descriptor substitutions.
+
+    Unlike a stat-then-separate-open hash, this pins the same file identity
+    from before opening to after reading; caller media remains read-only.
+    """
+    import stat
+    if type(max_bytes) is not int or max_bytes <= 0:
         raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
-    if path.stat().st_size > max_bytes:
+
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError("E_MEDIA_CHANGED")
+    if before.st_size > max_bytes:
         raise ValueError("E_RESOURCE_LIMIT")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+
     hasher = hashlib.sha256()
     total = 0
     first = b""
-    with path.open("rb") as f:
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("E_MEDIA_CHANGED")
         while True:
-            data = f.read(1024*1024)
+            data = stream.read(1024*1024)
             if not data:
                 break
             total += len(data)
@@ -65,6 +88,12 @@ def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
             if not first:
                 first = data[:32]
             hasher.update(data)
+        read_end = os.fstat(stream.fileno())
+    after = path.stat()
+    if (total != before.st_size or not stat.S_ISREG(after.st_mode) or
+            not (identity(before) == identity(opened) ==
+                 identity(read_end) == identity(after))):
+        raise ValueError("E_MEDIA_CHANGED")
     return hasher.hexdigest(), total, first
 
 
@@ -222,6 +251,7 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             inventory.append(item)
         except (OSError,ValueError,RuntimeError) as e:
             code=str(e) if str(e) in ("E_RESOURCE_LIMIT","E_MEDIA_PATH",
+                                       "E_MEDIA_CHANGED",
                                        "E_CONFIG_LIMITS_UNVERIFIED") else "E_MEDIA_MISSING"
             errors.append(issue(code,pointer,
                                 "File wajib hilang, tidak dapat dibaca, di luar root, atau terlalu besar."))
