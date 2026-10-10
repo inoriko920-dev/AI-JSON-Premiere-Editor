@@ -112,10 +112,24 @@ class FFProbeTests(unittest.TestCase):
         self.assertEqual(r["status"], "NEEDS_REVIEW")
 
     def test_background_linked_audio_is_a_hard_error(self):
-        mixed = fixture()
-        report = self.inspect(payload=mixed, include_linked=True)
+        # The narration source remains pure audio; ONLY the background MP4
+        # contains linked audio. Avoid injecting the unrelated background
+        # video into the narration fixture.
+        def runner(argv, **_kwargs):
+            audio = {"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000","channels":2}
+            video = {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080}
+            streams = ([audio] if str(argv[-1]).endswith(".wav")
+                       else [video,audio])
+            output = json.dumps({"streams":streams,
+                                 "format":{"duration":"11.500"}}).encode()
+            return subprocess.CompletedProcess(argv,0,output,b"")
+        report = inspect_ffprobe(self.edit,self.root,
+                                 ffprobe_exe=self.ffprobe,runner=runner)
         self.assertEqual(report["status"], "PREFLIGHT_FAIL")
         self.assertIn("E_BACKGROUND_AUDIO_NOT_ISOLATED", codes(report))
+        self.assertNotIn("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN",codes(report))
         self.assertFalse(report["can_assemble"])
         self.assertEqual(len(report["streams"]), 1)  # narration inspected
 
