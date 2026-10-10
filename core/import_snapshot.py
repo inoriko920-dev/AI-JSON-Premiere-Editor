@@ -119,6 +119,10 @@ def prepare_media_snapshot(
         raise ImportSnapshotError("E_RESOURCE_LIMIT")
 
     seen: set[str] = set()
+    # Two different paths may still name the exact same file via hard links.
+    # A source must have an unambiguous identity before creating its
+    # non-authorizing inventory, not merely a unique spelled pathname.
+    seen_file_ids: set[tuple[int, int]] = set()
     inventory: list[dict[str, Any]] = []
     for item_id, kind, info, imported in jobs:
         relative = info.get("path")
@@ -151,6 +155,10 @@ def prepare_media_snapshot(
             raise ImportSnapshotError("E_MEDIA_MISSING") from ex
         if count != after.st_size:
             raise ImportSnapshotError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+        file_id = (after.st_dev, after.st_ino)
+        if file_id in seen_file_ids:
+            raise ImportSnapshotError("E_MEDIA_ALIAS_AMBIGUOUS")
+        seen_file_ids.add(file_id)
         if actual.lower() != expected.lower():
             raise ImportSnapshotError("E_MEDIA_HASH")
         matches, _ = _format_supported(relative, header)
@@ -222,6 +230,7 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
             "SOURCE_BACKGROUND": ("background", True),
         }
         seen_ids: set[str] = set()
+        seen_file_ids: set[tuple[int, int]] = set()
         import_total = 0
         for item in items:
             if type(item) is not dict:
@@ -233,6 +242,12 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
                     type(imported) is not bool):
                 return False
             seen_ids.add(item_id)
+            file_device, file_inode = item.get("device_id"), item.get("file_id")
+            if (type(file_device) is not int or file_device < 0 or
+                    type(file_inode) is not int or file_inode < 0 or
+                    (file_device, file_inode) in seen_file_ids):
+                return False
+            seen_file_ids.add((file_device, file_inode))
             if item_id in required_sources:
                 if (kind, imported) != required_sources[item_id]:
                     return False
