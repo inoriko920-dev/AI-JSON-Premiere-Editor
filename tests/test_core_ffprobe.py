@@ -214,6 +214,35 @@ class FFProbeTests(unittest.TestCase):
         r = self.inspect(payload=body.encode())
         self.assertIn("E_FFPROBE_DURATION_UNVERIFIED", codes(r))
 
+    def test_extremely_long_sample_rate_returns_error_without_int_crash(self):
+        # Python 3.11 rejects int() of thousands of digits; never let
+        # malicious metadata escape the structured FFprobe issue protocol.
+        raw = fixture().decode().replace('"48000"', '"' + '9'*10000 + '"')
+        self.assertLess(len(raw), 128*1024)
+        report = self.inspect(payload=raw.encode())
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_SAMPLE_RATE", codes(report))
+        self.assertFalse(report["can_assemble"])
+
+    def test_extreme_decimal_exponent_duration_fails_closed(self):
+        # Decimal('1e999999999') is finite but converting it to integer
+        # milliseconds is not safe. Do not advertise a usable duration.
+        for value in ("1e999999999", "1e308"):
+            with self.subTest(value=value):
+                raw = fixture().decode().replace('"11.500"', '"'+value+'"')
+                report = self.inspect(payload=raw.encode())
+                self.assertIn("E_FFPROBE_DURATION_UNVERIFIED", codes(report))
+                self.assertTrue(all(x["duration_ms"] is None
+                                    for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_supported_sample_rate_and_duration_unchanged(self):
+        report = self.inspect()
+        self.assertNotIn("E_FFPROBE_SAMPLE_RATE", codes(report))
+        self.assertNotIn("E_FFPROBE_DURATION_UNVERIFIED", codes(report))
+        self.assertEqual(report["streams"][0]["sample_rate"], 48000)
+        self.assertEqual(report["streams"][0]["duration_ms"], 11500)
+
     def test_absent_media_raises_structured_not_host_status(self):
         (self.root / "background.mp4").unlink()
         r = self.inspect()
