@@ -1,0 +1,43 @@
+name: STEP24 Nonce-Bound Premiere Fade Read-Only Report (NO Host Certification)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step24-*']
+    paths:
+      - 'host/native_fade_readback_envelope.jsx'
+      - 'core/fx_native_readback_session.py'
+      - 'tests/native_fade_readback_envelope.test.cjs'
+      - 'tests/test_core_fx_native_readback_session.py'
+      - '.github/workflows/step24-native-fade-readback.yml'
+  pull_request:
+    paths:
+      - 'host/native_fade_readback_envelope.jsx'
+      - 'core/fx_native_readback_session.py'
+      - 'tests/native_fade_readback_envelope.test.cjs'
+      - 'tests/test_core_fx_native_readback_session.py'
+      - '.github/workflows/step24-native-fade-readback.yml'
+jobs:
+  readback:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Python one-use challenge, clip selector and replay protection
+        run: python -m unittest tests.test_core_fx_native_readback_session -v
+      - name: ES3 read-only inspector envelope and exact source readback mocks
+        run: node --test tests/native_fade_readback_envelope.test.cjs
+      - name: All Python contract and security regressions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: All CEP and ES3 JavaScript regressions
+        run: npm test
+      - name: Ensure production CEP never loads uncertified host diagnostics
+        run: python -c "from pathlib import Path; from core.fx_alpha_backend import backend_support; m=Path('CSXS/manifest.xml').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in m; assert 'native_fade_readback_envelope.jsx' not in m and 'native_opacity_inspector.jsx' not in m; assert backend_support()['actual_host_certified']==0; print('NON_EXECUTABLE_CANDIDATE_ONLY')"
