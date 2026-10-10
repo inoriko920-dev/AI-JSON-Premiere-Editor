@@ -253,6 +253,51 @@ class ImportSnapshotTests(unittest.TestCase):
         self.edit["assets"]["A001"]["path"] = "../escape.png"
         self.assert_code("E_MEDIA_PATH")
 
+    def test_hard_link_asset_alias_fails_even_with_distinct_paths(self):
+        original=self.root/"assets"/"A001.png"
+        alias=self.root/"assets"/"A002.png"
+        alias.unlink()
+        try:
+            os.link(original,alias)
+        except (OSError, NotImplementedError):
+            self.skipTest("filesystem hard links unavailable")
+        self.assertNotEqual(original.resolve(),alias.resolve())
+        self.assertEqual(original.stat().st_ino,alias.stat().st_ino)
+        self.assert_code("E_MEDIA_ALIAS_AMBIGUOUS")
+
+    def test_simulated_hard_link_identity_alias_fails_on_all_platforms(self):
+        # The regression must execute even when the Windows runner cannot
+        # create hard links on its temporary filesystem.
+        from core.import_snapshot import _stable_media_hash
+        original=_stable_media_hash
+        existing=(self.root/"assets"/"A001.png").stat()
+        def same_inode(path,budget):
+            digest,size,header,metadata=original(path,budget)
+            if Path(path).name=="A002.png":
+                metadata=SimpleNamespace(
+                    st_dev=existing.st_dev,st_ino=existing.st_ino,
+                    st_size=metadata.st_size,
+                    st_mtime_ns=metadata.st_mtime_ns,
+                    st_ctime_ns=metadata.st_ctime_ns)
+            return digest,size,header,metadata
+        with patch("core.import_snapshot._stable_media_hash",side_effect=same_inode):
+            self.assert_code("E_MEDIA_ALIAS_AMBIGUOUS")
+
+    def test_recheck_rejects_forged_duplicate_file_ids_before_file_io(self):
+        snapshot=self.snapshot()
+        entries=snapshot["items"]
+        first=next(x for x in entries if x["item_id"]=="ASSET_A001")
+        second=next(x for x in entries if x["item_id"]=="ASSET_A002")
+        second["device_id"]=first["device_id"]
+        second["file_id"]=first["file_id"]
+        snapshot["inventory_sha256"]=hashlib.sha256(
+            json.dumps(entries,sort_keys=True,separators=(",",":"),
+                       ensure_ascii=False,allow_nan=False).encode("utf-8")
+        ).hexdigest()
+        with patch("core.import_snapshot._stable_media_hash",
+                   side_effect=AssertionError("must reject before filesystem reads")):
+            self.assertFalse(recheck_media_snapshot(snapshot,max_file_bytes=100000))
+
     def test_duplicate_path_for_two_assets_fails_closed(self):
         self.edit["assets"]["A002"]["path"] = self.edit["assets"]["A001"]["path"]
         self.assert_code("E_MEDIA_ALIAS_AMBIGUOUS")
