@@ -137,6 +137,46 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS",codes(report))
         self.assertFalse(report["can_assemble"])
 
+    def test_narration_with_auxiliary_stream_blocks_instead_of_ignoring_it(self):
+        for side in (
+            {"codec_type":"video","codec_name":"mjpeg",
+             "disposition":{"attached_pic":1}},
+            {"codec_type":"data","codec_name":"bin_data"},
+            {"codec_type":"subtitle","codec_name":"mov_text"},
+            {"codec_type":"unknown","codec_name":"unknown"},
+            None,
+        ):
+            with self.subTest(extra_stream=side):
+                def runner(argv, **kwargs):
+                    is_audio=str(argv[-1]).endswith(".wav")
+                    audio={"codec_type":"audio","codec_name":"pcm_s16le",
+                           "sample_rate":"48000"}
+                    video={"codec_type":"video","codec_name":"h264",
+                           "width":1920,"height":1080}
+                    streams=[audio,side] if is_audio else [video]
+                    payload={"streams":streams,"format":{"duration":"11.500"}}
+                    return subprocess.CompletedProcess(
+                        argv,0,json.dumps(payload).encode("utf-8"),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(
+                    x["code"]=="E_NARRATION_STREAM_TOPOLOGY_UNKNOWN" and
+                    x["pointer"]=="/sources/audio" and x["severity"]=="ERROR"
+                    for x in report["issues"]))
+                self.assertFalse(any(
+                    x["pointer"]=="/sources/audio" for x in report["streams"]))
+                self.assertTrue(any(
+                    x["pointer"]=="/sources/background" for x in report["streams"]))
+
+    def test_single_narration_audio_stream_still_accepted_for_offline_review(self):
+        report=self.inspect()
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN",codes(report))
+        self.assertEqual(len(report["streams"]),2)
+        self.assertFalse(report["can_assemble"])
+
     def test_narration_multiple_audio_streams_never_silently_pick_first(self):
         def runner(argv, **_kwargs):
             audio = str(argv[-1]).endswith(".wav")
