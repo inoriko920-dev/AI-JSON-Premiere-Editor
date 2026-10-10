@@ -52,7 +52,7 @@ $._AIJSON_PLACEMENT_V1=(function(){
             Math.floor(plan.total_frames)!==plan.total_frames ||
             plan.total_frames<1 || plan.total_frames>10000000 ||
             !(Object.prototype.toString.call(plan.placements)==="[object Array]") ||
-            plan.placements.length<4 || plan.placements.length>10000){
+            plan.placements.length<3 || plan.placements.length>10000){
             return false;
         }
         var seen={},spans={V1:[],V2:[],V3:[],A1:[]},expected={V1:0,V2:1,V3:2,A1:0};
