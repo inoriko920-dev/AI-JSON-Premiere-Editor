@@ -64,6 +64,53 @@ class MediaTests(unittest.TestCase):
         self.assertIn("E_MEDIA_DECODE_UNVERIFIED",codes(report))
         self.assertEqual(report["files"][-1]["width"],1280)
 
+    def test_media_hash_read_requests_respect_small_byte_cap(self):
+        from core.media import _bounded_hash
+        path=self.root/"audio/narasi.wav"
+        budget=len(WAV_HEADER)+3
+        calls=[]
+        real_fdopen=os.fdopen
+
+        class BoundedStream:
+            def __init__(self, stream):
+                self.stream=stream
+            def __enter__(self):
+                self.stream.__enter__()
+                return self
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+            def fileno(self):
+                return self.stream.fileno()
+            def read(self, count):
+                calls.append(count)
+                test_case.assertLessEqual(count,budget+1)
+                return self.stream.read(count)
+
+        test_case=self
+        with patch("core.media.os.fdopen",side_effect=lambda fd,mode:
+                   BoundedStream(real_fdopen(fd,mode))):
+            sha,size,first=_bounded_hash(path,budget)
+        self.assertEqual(size,len(WAV_HEADER))
+        self.assertEqual(sha,hashlib.sha256(WAV_HEADER).hexdigest())
+        self.assertEqual(first[:4],b"RIFF")
+        self.assertTrue(calls)
+
+    def test_media_hash_growth_after_initial_stat_is_fail_closed(self):
+        from core.media import _bounded_hash
+        path=self.root/"audio/narasi.wav"
+        cap=len(WAV_HEADER)+2
+        original_open=os.open
+        changed=[False]
+        def grow_at_open(target, flags, *args, **kwargs):
+            if Path(target)==path and not changed[0]:
+                changed[0]=True
+                path.write_bytes(WAV_HEADER+b"x"*(cap+10))
+            return original_open(target,flags,*args,**kwargs)
+        with patch("core.media.os.open",side_effect=grow_at_open):
+            with self.assertRaisesRegex(ValueError,"E_RESOURCE_LIMIT"):
+                _bounded_hash(path,cap)
+        self.assertTrue(changed[0])
+
     def test_same_bytes_inode_swap_during_media_hash_is_rejected(self):
         # A same-byte replacement must not pass merely because SHA matches.
         audio=self.root/"audio/narasi.wav"
