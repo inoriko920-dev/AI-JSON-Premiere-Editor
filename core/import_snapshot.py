@@ -158,6 +158,10 @@ def prepare_media_snapshot(
             "absolute_path": str(absolute),
             "sha256": actual, "byte_size": count,
             "mtime_ns": after.st_mtime_ns,
+            # A same-byte replacement with restored mtime is still a new
+            # source file. Bind the snapshot to its original file identity.
+            "device_id": after.st_dev, "file_id": after.st_ino,
+            "ctime_ns": after.st_ctime_ns,
         })
     # This string is an integrity fingerprint, not cryptographic approval.
     canonical = json.dumps(inventory, sort_keys=True, ensure_ascii=False,
@@ -202,6 +206,12 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
         if hashlib.sha256(canonical).hexdigest() != snapshot["inventory_sha256"]:
             return False
         for item in items:
+            # Snapshot versions without immutable file identity metadata
+            # cannot certify continued identity, even if the SHA still fits.
+            if (type(item) is not dict or
+                    any(type(item.get(k)) is not int or item[k] < 0 for k in
+                        ("device_id", "file_id", "ctime_ns"))):
+                return False
             path = resolved_path(Path(snapshot["media_root"]), item["relative_path"])
             if str(path) != item["absolute_path"]:
                 return False
@@ -209,7 +219,10 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
                 path, max_file_bytes)
             if (digest != item["sha256"] or size != item["byte_size"]
                     or size != after.st_size
-                    or after.st_mtime_ns != item["mtime_ns"]):
+                    or after.st_mtime_ns != item["mtime_ns"]
+                    or after.st_dev != item["device_id"]
+                    or after.st_ino != item["file_id"]
+                    or after.st_ctime_ns != item["ctime_ns"]):
                 return False
     except (OSError, KeyError, TypeError, ValueError, RuntimeError):
         return False
