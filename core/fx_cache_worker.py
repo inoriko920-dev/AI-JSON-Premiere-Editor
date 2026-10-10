@@ -68,38 +68,62 @@ def _safe_png_header(header: bytes, max_pixels: int) -> tuple[int, int]:
 
 def _copy_pinned(source: Path, target: Path, expected_sha: str,
                  max_source_bytes: int, max_pixels: int) -> tuple[int, int, int]:
-    """Write only an exclusive private snapshot, fail on content/file races."""
-    before = source.stat()
-    if before.st_size < 33 or before.st_size > max_source_bytes:
-        raise AlphaCacheError("E_FX_SOURCE_LIMIT")
-    digest = hashlib.sha256()
-    count = 0
-    header = b""
-    # Exclusive file creation prevents accidental writes onto a pre-existing path.
-    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    with source.open("rb") as inp, os.fdopen(os.open(target, flags, 0o600), "wb") as out:
-        while True:
-            chunk = inp.read(1024 * 1024)
-            if not chunk:
-                break
-            count += len(chunk)
-            if count > max_source_bytes:
-                raise AlphaCacheError("E_FX_SOURCE_LIMIT")
-            if len(header) < 33:
-                header = (header + chunk)[:33]
-            digest.update(chunk)
-            out.write(chunk)
-        out.flush()
-        os.fsync(out.fileno())
-        after_fd = os.fstat(inp.fileno())
-    after = source.stat()
-    if (count != before.st_size or count != after.st_size or
-            before.st_mtime_ns != after.st_mtime_ns or
-            before.st_ino != after.st_ino or
-            after_fd.st_size != after.st_size or
-            after_fd.st_mtime_ns != after.st_mtime_ns):
+    """Copy the owner-existing PNG into an exclusive private staging file.
+
+    Pin the opened source FD to its path throughout the copy, not just its
+    size and mtime. A same-byte/same-mtime inode substitution is NOT a valid
+    identity match even though the SHA might still be equal.
+    """
+    try:
+        before = source.stat()
+        if not stat.S_ISREG(before.st_mode):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        if before.st_size < 33 or before.st_size > max_source_bytes:
+            raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+        digest = hashlib.sha256()
+        count = 0
+        header = b""
+        source_flags = os.O_RDONLY
+        if hasattr(os, "O_BINARY"):
+            source_flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            source_flags |= os.O_NOFOLLOW
+        target_flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+        if hasattr(os, "O_BINARY"):
+            target_flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            target_flags |= os.O_NOFOLLOW
+        # O_EXCL prevents overwriting a pre-existing staged or user file.
+        with os.fdopen(os.open(source, source_flags), "rb") as inp, os.fdopen(
+                os.open(target, target_flags, 0o600), "wb") as out:
+            opened = os.fstat(inp.fileno())
+            if not stat.S_ISREG(opened.st_mode):
+                raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+            while True:
+                chunk = inp.read(1024 * 1024)
+                if not chunk:
+                    break
+                count += len(chunk)
+                if count > max_source_bytes:
+                    raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+                if len(header) < 33:
+                    header = (header + chunk)[:33]
+                digest.update(chunk)
+                out.write(chunk)
+            out.flush()
+            os.fsync(out.fileno())
+            end_fd = os.fstat(inp.fileno())
+        after = source.stat()
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_SOURCE_CHANGED") from error
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or count != before.st_size or
+            not (identity(before) == identity(opened) ==
+                 identity(end_fd) == identity(after))):
         raise AlphaCacheError("E_FX_SOURCE_CHANGED")
     if digest.hexdigest() != expected_sha:
         raise AlphaCacheError("E_FX_SOURCE_HASH")
@@ -399,6 +423,9 @@ def render_candidate(
         output = work / "derived.mov"
         width, height, _ = _copy_pinned(
             source, staged, expected_sha256, max_source_bytes, max_pixels)
+        staged_hash, staged_stat = _hash_stable_mov(staged)
+        if staged_hash != expected_sha256:
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         cmd = build_ffmpeg_command(compiled, ffmpeg, staged, output)
         try:
             call = runner(cmd, shell=False, capture_output=True,
@@ -430,6 +457,15 @@ def render_candidate(
             raise AlphaCacheError(error.code) from error
         if alpha.get("pixel_alpha_checked") is not True:
             raise AlphaCacheError("E_FX_ALPHA_UNVERIFIED")
+        # FFmpeg consumes the private PNG over multiple processes (render,
+        # probe, pixel readback). Refuse any change to that staged source
+        # across the whole validation interval, including same-byte inode
+        # substitution. Do not publish a MOV based on a stale image proof.
+        end_staged_hash, end_staged_stat = _hash_stable_mov(staged)
+        if (end_staged_hash != staged_hash or
+                (end_staged_stat.st_dev, end_staged_stat.st_ino) !=
+                (staged_stat.st_dev, staged_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         # Hash a stable, regular, non-symlink candidate BEFORE publication.
         # Metadata+alpha checks are not enough if a local process replaces the
         # staged MOV between validation and the no-overwrite hard link.
