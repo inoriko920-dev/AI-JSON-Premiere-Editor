@@ -100,6 +100,62 @@ class FFProbeTests(unittest.TestCase):
             r = self.inspect(payload=data, code=rc)
             self.assertIn("E_FFPROBE_BAD_RESPONSE", codes(r))
 
+    def test_duplicate_ffprobe_json_members_fail_closed_for_both_sources(self):
+        # Unlike json.loads' default last-value-wins behavior, ambiguous
+        # FFprobe duration and topology must never produce usable metadata.
+        cases = (
+            ("streams", '"format":', '"streams": [], "format":'),
+            ("duration", '"duration": "11.000"',
+             '"duration": "11.000", "duration": "10.000"'),
+            ("codec_type", '"codec_type": "audio"',
+             '"codec_type": "audio", "codec_type": "video"'),
+        )
+        for role in ("audio", "background"):
+            for name, target, replacement in cases:
+                if role == "background" and name == "codec_type":
+                    target = '"codec_type": "video"'
+                    replacement = ('"codec_type": "video", '
+                                   '"codec_type": "audio"')
+                with self.subTest(role=role, duplicated_field=name):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        this_role = "audio" if is_audio else "background"
+                        stream = ({"codec_type":"audio",
+                                   "codec_name":"pcm_s16le",
+                                   "sample_rate":"48000"} if is_audio else
+                                  {"codec_type":"video",
+                                   "codec_name":"h264",
+                                   "width":1920,"height":1080})
+                        payload = json.dumps(
+                            {"streams":[stream],
+                             "format":{"duration":"11.000"}})
+                        if this_role == role:
+                            self.assertIn(target, payload)
+                            payload = payload.replace(target,replacement,1)
+                        return subprocess.CompletedProcess(
+                            argv,0,payload.encode("utf-8"),b"")
+                    report = inspect_ffprobe(
+                        self.edit,self.root,ffprobe_exe=self.ffprobe,
+                        runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(
+                        x["code"]=="E_FFPROBE_BAD_RESPONSE" and
+                        x["pointer"]=="/sources/"+role
+                        for x in report["issues"]),report["issues"])
+                    self.assertFalse(any(
+                        x["pointer"]=="/sources/"+role
+                        for x in report["streams"]))
+                    self.assertEqual(len(report["streams"]),1)
+
+    def test_same_json_member_names_in_different_objects_still_valid(self):
+        # Legitimate metadata naturally repeats names across different
+        # stream and format objects. Only duplicates *within* one map fail.
+        report=self.inspect()
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+        self.assertEqual(len(report["streams"]),2)
+
     def test_missing_audio_or_video_stream_fails(self):
         r = self.inspect(payload=fixture(audio=False))
         self.assertIn("E_FFPROBE_STREAM_MISSING", codes(r))
