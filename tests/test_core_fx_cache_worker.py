@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import runpy
 import subprocess
 import tempfile
@@ -360,6 +361,53 @@ class AlphaCacheTests(unittest.TestCase):
         self.assert_code("E_FX_CACHE_CHANGED")
         self.assertEqual(list(self.cache.iterdir()),[])
         self.assertEqual(self.source.read_bytes(),HEADER)
+        self.alpha_checker.assert_called_once()
+
+    def test_original_png_inode_swap_during_private_copy_refused(self):
+        # A same-byte/same-mtime source swap must fail descriptor identity,
+        # not be accepted merely because its SHA matches the pinned hash.
+        original_fstat=os.fstat
+        count=[0]
+        def fake_second_fstat(fd):
+            info=original_fstat(fd)
+            count[0]+=1
+            if count[0] == 2:
+                return SimpleNamespace(
+                    st_mode=info.st_mode, st_dev=info.st_dev,
+                    st_ino=info.st_ino + 99, st_size=info.st_size,
+                    st_mtime_ns=info.st_mtime_ns,
+                    st_ctime_ns=info.st_ctime_ns)
+            return info
+        with patch("core.fx_cache_worker.os.fstat",side_effect=fake_second_fstat):
+            self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertGreaterEqual(count[0],2)
+        self.assertEqual(self.calls,[])
+        self.assertFalse(list(self.cache.iterdir()))
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_mutated_private_staged_png_during_alpha_blocks_publish(self):
+        original_result=self.alpha_checker.return_value
+        def modified_staged(*args,**kwargs):
+            Path(kwargs["source_png"]).write_bytes(b"changed staged source")
+            return original_result
+        self.alpha_checker.side_effect=modified_staged
+        self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertFalse(list(self.cache.iterdir()))
+        self.alpha_checker.assert_called_once()
+
+    def test_replaced_private_png_same_bytes_during_alpha_blocks_publish(self):
+        original_result=self.alpha_checker.return_value
+        def swapped_staged(*args,**kwargs):
+            path=Path(kwargs["source_png"])
+            replacement=path.with_suffix(".replacement")
+            replacement.write_bytes(path.read_bytes())
+            os.replace(replacement,path)
+            return original_result
+        self.alpha_checker.side_effect=swapped_staged
+        self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertFalse(list(self.cache.iterdir()))
         self.alpha_checker.assert_called_once()
 
     def test_publish_rechecks_sha_on_final_path_after_atomic_link(self):
