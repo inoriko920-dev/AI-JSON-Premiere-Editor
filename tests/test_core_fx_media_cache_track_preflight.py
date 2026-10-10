@@ -134,8 +134,8 @@ class MediaCacheTrackPreflightTests(unittest.TestCase):
         self.assertEqual(args["expected_source_sha256"],
                          self.sources["ASSET_A001"]["sha256"])
         self.assertEqual(args["expected_source_dimensions"],(64,64))
-        self.assertIs(args["item"],self.fx)
-        self.assertIs(args["report"],self.report)
+        self.assertIs(self.audit.call_args.args[0],self.report)
+        self.assertIs(self.audit.call_args.args[1],self.fx)
 
     def test_changed_media_recheck_rejected_before_opening_mov(self):
         self.recheck.return_value=False
@@ -191,11 +191,11 @@ class MediaCacheTrackPreflightTests(unittest.TestCase):
         bad=copy.deepcopy(self.plan)
         target=next(p for p in bad["placements"]
                     if p["instance_key"]==self.fx["instance_key"])
-        target["item_id"]="ASSET_A002"
+        target["item_id"]="ASSET_NOT_IN_SNAPSHOT"
         keys=("schema_version","project_id","source_digest",
               "media_digest","ticks_per_frame","total_frames","placements")
         bad["operation_sha256"]=digest({k:bad[k] for k in keys})
-        self.fail("E_FX_TRACK_OCCURRENCE_MISMATCH",plan=bad)
+        self.fail("E_FX_MEDIA_TRACK_MISMATCH",plan=bad)
         self.assertFalse(self.audit.called)
 
     def test_pinned_source_missing_or_changed_geometry_refused(self):
