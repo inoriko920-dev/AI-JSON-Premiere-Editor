@@ -426,6 +426,14 @@ def render_candidate(
         staged_hash, staged_stat = _hash_stable_mov(staged)
         if staged_hash != expected_sha256:
             raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        # STEP32: pin the *original* owner's pathname+inode after private
+        # staging. STEP31 pinned only the staged PNG; a user/other process
+        # could modify the original while FFmpeg works, making a successful
+        # render stale relative to the current source. Never write the owner
+        # file: these reads are immutable SHA/inode checks.
+        original_source_hash, original_source_stat = _hash_stable_mov(source)
+        if original_source_hash != expected_sha256:
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         cmd = build_ffmpeg_command(compiled, ffmpeg, staged, output)
         try:
             call = runner(cmd, shell=False, capture_output=True,
@@ -466,6 +474,14 @@ def render_candidate(
                 (end_staged_stat.st_dev, end_staged_stat.st_ino) !=
                 (staged_stat.st_dev, staged_stat.st_ino)):
             raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        # Recheck the owner's *original* file, not only our private PNG.
+        # A changed owner file during render/FFprobe/alpha readback invalidates
+        # this candidate even if the staged copy is still intact.
+        final_source_hash, final_source_stat = _hash_stable_mov(source)
+        if (final_source_hash != original_source_hash or
+                (final_source_stat.st_dev, final_source_stat.st_ino) !=
+                (original_source_stat.st_dev, original_source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         # Hash a stable, regular, non-symlink candidate BEFORE publication.
         # Metadata+alpha checks are not enough if a local process replaces the
         # staged MOV between validation and the no-overwrite hard link.
@@ -489,6 +505,14 @@ def render_candidate(
                 (published_stat.st_dev, published_stat.st_ino) !=
                 (source_stat.st_dev, source_stat.st_ino)):
             raise AlphaCacheError("E_FX_CACHE_CHANGED")
+        # Protect the final publication window as well. If the original
+        # changes during os.link/final MOV verification, do not issue any
+        # successful report. The published MOV remains for reconciliation.
+        published_source_hash, published_source_stat = _hash_stable_mov(source)
+        if (published_source_hash != original_source_hash or
+                (published_source_stat.st_dev, published_source_stat.st_ino) !=
+                (original_source_stat.st_dev, original_source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         return {
             "schema_version": "alpha-cache-render-report-v1",
             "status": "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED",
