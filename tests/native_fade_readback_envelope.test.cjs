@@ -72,13 +72,18 @@ test("S24 blocks missing S22 inspector, missing host and incorrect version",()=>
 test("S24 strict nonce, digest, source and decimal ticks inputs",()=>{
     for(const [index,bad] of [[0,"0"],[0,"g".repeat(32)],[1,"z".repeat(64)],
         [2,"BAD"],[2,id.toUpperCase()],[3,"Personal"],[4,"V1"],
-        [5,"0009000"],[5,"-1"],[6,"9000"],[6,"9001"],[6,"024000"],
+        [5,"0009000"],[5,"-1"],[6,"9000"],[6,"024000"],
         [7,"..\\private"],[7,"A|B"],[7,""]]){
         const h=fixture();
         assert.equal(run(h,{[index]:bad}),"S24|1|BLOCKED|SELECTOR_INVALID",
                      String(index)+"/"+String(bad));
         assert.equal(h.calls,0);
     }
+});
+test("S24 accepts syntactically valid alternate end but rejects host mismatch",()=>{
+    const h=fixture();
+    assert.equal(run(h,{6:"9001"}),"S24|1|BLOCKED|CLIP_INSPECTION_FAILED");
+    assert.equal(h.calls,0);
 });
 test("S24 rejects inspector error status, fake certified and exceptions",()=>{
     const h=fixture(),ctx={$:{},app:h.app};
