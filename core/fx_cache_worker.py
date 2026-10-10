@@ -410,6 +410,11 @@ def render_candidate(
         if (not output.is_file() or output.is_symlink() or
                 output.stat().st_size < 1):
             raise AlphaCacheError("E_FX_RENDER_EMPTY")
+        # Pin EXACT candidate bytes/inode before delegating to the two
+        # external decoder checks. STEP26 previously pinned only AFTER both:
+        # a swapped MOV between probe/pixel readback and initial hash could
+        # be published with a valid SHA but without validation of those bytes.
+        verified_input_hash, verified_input_stat = _hash_stable_mov(output)
         _probe(ffprobe, output, width, height, compiled["frames"],
                runner, timeout_seconds)
         # Metadata alone is insufficient. Source and output must both decode
@@ -429,6 +434,10 @@ def render_candidate(
         # Metadata+alpha checks are not enough if a local process replaces the
         # staged MOV between validation and the no-overwrite hard link.
         original_hash, source_stat = _hash_stable_mov(output)
+        if (original_hash != verified_input_hash or
+                (source_stat.st_dev, source_stat.st_ino) !=
+                (verified_input_stat.st_dev, verified_input_stat.st_ino)):
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
         # Hard link atomically publishes a NEW name only, never replaces cache.
         try:
             os.link(output, final)
