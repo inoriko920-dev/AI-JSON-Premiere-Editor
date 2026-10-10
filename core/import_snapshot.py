@@ -9,17 +9,69 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import stat
 from pathlib import Path
 from typing import Any
 
-from .media import _bounded_hash, _format_supported, resolved_path
+from .media import _format_supported, resolved_path
 
 
 class ImportSnapshotError(ValueError):
     def __init__(self, code: str):
         self.code = code
         super().__init__(code)
+
+
+def _stable_media_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes, os.stat_result]:
+    """SHA bytes through one descriptor and prove the resolved path did not swap.
+
+    Previous path.stat -> separate open -> path.stat allowed an outside writer
+    to substitute another file while source inventory was being hashed.
+    Check descriptor identity/size/ctime/mtime before/after, and the path
+    identity after closing. No file mutation, no images generated.
+    """
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+    if before.st_size > max_bytes:
+        raise ValueError("E_RESOURCE_LIMIT")
+    hasher = hashlib.sha256()
+    size = 0
+    first = b""
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+        while True:
+            chunk = stream.read(1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > max_bytes:
+                raise ValueError("E_RESOURCE_LIMIT")
+            if not first:
+                first = chunk[:32]
+            hasher.update(chunk)
+        descriptor_end = os.fstat(stream.fileno())
+    after = path.stat()
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or
+            size != before.st_size or
+            not (identity(before) == identity(opened) ==
+                 identity(descriptor_end) == identity(after))):
+        raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+    return hasher.hexdigest(), size, first, after
 
 
 def prepare_media_snapshot(
@@ -83,20 +135,17 @@ def prepare_media_snapshot(
             if identity in seen:
                 raise ImportSnapshotError("E_MEDIA_ALIAS_AMBIGUOUS")
             seen.add(identity)
-            before = absolute.stat()
-            actual, count, header = _bounded_hash(absolute, max_file_bytes)
-            after = absolute.stat()
+            actual, count, header, after = _stable_media_hash(
+                absolute, max_file_bytes)
         except ImportSnapshotError:
             raise
         except ValueError as ex:
-            if str(ex) == "E_RESOURCE_LIMIT":
-                raise ImportSnapshotError("E_RESOURCE_LIMIT") from ex
+            if str(ex) in ("E_RESOURCE_LIMIT", "E_MEDIA_CHANGED_DURING_SNAPSHOT"):
+                raise ImportSnapshotError(str(ex)) from ex
             raise ImportSnapshotError("E_MEDIA_PATH") from ex
         except (OSError, RuntimeError) as ex:
             raise ImportSnapshotError("E_MEDIA_MISSING") from ex
-        if (before.st_size != after.st_size or
-                before.st_mtime_ns != after.st_mtime_ns or
-                count != after.st_size):
+        if count != after.st_size:
             raise ImportSnapshotError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
         if actual.lower() != expected.lower():
             raise ImportSnapshotError("E_MEDIA_HASH")
@@ -156,11 +205,10 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
             path = resolved_path(Path(snapshot["media_root"]), item["relative_path"])
             if str(path) != item["absolute_path"]:
                 return False
-            before = path.stat()
-            digest, size, _ = _bounded_hash(path, max_file_bytes)
-            after = path.stat()
+            digest, size, _, after = _stable_media_hash(
+                path, max_file_bytes)
             if (digest != item["sha256"] or size != item["byte_size"]
-                    or size != after.st_size or before.st_mtime_ns != after.st_mtime_ns
+                    or size != after.st_size
                     or after.st_mtime_ns != item["mtime_ns"]):
                 return False
     except (OSError, KeyError, TypeError, ValueError, RuntimeError):
