@@ -243,11 +243,13 @@ def run(argv=None):
                 except DraftCompileError:
                     # Missing creative policy/uncertain timing still blocks draft.
                     result["draft_status"] = "BLOCKED_CONTRACT_REVIEW"
-        except (OSError, UnicodeError, ValueError, TypeError, OverflowError) as ex:
+        except (OSError, UnicodeError, ValueError, TypeError, OverflowError,
+                RecursionError) as ex:
             # Never print untrusted file content or absolute paths in reports.
             # Preserve a stable, sanitized JSON protocol for nesting attacks.
-            code = (str(ex) if str(ex) in
-                    ("E_RESOURCE_LIMIT", "E_JSON_NESTING_LIMIT") else "E_JSON_SCHEMA")
+            code = ("E_JSON_NESTING_LIMIT" if isinstance(ex, RecursionError) else
+                    str(ex) if str(ex) in ("E_RESOURCE_LIMIT", "E_JSON_NESTING_LIMIT")
+                    else "E_JSON_SCHEMA")
             result = error(code, "Gagal membaca atau mem-parsing file JSON.")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
     # Distinguish invalid and pending manual/host/media review from READY.
