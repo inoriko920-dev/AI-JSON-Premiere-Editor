@@ -194,10 +194,20 @@ def inspect_ffprobe(
                                     "Sample rate audio tidak valid."))
                 continue
         format_data = data.get("format")
-        duration = (_duration(format_data.get("duration"))
-                    if isinstance(format_data, dict) else None)
-        if duration is None:
-            duration = _duration(stream.get("duration"))
+        format_duration = (_duration(format_data.get("duration"))
+                           if isinstance(format_data, dict) else None)
+        stream_duration = _duration(stream.get("duration"))
+        # Source trim must refer to the selected stream, not an unrelated
+        # container timeline. A longer container duration can otherwise hide
+        # a short narration stream or make the background overrun its frames.
+        # Never guess which conflicting value Premiere will expose.
+        if (format_duration is not None and stream_duration is not None and
+                format_duration != stream_duration):
+            issues.append(issue("E_FFPROBE_DURATION_CONFLICT", pointer,
+                                "Durasi container dan stream berbeda; waktu sumber tidak terverifikasi."))
+            continue
+        duration = (stream_duration if stream_duration is not None
+                    else format_duration)
         duration_ms = None
         if duration is None:
             issues.append(issue("E_FFPROBE_DURATION_UNVERIFIED", pointer,
