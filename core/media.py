@@ -157,7 +157,7 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
     for aid, doc in (edit.get("assets",{}) if type(edit) is dict and type(edit.get("assets")) is dict else {}).items():
         if type(doc) is dict:
             queue.append((f"/assets/{aid}", "asset",doc))
-    cue_ids: set[int] = set()
+    cue_times: dict[int, tuple[int, int]] = {}
     for pointer,category,record in queue:
         rel=record.get("path")
         if not isinstance(rel,str):
@@ -183,7 +183,7 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
                     if count>max_file_bytes:
                         raise ValueError("E_RESOURCE_LIMIT")
                     cues=parse_srt(path.read_bytes(),max_cues=max_srt_cues)
-                    cue_ids={c["cue_id"] for c in cues}
+                    cue_times={c["cue_id"]: (c["start_ms"], c["end_ms"]) for c in cues}
                 except (ValueError,UnicodeError):
                     errors.append(issue("E_SRT_MALFORMED",pointer,
                                         "Cue SRT tidak dapat diverifikasi."))
@@ -206,9 +206,33 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             if not isinstance(evidence,dict) or evidence.get("accuracy") != "EXACT_CUE":
                 continue
             cue = evidence.get("cue_id")
-            if type(cue) is not int or cue not in cue_ids:
-                errors.append(issue("E_SRT_AMBIGUOUS",f"/scenes/{i}/assets/{j}/entry_evidence",
+            pointer=f"/scenes/{i}/assets/{j}/entry_evidence"
+            if type(cue) is not int or cue not in cue_times:
+                errors.append(issue("E_SRT_AMBIGUOUS",pointer,
                                     "cue_id tidak ditemukan dalam SRT yang dibaca."))
+                continue
+            # EXACT_CUE certifies the cue ENTRY only; asset exit can differ.
+            # Use integer rational round_half_up, no float ms conversion.
+            canvas=edit.get("canvas",{})
+            fps_num=canvas.get("fps_num") if type(canvas) is dict else None
+            fps_den=canvas.get("fps_den") if type(canvas) is dict else None
+            if (type(fps_num) is not int or fps_num<=0 or
+                    type(fps_den) is not int or fps_den<=0):
+                errors.append(issue("E_SRT_TIMEBASE_UNVERIFIED",pointer,
+                                    "Frame rate cue tidak tersedia atau tidak valid."))
+                continue
+            # A declared stagger is not an approved EXACT_CUE offset policy.
+            # Never infer one or shift a cue to make the evidence pass.
+            stagger=ins.get("stagger_frames",0)
+            if type(stagger) is not int or stagger!=0:
+                errors.append(issue("E_SRT_CUE_OFFSET_UNVERIFIED",pointer,
+                                    "Offset cue belum memiliki kebijakan timing terverifikasi."))
+                continue
+            cue_start_ms=cue_times[cue][0]
+            rounded_start=(2*cue_start_ms*fps_num+1000*fps_den)//(2000*fps_den)
+            if type(ins.get("start_frame")) is not int or ins["start_frame"]!=rounded_start:
+                errors.append(issue("E_SRT_CUE_FRAME_MISMATCH",pointer,
+                                    "Waktu awal instance tidak cocok dengan awal cue SRT."))
     errors.append(issue("E_MEDIA_DECODE_UNVERIFIED","/media",
                         "Header PNG/audio/MP4 bukan bukti FFprobe, decode dan alpha Premiere.",
                         "REVIEW"))
@@ -217,4 +241,4 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
                         "REVIEW"))
     status="PREFLIGHT_FAIL" if any(e["severity"]=="ERROR" for e in errors) else "NEEDS_REVIEW"
     return {"status":status,"can_assemble":False,"files":inventory,"issues":errors,
-            "cue_count":len(cue_ids)}
+            "cue_count":len(cue_times)}
