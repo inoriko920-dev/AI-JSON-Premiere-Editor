@@ -54,8 +54,12 @@ def loads_strict(raw: str | bytes) -> Any:
         raise TypeError("JSON input must be UTF-8 text or bytes")
     if raw.startswith("\ufeff"):
         raw = raw[1:]
-    return json.loads(raw, object_pairs_hook=_pairs_unique,
-                      parse_constant=invalid_float)
+    try:
+        return json.loads(raw, object_pairs_hook=_pairs_unique,
+                          parse_constant=invalid_float)
+    except RecursionError as exc:
+        # Deliberately do not raise global recursion limits for untrusted JSON.
+        raise ValueError("E_JSON_NESTING_LIMIT") from exc
 
 
 def _is_int(v: Any, minimum: int = 0) -> bool:
