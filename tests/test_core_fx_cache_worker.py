@@ -10,6 +10,9 @@ import runpy
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from core.fx_alpha_verify import AlphaPixelError
 
 from core.animation_phases import build_both_phase_candidate
 from core.fx_cache_worker import AlphaCacheError, render_candidate
@@ -49,6 +52,14 @@ class AlphaCacheTests(unittest.TestCase):
         self.output_codec="qtrle"
         self.frame_count="150"
         self.overwrite_race=False
+        # Mocked FFmpeg creates only bogus bytes, so alpha verifier MUST be
+        # explicitly mocked here; real integration is tested in STEP19 CI.
+        self.mock_pixels=patch("core.fx_cache_worker.verify_alpha_pixels")
+        self.alpha_checker=self.mock_pixels.start()
+        self.addCleanup(self.mock_pixels.stop)
+        self.alpha_checker.return_value={
+            "pixel_alpha_checked": True, "sampled_frames": 6,
+            "checked_alpha_samples": 120}
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -99,9 +110,11 @@ class AlphaCacheTests(unittest.TestCase):
     def test_successful_mock_render_is_cache_only_and_not_certified(self):
         r=self.go()
         self.assertEqual(r["status"],
-            "RENDERED_METADATA_CHECKED_NOT_HOST_OR_ALPHA_CERTIFIED")
+            "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED")
         self.assertFalse(r["can_assemble"])
-        self.assertFalse(r["alpha_pixels_verified"])
+        self.assertTrue(r["alpha_pixels_verified"])
+        self.assertFalse(r["whole_frame_verified"])
+        self.alpha_checker.assert_called_once()
         self.assertFalse(r["host_verified"])
         self.assertEqual(r["size"],[64,64])
         self.assertEqual(r["frames"],150)
@@ -193,6 +206,20 @@ class AlphaCacheTests(unittest.TestCase):
         self.output_codec="qtrle"
         self.frame_count="149"
         self.assert_code("E_FX_PROBE_MISMATCH")
+        self.assertFalse(list(self.cache.iterdir()))
+
+    def test_alpha_verification_failure_blocks_publish_without_source_mutation(self):
+        self.alpha_checker.side_effect=AlphaPixelError(
+            "E_FX_ALPHA_PIXELS_MISMATCH")
+        self.assert_code("E_FX_ALPHA_PIXELS_MISMATCH")
+        self.assertFalse(list(self.cache.iterdir()))
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertEqual(len(self.calls),2)
+        self.alpha_checker.assert_called_once()
+
+    def test_alpha_verifier_cannot_return_unverified_status(self):
+        self.alpha_checker.return_value={"pixel_alpha_checked":False}
+        self.assert_code("E_FX_ALPHA_UNVERIFIED")
         self.assertFalse(list(self.cache.iterdir()))
 
     def test_cache_and_source_are_never_overwritten_by_json_values(self):
