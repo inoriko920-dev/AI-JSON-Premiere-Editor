@@ -357,6 +357,27 @@ class TrackPreflightTests(unittest.TestCase):
                 self.assertFalse(report["can_import"])
                 self.assertFalse(report["can_assemble"])
 
+    def test_narration_with_cover_art_or_data_stream_blocks_four_tracks(self):
+        original=self.runner
+        for added in ({"codec_type":"video","codec_name":"mjpeg"},
+                      {"codec_type":"data","codec_name":"bin_data"}):
+            with self.subTest(extra_stream=added["codec_type"]):
+                def with_side_stream(args,**options):
+                    output=original(args,**options)
+                    if Path(args[-1]).suffix.lower()==".wav":
+                        data=json.loads(output.stdout)
+                        data["streams"].append(added)
+                        return subprocess.CompletedProcess(
+                            args,0,json.dumps(data).encode("utf-8"),b"")
+                    return output
+                self.runner=with_side_stream
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_import"])
+                self.assertFalse(report["can_assemble"])
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
