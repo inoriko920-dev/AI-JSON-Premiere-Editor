@@ -140,6 +140,55 @@ def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
 
 
 
+
+def _hash_stable_mov(path: Path) -> tuple[str, os.stat_result]:
+    """Hash only a stable regular MOV, refusing symlink and inode swapping.
+
+    Used before and after no-overwrite publication. We deliberately keep an
+    interrupted/tampered published file for owner reconciliation; the caller
+    MUST NOT mark the render successful after any integrity error.
+    """
+    try:
+        original = path.lstat()
+        if not stat.S_ISREG(original.st_mode) or original.st_size < 1:
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
+        flags = os.O_RDONLY
+        if hasattr(os, "O_BINARY"):
+            flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        digest = hashlib.sha256()
+        with os.fdopen(os.open(path, flags), "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino) !=
+                    (original.st_dev, original.st_ino)):
+                raise AlphaCacheError("E_FX_CACHE_CHANGED")
+            total = 0
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                total += len(chunk)
+                digest.update(chunk)
+            read_end = os.fstat(stream.fileno())
+        after = path.lstat()
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_CHANGED") from error
+    before_state = (original.st_dev, original.st_ino, original.st_size,
+                    original.st_mtime_ns, original.st_ctime_ns)
+    opened_state = (opened.st_dev, opened.st_ino, opened.st_size,
+                    opened.st_mtime_ns, opened.st_ctime_ns)
+    read_state = (read_end.st_dev, read_end.st_ino, read_end.st_size,
+                  read_end.st_mtime_ns, read_end.st_ctime_ns)
+    end_state = (after.st_dev, after.st_ino, after.st_size,
+                 after.st_mtime_ns, after.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or
+            total != original.st_size or
+            not (before_state == opened_state == read_state == end_state)):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    return digest.hexdigest(), after
+
+
 def verify_cached_report(
     report: dict[str, Any], *, cache_root: Path, ffprobe_exe: Path,
     max_cached_bytes: int, timeout_seconds: int,
@@ -321,26 +370,31 @@ def render_candidate(
             raise AlphaCacheError(error.code) from error
         if alpha.get("pixel_alpha_checked") is not True:
             raise AlphaCacheError("E_FX_ALPHA_UNVERIFIED")
-        # Hash the verified private candidate BEFORE atomic publication.
-        # A later hash read failure cannot leave a published but unreported MOV.
-        output_hash = hashlib.sha256()
-        with output.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                output_hash.update(chunk)
-        # Hard link is atomic and fails if destination exists; unlike replace()
-        # this cannot overwrite an existing cache file even with races.
+        # Hash a stable, regular, non-symlink candidate BEFORE publication.
+        # Metadata+alpha checks are not enough if a local process replaces the
+        # staged MOV between validation and the no-overwrite hard link.
+        original_hash, source_stat = _hash_stable_mov(output)
+        # Hard link atomically publishes a NEW name only, never replaces cache.
         try:
             os.link(output, final)
         except FileExistsError as error:
             raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE") from error
         except OSError as error:
             raise AlphaCacheError("E_FX_CACHE_COMMIT_FAILED") from error
+        # SHA on the final path detects mutation between the first digest
+        # and publication. Any mismatch FAILS CLOSED and preserves the file
+        # for manual reconciliation instead of deleting linked/user data.
+        published_hash, published_stat = _hash_stable_mov(final)
+        if (published_hash != original_hash or
+                (published_stat.st_dev, published_stat.st_ino) !=
+                (source_stat.st_dev, source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
         return {
             "schema_version": "alpha-cache-render-report-v1",
             "status": "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED",
             "preset": compiled["preset"], "frames": compiled["frames"],
             "size": [width, height], "cache_key_sha256": key,
-            "output_sha256": output_hash.hexdigest(),
+            "output_sha256": published_hash,
             "can_assemble": False, "host_verified": False,
             "alpha_pixels_verified": True,
             "alpha_sampled_frames": alpha["sampled_frames"],
