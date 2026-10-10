@@ -209,6 +209,55 @@ class ImportSnapshotTests(unittest.TestCase):
                     tampered,max_file_bytes=100000))
         self.assertTrue(recheck_media_snapshot(snapshot,max_file_bytes=100000))
 
+    def test_snapshot_hash_never_requests_more_than_remaining_read_budget(self):
+        # The caller may cap reads to a few dozen bytes. Even a small file
+        # must not cause the hasher to request an unconditional 1-MiB block.
+        from core.import_snapshot import _stable_media_hash
+        path=self.root/"audio.wav"
+        limit=len(WAV)+5
+        observed=[]
+        real_fdopen=os.fdopen
+
+        class RecordingStream:
+            def __init__(self, stream):
+                self.stream=stream
+            def __enter__(self):
+                self.stream.__enter__()
+                return self
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+            def fileno(self):
+                return self.stream.fileno()
+            def read(self, requested):
+                observed.append(requested)
+                self_test.assertLessEqual(requested,limit+1)
+                return self.stream.read(requested)
+
+        self_test=self
+        with patch("core.import_snapshot.os.fdopen",side_effect=lambda fd,mode:
+                   RecordingStream(real_fdopen(fd,mode))):
+            digest,size,header,_=_stable_media_hash(path,limit)
+        self.assertEqual(size,len(WAV))
+        self.assertEqual(digest,hashlib.sha256(WAV).hexdigest())
+        self.assertTrue(observed)
+        self.assertEqual(header[:4],b"RIFF")
+
+    def test_snapshot_hash_rejects_file_growth_within_bounded_read(self):
+        from core.import_snapshot import _stable_media_hash
+        path=self.root/"audio.wav"
+        limit=len(WAV)+4
+        original_open=os.open
+        injected=[False]
+        def grow_before_open(file, flags, *args, **kwargs):
+            if Path(file)==path and not injected[0]:
+                injected[0]=True
+                path.write_bytes(WAV+b"x"*(limit+10))
+            return original_open(file,flags,*args,**kwargs)
+        with patch("core.import_snapshot.os.open",side_effect=grow_before_open):
+            with self.assertRaisesRegex(ValueError,"E_RESOURCE_LIMIT"):
+                _stable_media_hash(path,limit)
+        self.assertTrue(injected[0])
+
     def test_stale_file_rejected_even_same_length(self):
         r = self.snapshot()
         (self.root / "audio.wav").write_bytes(b"0" * len(WAV))
