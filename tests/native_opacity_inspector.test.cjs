@@ -45,7 +45,8 @@ function run(host,options={}){
         options.id===undefined?ID:options.id,
         options.track===undefined?"V2":options.track,
         options.start===undefined?"9000":options.start,
-        options.node===undefined?NODE:options.node
+        options.node===undefined?NODE:options.node,
+        options.end===undefined?"24000":options.end
     ];
     const ret=ctx.$._AIJSON_NATIVE_OPACITY_INSPECT_V1.inspect(...args);
     return ret;
@@ -79,10 +80,23 @@ test("STEP22 requires managed sequence and exact active id",()=>{
 test("STEP22 validates selectors and denies traversal/unintended tracks",()=>{
     for(const opts of [{track:"V1"},{track:"A1"},{track:"__proto__"},
                        {node:"../../passwd"},{node:""},{id:"bad"},
-                       {start:"-1"},{start:"00009000"},{start:9000}]){
+                       {start:"-1"},{start:"00009000"},{start:9000},
+                       {end:"9000"},{end:"8000"},{end:"024000"},{end:24000},
+                       {end:"-1"}]){
         const h=makeHost();
         assert.equal(run(h,opts),"S22|1|BLOCKED|SELECTOR_INVALID");
     }
+});
+test("STEP23 requires clip end tick readback to match exact placement",()=>{
+    let h=makeHost();
+    assert.equal(run(h,{end:"30000"}),"S22|1|BLOCKED|CLIP_END_MISMATCH");
+    assert.equal(h.forbidden,0);
+    h=makeHost();h.clip.end.ticks="23999";
+    assert.equal(run(h),"S22|1|BLOCKED|CLIP_END_MISMATCH");
+    h=makeHost();h.clip.end=null;
+    assert.equal(run(h),"S22|1|BLOCKED|CLIP_END_MISMATCH");
+    h=makeHost();
+    assert.match(run(h),/^S22\|1\|OBSERVED_UNCERTIFIED\|/);
 });
 test("STEP22 cannot inspect missing or ambiguous clip",()=>{
     let h=makeHost();
