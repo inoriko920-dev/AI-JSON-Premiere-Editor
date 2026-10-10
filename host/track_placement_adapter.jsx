@@ -92,7 +92,7 @@ $._AIJSON_PLACEMENT_V1=(function(){
         for(var track in spans){
             if(!spans.hasOwnProperty(track)){continue;}
             var group=spans[track];
-            if(group.length===0){return false;}
+            if(group.length===0){if(track==="V3"){continue;}return false;}
             group.sort(function(a,b){return a.start_frame-b.start_frame;});
             for(var j=1;j<group.length;j++){
                 if(group[j].start_frame<group[j-1].end_frame){return false;}
