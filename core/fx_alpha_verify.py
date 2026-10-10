@@ -107,8 +107,12 @@ def verify_alpha_pixels(*, ffmpeg_exe: Path, source_png: Path,
             for x in range(_GRID):
                 offset = y * _GRID + x
                 original = source[offset]
-                # Transparent source pixels are not evidence of a rendered
-                # alpha effect. Verify all meaningful visible positions.
+                actual = mov[i * _PIX_BYTES + 4 * offset + 3]
+                # Masking/fading cannot increase original source alpha. Check
+                # EVERY grid pixel, including transparent and WIPE boundaries,
+                # before skipping samples unsuitable for effect observability.
+                if actual > original + 5:
+                    raise AlphaPixelError("E_FX_ALPHA_PIXELS_MISMATCH")
                 if original < 16:
                     continue
                 if preset == "FADE":
@@ -118,7 +122,6 @@ def verify_alpha_pixels(*, ffmpeg_exe: Path, source_png: Path,
                     if boundary:
                         continue
                     scale = 1.0 if visible else 0.0
-                actual = mov[i * _PIX_BYTES + 4 * offset + 3]
                 expected = original * scale
                 if abs(actual - expected) > 5:
                     raise AlphaPixelError("E_FX_ALPHA_PIXELS_MISMATCH")
