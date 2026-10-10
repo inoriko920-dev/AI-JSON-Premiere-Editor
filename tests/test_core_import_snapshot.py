@@ -177,6 +177,20 @@ class ImportSnapshotTests(unittest.TestCase):
         result=self.snapshot()
         self.assertTrue(any(x["item_id"]=="ASSET_A.extra_part-02" for x in result["items"]))
 
+    def test_mixed_type_asset_keys_fail_with_structured_contract_error(self):
+        # Do not let sorted(dict) raise a raw TypeError on unexpected
+        # non-string keys supplied to the direct snapshot API.
+        for invalid in (None, 3, False):
+            with self.subTest(asset_key=invalid):
+                self.edit["assets"][invalid] = {
+                    "path": "assets/A002.png",
+                    "sha256": hashlib.sha256(PNG).hexdigest()
+                }
+                self.assert_code("E_IMPORT_CONTRACT_INVALID")
+                del self.edit["assets"][invalid]
+        self.assertTrue(recheck_media_snapshot(self.snapshot(),
+                                               max_file_bytes=100000))
+
     def test_unpinned_png_rejected(self):
         del self.edit["assets"]["A001"]["sha256"]
         self.assert_code("E_MEDIA_HASH_UNPINNED")
