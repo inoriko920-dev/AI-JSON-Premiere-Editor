@@ -151,6 +151,12 @@ def inspect_media_cache_track(
             timeout_seconds=timeout_seconds, runner=runner)
     except AlphaCacheError as error:
         raise MediaCacheTrackError(error.code) from error
+    # FFprobe/cache audit may take seconds. The user-owned PNG, SRT,
+    # narration or background may be replaced *during* that audit.
+    # Never publish a positive cross-stage report from a stale snapshot.
+    # This does NOT grant safety after return or authorize Adobe writes.
+    if not recheck_media_snapshot(snapshot, max_file_bytes=max_media_bytes):
+        raise MediaCacheTrackError("E_FX_MEDIA_SNAPSHOT_STALE")
     return {
         "schema_version": "media-cache-track-preflight-v1",
         "status": "OFFLINE_SOURCE_OCCURRENCE_CACHE_MATCH_NOT_HOST_AUTHORIZED",
@@ -166,6 +172,7 @@ def inspect_media_cache_track(
         "frames": compiled["frames"],
         "cache_metadata_checked": True,
         "source_recheck_at_preflight": True,
+        "source_recheck_after_cache_audit": True,
         "source_recheck_at_host_transaction": False,
         "real_premiere_readback_verified": False,
         "host_verified": False,
