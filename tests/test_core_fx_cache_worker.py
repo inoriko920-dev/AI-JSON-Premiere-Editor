@@ -363,6 +363,48 @@ class AlphaCacheTests(unittest.TestCase):
         self.assertEqual(self.source.read_bytes(),HEADER)
         self.alpha_checker.assert_called_once()
 
+    def test_owner_png_modified_during_ffprobe_does_not_publish(self):
+        # Outside-file changes after private snapshot must invalidate render.
+        def modify_on_probe(argv, **kwargs):
+            result = self.runner(argv, **kwargs)
+            if Path(argv[0]).samefile(self.ffprobe):
+                self.source.write_bytes(HEADER + b"outside owner change")
+            return result
+        self.assert_code("E_FX_SOURCE_CHANGED", runner=modify_on_probe)
+        self.assertEqual(len(self.calls), 2)
+        self.assertFalse(list(self.cache.iterdir()))
+        self.assertEqual(self.source.read_bytes(), HEADER + b"outside owner change")
+
+    def test_owner_png_replaced_same_bytes_during_alpha_is_rejected(self):
+        original = self.alpha_checker.return_value
+        def replace_owner(*args, **kwargs):
+            replacement = self.media / "outside_new.png"
+            replacement.write_bytes(HEADER)
+            os.replace(replacement, self.source)
+            return original
+        self.alpha_checker.side_effect = replace_owner
+        self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertEqual(self.source.read_bytes(), HEADER)
+        self.assertFalse(list(self.cache.iterdir()))
+        self.alpha_checker.assert_called_once()
+
+    def test_owner_png_changed_at_final_cache_link_retains_mov_without_success(self):
+        # User media may change during the final link+hash phase. The MOV
+        # may already be published: keep it for reconciliation and never
+        # claim a successful cache report or silently overwrite next attempt.
+        actual_link = os.link
+        def link_then_external_owner_change(source, destination):
+            actual_link(source, destination)
+            self.source.write_bytes(HEADER + b"changed during link")
+        with patch("core.fx_cache_worker.os.link",
+                   side_effect=link_then_external_owner_change):
+            self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertEqual(self.source.read_bytes(), HEADER + b"changed during link")
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))), 1)
+        self.assertFalse(list(self.cache.glob(".fx_work_*")))
+        self.assert_code("E_FX_CACHE_EXISTS_NO_OVERWRITE")
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))), 1)
+
     def test_original_png_inode_swap_during_private_copy_refused(self):
         # A same-byte/same-mtime source swap must fail descriptor identity,
         # not be accepted merely because its SHA matches the pinned hash.
