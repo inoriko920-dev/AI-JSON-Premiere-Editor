@@ -74,7 +74,7 @@ class MediaTests(unittest.TestCase):
 
         def swap_before_open(path,flags,*args,**kwargs):
             nonlocal swapped
-            if not swapped and Path(path).resolve()==audio.resolve():
+            if not swapped and Path(path).name == "narasi.wav":
                 os.replace(replacement,audio)
                 swapped=True
             return original_open(path,flags,*args,**kwargs)
@@ -96,7 +96,7 @@ class MediaTests(unittest.TestCase):
         def swap_after_hash(path,limit):
             nonlocal mutated
             result=_bounded_hash(path,limit)
-            if path.resolve()==srt.resolve():
+            if path.name == "narasi.srt":
                 srt.write_bytes(changed)
                 mutated=True
             return result
@@ -115,7 +115,7 @@ class MediaTests(unittest.TestCase):
         def grow_after_hash(path,limit):
             nonlocal mutated
             result=_bounded_hash(path,limit)
-            if path.resolve()==srt.resolve():
+            if path.name == "narasi.srt":
                 srt.write_bytes(SRT+b"x"*(max_bytes+1))
                 mutated=True
             return result
