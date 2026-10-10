@@ -269,6 +269,24 @@ class TrackPreflightTests(unittest.TestCase):
         self.assertIsNone(report["track_candidate"])
         self.assertFalse(report["can_assemble"])
 
+    def test_numeric_json_microtail_blocks_four_track_preflight(self):
+        original=self.runner
+        def numeric_microtail(args, **kwargs):
+            response=original(args,**kwargs)
+            if Path(args[-1]).suffix.lower()==".wav":
+                payload=response.stdout.replace(
+                    b'"duration": "11.000"',
+                    b'"duration": 11.00000000000000000000000000001')
+                self.assertNotEqual(payload,response.stdout)
+                return subprocess.CompletedProcess(args,0,payload,b"")
+            return response
+        self.runner=numeric_microtail
+        report=self.check()
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertIsNone(report["track_candidate"])
+        self.assertFalse(report["can_assemble"])
+
     def test_container_stream_duration_conflict_blocks_track_candidate(self):
         original=self.runner
         for extension in (".wav", ".mp4"):
