@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
+import stat
 import sys
 
 from .contracts import loads_strict, validate_pair
@@ -33,15 +35,41 @@ def error(code: str, message: str) -> dict:
 
 
 def read_json(path: Path, max_bytes: int) -> object:
-    size = path.stat().st_size
-    if size > max_bytes:
+    """Read one immutable bounded JSON snapshot from a stable regular file.
+
+    Neither a pathname swap between stat/open nor an in-place change during
+    read may silently authorize a different EDIT/ANIMATION/caps document.
+    Existing symlink inputs remain supported only when their target identity
+    stays stable. This remains read-only and never runs a host operation.
+    """
+    if type(max_bytes) is not int or max_bytes <= 0:
+        raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
+
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError("E_JSON_INPUT_CHANGED")
+    if before.st_size > max_bytes:
         raise ValueError("E_RESOURCE_LIMIT")
-    if not path.is_file():
-        raise OSError("File tidak tersedia.")
-    with path.open("rb") as f:
-        blob = f.read(max_bytes + 1)
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("E_JSON_INPUT_CHANGED")
+        blob = stream.read(max_bytes + 1)
+        read_end = os.fstat(stream.fileno())
+    after = path.stat()
     if len(blob) > max_bytes:
         raise ValueError("E_RESOURCE_LIMIT")
+    if (len(blob) != before.st_size or not stat.S_ISREG(after.st_mode) or
+            not (identity(before) == identity(opened) ==
+                 identity(read_end) == identity(after))):
+        raise ValueError("E_JSON_INPUT_CHANGED")
     return loads_strict(blob)
 
 
@@ -248,7 +276,9 @@ def run(argv=None):
             # Never print untrusted file content or absolute paths in reports.
             # Preserve a stable, sanitized JSON protocol for nesting attacks.
             code = ("E_JSON_NESTING_LIMIT" if isinstance(ex, RecursionError) else
-                    str(ex) if str(ex) in ("E_RESOURCE_LIMIT", "E_JSON_NESTING_LIMIT")
+                    str(ex) if str(ex) in ("E_RESOURCE_LIMIT", "E_JSON_NESTING_LIMIT",
+                                        "E_JSON_INPUT_CHANGED",
+                                        "E_CONFIG_LIMITS_UNVERIFIED")
                     else "E_JSON_SCHEMA")
             result = error(code, "Gagal membaca atau mem-parsing file JSON.")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
