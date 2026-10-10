@@ -16,7 +16,10 @@ from unittest.mock import patch
 from core.fx_alpha_verify import AlphaPixelError
 
 from core.animation_phases import build_both_phase_candidate
-from core.fx_cache_worker import AlphaCacheError, render_candidate, verify_cached_report
+from core.fx_cache_worker import (
+    AlphaCacheError, render_candidate, verify_cached_report,
+    verify_cache_for_candidate,
+)
 
 ROOT=Path(__file__).resolve().parents[1]
 demo=runpy.run_path(str(ROOT/"tests/test_core_contracts.py"))["demo"]
@@ -122,6 +125,21 @@ class AlphaCacheTests(unittest.TestCase):
     def assert_audit_code(self,code,report,**overrides):
         with self.assertRaises(AlphaCacheError) as ctx:
             self.audit(report,**overrides)
+        self.assertEqual(ctx.exception.code,code)
+
+    def reuse(self,report,**overrides):
+        kwargs=dict(
+            report=report,item=candidate(),
+            expected_source_sha256=self.input_sha,
+            expected_source_dimensions=(64,64),
+            cache_root=self.cache,ffprobe_exe=self.ffprobe,
+            max_cached_bytes=100000,timeout_seconds=10,runner=self.runner)
+        kwargs.update(overrides)
+        return verify_cache_for_candidate(**kwargs)
+
+    def assert_reuse_code(self,code,report,**overrides):
+        with self.assertRaises(AlphaCacheError) as ctx:
+            self.reuse(report,**overrides)
         self.assertEqual(ctx.exception.code,code)
 
     def assert_code(self,code,**overrides):
@@ -236,6 +254,75 @@ class AlphaCacheTests(unittest.TestCase):
         self.assert_code("E_FX_PROBE_FAILED")
         self.assertEqual(self.source.read_bytes(),HEADER)
         self.assertEqual(list(self.cache.iterdir()),[])
+
+    def test_cache_reuse_is_bound_to_exact_source_preset_and_timing(self):
+        report=self.go()
+        before=len(self.calls)
+        approved=self.reuse(report)
+        self.assertEqual(approved["cache_input_binding"],
+                         "DECLARED_SOURCE_SHA_EFFECT_TIMING_AND_SIZE_MATCHED")
+        self.assertEqual(approved["candidate_preset"],"FADE")
+        self.assertEqual(approved["candidate_direction"],"NONE")
+        self.assertFalse(approved["source_bytes_reverified"])
+        self.assertFalse(approved["alpha_pixels_reverified"])
+        self.assertFalse(approved["host_verified"])
+        self.assertFalse(approved["can_assemble"])
+        self.assertEqual(len(self.calls),before+1)
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_reuse_rejects_different_source_sha_without_probing(self):
+        report=self.go()
+        before=len(self.calls)
+        self.assert_reuse_code("E_FX_CACHE_CANDIDATE_MISMATCH",report,
+                               expected_source_sha256="a"*64)
+        self.assertEqual(len(self.calls),before)
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
+        self.assertEqual(self.source.read_bytes(),HEADER)
+
+    def test_reuse_rejects_same_source_but_different_preset_and_direction(self):
+        report=self.go()
+        before=len(self.calls)
+        for effect,direction in (
+                ("WIPE","LEFT_TO_RIGHT"),("WIPE","RIGHT_TO_LEFT"),
+                ("WIPE","TOP_TO_BOTTOM"),("WIPE","BOTTOM_TO_TOP")):
+            with self.subTest(effect=effect,direction=direction):
+                self.assert_reuse_code(
+                    "E_FX_CACHE_CANDIDATE_MISMATCH",report,
+                    item=candidate(effect,direction))
+        self.assertEqual(len(self.calls),before)
+
+    def test_reuse_rejects_wrong_source_dimensions_and_corrupt_report(self):
+        report=self.go()
+        before=len(self.calls)
+        for dimensions in ((65,64),(64,65),(1,1)):
+            with self.subTest(dimensions=dimensions):
+                self.assert_reuse_code("E_FX_CACHE_CANDIDATE_MISMATCH",
+                                      report,expected_source_dimensions=dimensions)
+        forged=dict(report,preset="WIPE")
+        self.assert_reuse_code("E_FX_CACHE_CANDIDATE_MISMATCH",forged)
+        forged=dict(report,frames=149)
+        self.assert_reuse_code("E_FX_CACHE_CANDIDATE_MISMATCH",forged)
+        self.assertEqual(len(self.calls),before)
+
+    def test_reuse_rejects_unpinned_source_or_noninteger_geometry(self):
+        report=self.go()
+        before=len(self.calls)
+        for source in ("a"*63,"A"*64,None,123):
+            with self.subTest(source=source):
+                self.assert_reuse_code("E_FX_CACHE_INPUT_UNPINNED",report,
+                                       expected_source_sha256=source)
+        for dimensions in ((True,64),[64,64],(64,0),(64,-1),"64x64"):
+            with self.subTest(dimensions=dimensions):
+                self.assert_reuse_code("E_FX_CACHE_INPUT_UNPINNED",report,
+                                       expected_source_dimensions=dimensions)
+        self.assertEqual(len(self.calls),before)
+
+    def test_reuse_hash_valid_item_still_requires_unmodified_mov(self):
+        report=self.go()
+        next(self.cache.glob("fx_*.mov")).write_bytes(b"corrupt")
+        self.assert_reuse_code("E_FX_CACHE_HASH_MISMATCH",report)
+        self.assertEqual(self.source.read_bytes(),HEADER)
+        self.assertEqual(len(list(self.cache.glob("fx_*.mov"))),1)
 
     def test_publish_rechecks_sha_on_final_path_after_atomic_link(self):
         # Simulate an outside writer modifying the newly published inode
