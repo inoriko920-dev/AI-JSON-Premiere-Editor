@@ -16,7 +16,7 @@ import tempfile
 import unittest
 
 from core.animation_phases import build_both_phase_candidate
-from core.fx_cache_worker import render_candidate
+from core.fx_cache_worker import render_candidate, _PNG as PNG_SIGNATURE
 from core.fx_alpha_backend import compile_filter, build_ffmpeg_command
 from core.fx_alpha_verify import verify_alpha_pixels
 
@@ -72,7 +72,7 @@ class ApprovedPNGReadonlyIntegrationTests(unittest.TestCase):
         original_sha=hashlib.sha256(source.read_bytes()).hexdigest()
         with source.open("rb") as f:
             head=f.read(33)
-        self.assertEqual(head[:8],b"\\x89PNG\\r\\n\\x1a\\n")
+        self.assertEqual(head[:8],PNG_SIGNATURE)
         width,height=struct.unpack(">II",head[16:24])
         candidate=compile_filter(item())
         with tempfile.TemporaryDirectory(prefix="step19_readonly_") as folder:
