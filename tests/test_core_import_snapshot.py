@@ -115,6 +115,54 @@ class ImportSnapshotTests(unittest.TestCase):
         self.assertGreaterEqual(calls[0],2)
         self.assertTrue(recheck_media_snapshot(r,max_file_bytes=100000))
 
+    def test_same_bytes_same_mtime_inode_swap_after_snapshot_is_stale(self):
+        snapshot=self.snapshot()
+        audio=self.root/"audio.wav"
+        old=audio.stat()
+        data=audio.read_bytes()
+        replacement=self.root/"new-audio.wav"
+        replacement.write_bytes(data)
+        os.utime(replacement,ns=(old.st_atime_ns,old.st_mtime_ns))
+        os.replace(replacement,audio)
+        fresh=audio.stat()
+        # Every field available to the old recheck still agrees. This is
+        # nevertheless a different source file, which must invalidate it.
+        self.assertEqual(audio.read_bytes(),data)
+        self.assertEqual(fresh.st_size,old.st_size)
+        self.assertEqual(fresh.st_mtime_ns,old.st_mtime_ns)
+        self.assertTrue((fresh.st_dev,fresh.st_ino,fresh.st_ctime_ns) !=
+                        (old.st_dev,old.st_ino,old.st_ctime_ns))
+        self.assertFalse(recheck_media_snapshot(snapshot,max_file_bytes=100000))
+        # A fresh snapshot correctly binds the replacement, but remains
+        # non-authorizing until the host gate independently succeeds.
+        replacement_snapshot=self.snapshot()
+        self.assertTrue(recheck_media_snapshot(replacement_snapshot,
+                                               max_file_bytes=100000))
+        self.assertFalse(replacement_snapshot["can_import"])
+        self.assertNotEqual(snapshot["inventory_sha256"],
+                            replacement_snapshot["inventory_sha256"])
+
+    def test_identity_fields_are_in_snapshot_digest_and_required_on_recheck(self):
+        snapshot=self.snapshot()
+        self.assertTrue(recheck_media_snapshot(snapshot,max_file_bytes=100000))
+        for item in snapshot["items"]:
+            for key in ("device_id","file_id","ctime_ns"):
+                self.assertIs(type(item[key]),int)
+                self.assertGreaterEqual(item[key],0)
+        for missing in ("device_id","file_id","ctime_ns"):
+            with self.subTest(missing=missing):
+                copied=self.snapshot()
+                del copied["items"][0][missing]
+                # Even an internally consistent legacy-style manifest
+                # cannot claim to preserve original file identity.
+                import json
+                copied["inventory_sha256"]=hashlib.sha256(json.dumps(
+                    copied["items"],sort_keys=True,ensure_ascii=False,
+                    separators=(",",":"),allow_nan=False
+                ).encode("utf-8")).hexdigest()
+                self.assertFalse(recheck_media_snapshot(
+                    copied,max_file_bytes=100000))
+
     def test_stale_file_rejected_even_same_length(self):
         r = self.snapshot()
         (self.root / "audio.wav").write_bytes(b"0" * len(WAV))
