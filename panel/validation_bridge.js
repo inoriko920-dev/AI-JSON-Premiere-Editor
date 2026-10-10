@@ -109,10 +109,12 @@
                 !Number.isSafeInteger(c.total_frames) || c.total_frames<1 ||
                 !counts || typeof counts!=="object" ||
                 !/^[a-f0-9]{64}$/.test(c.operation_sha256||"") ||
-                !["V1","V2","V3","A1"].every(function(key){
+                !["V1","V2","A1"].every(function(key){
                     return Number.isSafeInteger(counts[key]) &&
                         counts[key]>=1 && counts[key]<=10000;
-                })){
+                }) ||
+                !Number.isSafeInteger(counts.V3) ||
+                counts.V3<0 || counts.V3>10000){
                 return {status:"error",code:"VALIDATOR_RESPONSE_INVALID"};
             }
             track={total_frames:c.total_frames,

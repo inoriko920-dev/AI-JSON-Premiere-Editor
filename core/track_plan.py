@@ -66,8 +66,15 @@ def compile_four_track_candidate(
     audio_frames=_frames(audio_duration_ms,fps_num,fps_den)
     if bg_frames<1:
         raise TrackPlanError("E_TRACK_BACKGROUND_TOO_SHORT")
-    if audio_frames<total:
+    # FFprobe duration is supplied in whole milliseconds. Do not discard even
+    # a subframe narration tail (or extend short audio) without an explicit,
+    # approved duration policy. Compare rational time, before floor-to-frames.
+    audio_ticks_ms = audio_duration_ms * fps_num
+    timeline_ticks_ms = total * 1000 * fps_den
+    if audio_ticks_ms < timeline_ticks_ms:
         raise TrackPlanError("E_TRACK_NARRATION_TOO_SHORT")
+    if audio_ticks_ms > timeline_ticks_ms:
+        raise TrackPlanError("E_TRACK_NARRATION_TOO_LONG")
     if len(draft["asset_placements"]) != media_snapshot["import_count"]-2:
         # An asset ID can repeat across scenes. The media snapshot contains
         # UNIQUE assets while the timeline contains occurrences.

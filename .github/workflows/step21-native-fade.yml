@@ -1,0 +1,38 @@
+name: STEP21 Native FADE Editable-Keyframe Candidate (NO Premiere Host)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step21-*']
+    paths:
+      - 'core/fx_native_fade.py'
+      - 'tests/test_core_fx_native_fade.py'
+      - '.github/workflows/step21-native-fade.yml'
+      - 'docs/STATUS_SOL_STEP21.md'
+  pull_request:
+    paths:
+      - 'core/fx_native_fade.py'
+      - 'tests/test_core_fx_native_fade.py'
+      - '.github/workflows/step21-native-fade.yml'
+jobs:
+  candidate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify native keyframe Fade timing, tamper checks and strict blockers
+        run: python -m unittest tests.test_core_fx_native_fade -v
+      - name: Run complete Python regressions
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run CEP ES3 JavaScript regressions
+        run: npm test
+      - name: Assert Premiere host is not falsely certified
+        run: python -c "from core.fx_native_fade import compile_native_fade; from core.fx_alpha_backend import backend_support; import runpy; from pathlib import Path; assert backend_support()['actual_host_certified']==0; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in Path('CSXS/manifest.xml').read_text(); print('NATIVE_FADE_HOST_MUTATION_DISABLED')"

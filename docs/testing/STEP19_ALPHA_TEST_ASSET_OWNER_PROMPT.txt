@@ -1,0 +1,38 @@
+PROMPT OWNER — STEP19 RGBA ALPHA TEST ASSET (USER GENERATES ONLY)
+Repository: inoriko920-dev/AI-JSON-Premiere-Editor
+Jangan jadikan ini mockup UI. Gambar ini semata-mata aset uji transparansi teknis.
+
+BUAT SENDIRI satu file gambar PNG dengan kriteria:
+- Kanvas 512 × 512 piksel, 8-bit RGBA, PNG color type 6 dengan true alpha channel.
+- Background BENAR-BENAR TRANSPARAN (alpha=0), bukan putih,
+  bukan hitam, dan bukan pola checkerboard yang menyatu ke gambar.
+- Bentuk utama: komposisi empat bentuk geometris sederhana dengan warna
+  berbeda di empat kuadran. Masing-masing memiliki bagian opak (alpha=255).
+- Sertakan tepi anti-alias halus yang memiliki nilai alpha parsial
+  (sekitar 40–220), supaya keakuratan transisi dapat diperiksa.
+- Isi sebagian area pada sekitar titik 25% dan 75% untuk sumbu X/Y
+  agar sampling alpha 8x8 memiliki data nyata.
+- Sisakan area transparan di luar bentuk.
+- Tidak ada tulisan, logo, tampilan UI aplikasi, watermark, border,
+  atau bayangan yang dipanggang ke background.
+- Jangan resize ulang sebagai JPEG/JPG dan jangan flatten alpha.
+- Format akhir WAJIB PNG RGBA transparan 8-bit.
+
+Nama output tepat: OWNER_ALPHA_TEST.png
+
+SETELAH KAMU MEMBUAT FILE:
+1. Upload file PNG hasilmu ke path repository:
+   docs/testing/assets/OWNER_ALPHA_TEST.png
+   (Buat folder assets bila belum ada.)
+2. Jangan ubah atau hapus UI01–UI12.png yang sudah disetujui.
+3. Jangan unggah file dengan pixel transparan palsu/checkerboard.
+4. Beritahu AI bahwa file asli sudah tersedia di GitHub.
+5. AI akan memeriksa checksum dan warna PNG dari file itu, lalu
+   menguji FFmpeg PNG → MOV → alpha pixel → cache pada Windows/Linux.
+
+PENTING:
+- AI/SOL tidak boleh membuat, generate, menggambar, atau mengedit PNG ini.
+  Hanya pengguna yang membuat gambar.
+- Sebelum file wajib ini benar-benar tersedia, gate integrasi alpha dari
+  PNG transparan asli tetap BLOCKED_ASSET; PASS tes mock/RGB tidak sama
+  dengan bukti alpha PNG asli.

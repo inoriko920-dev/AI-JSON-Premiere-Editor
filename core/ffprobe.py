@@ -16,19 +16,62 @@ from .media import resolved_path, issue
 
 MAX_STDOUT = 128 * 1024
 MAX_SECONDS = 12
+# Representation bound, not a permitted project-length policy: safely convert
+# FFprobe seconds to signed 64-bit milliseconds without giant-decimal overflow.
+MAX_DURATION_SECONDS = Decimal(2**63 - 1) / Decimal(1000)
 AUDIO_CODECS = {"mp3", "pcm_s16le", "pcm_s24le", "pcm_s32le", "pcm_f32le",
                 "pcm_f64le", "pcm_u8", "pcm_s8"}
 VIDEO_CODECS_PREVIEW = {"h264", "hevc"}
 
 
 def _duration(value: Any) -> Decimal | None:
-    if not isinstance(value, (str, int, float)):
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
         return None
     try:
         number = Decimal(str(value))
     except InvalidOperation:
         return None
-    return number if number.is_finite() and number > 0 else None
+    # A finite but astronomical exponent can overflow Decimal arithmetic or
+    # throw while converting the duration to int milliseconds downstream.
+    return (number if number.is_finite() and
+            0 < number <= MAX_DURATION_SECONDS else None)
+
+
+def _exact_duration_milliseconds(value: Decimal) -> tuple[int, bool]:
+    """Convert a positive bounded FFprobe duration without context rounding.
+
+    Decimal multiplication uses the current 28-digit precision by default:
+    11.00000000000000000000000000001 * 1000 wrongly becomes 11000.
+    Work directly from the coefficient and base-10 exponent so a sub-ms
+    narration tail stays detectable and background milliseconds floor safely.
+    The maximum accepted seconds bounds the integer prefix to 19 digits.
+    """
+    parts = value.as_tuple()
+    exponent = parts.exponent + 3
+    digits = parts.digits
+    if exponent >= 0:
+        return int("".join(map(str, digits))) * (10 ** exponent), True
+    integer_length = len(digits) + exponent
+    if integer_length <= 0:
+        return 0, False
+    milliseconds = int("".join(map(str, digits[:integer_length])))
+    has_fraction = any(digits[integer_length:])
+    return milliseconds, not has_fraction
+
+
+def _reject_duplicate_json_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Fail closed on ambiguous FFprobe JSON member names.
+
+    Python json.loads normally silently accepts duplicate object fields and
+    replaces the earlier value. This is unsafe for duration and stream
+    topology checks because different readers may select different values.
+    """
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("E_FFPROBE_DUPLICATE_JSON_FIELD")
+        result[key] = value
+    return result
 
 
 def inspect_ffprobe(
@@ -93,9 +136,18 @@ def inspect_ffprobe(
                                 "Hasil FFprobe gagal, tidak terbaca, atau terlalu besar."))
             continue
         try:
-            data = json.loads(output, parse_constant=lambda name: (_ for _ in ()).throw(
-                ValueError("nonfinite numeric constant")))
-        except (UnicodeError, ValueError, TypeError):
+            # Preserve numerical FFprobe durations exactly when JSON encodes
+            # them as numbers rather than strings. Default float parsing can
+            # erase a sub-ms audio tail before duration validation sees it.
+            data = json.loads(output, parse_float=Decimal,
+                              object_pairs_hook=_reject_duplicate_json_fields,
+                              parse_constant=lambda name: (_ for _ in ()).throw(
+                                  ValueError("nonfinite numeric constant")))
+        except (UnicodeError, ValueError, TypeError, RecursionError, InvalidOperation):
+            # json.loads(parse_float=Decimal) raises InvalidOperation (not
+            # ValueError) for numeric exponent magnitudes beyond Decimal's
+            # representable range. Never let untrusted FFprobe JSON crash
+            # the four-track preflight.
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "FFprobe mengembalikan JSON rusak."))
             continue
@@ -103,6 +155,16 @@ def inspect_ffprobe(
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "Informasi stream tidak tersedia."))
             continue
+        if source == "audio":
+            # A1 is narration-only. Even one valid audio stream is not enough
+            # when an MP3/WAV also contains a cover-art video, subtitle, data
+            # or unknown side stream. Premiere's linked import behavior is
+            # not certified, so do not invent a safe stream-selection policy.
+            if any(type(s) is not dict or s.get("codec_type") != "audio"
+                   for s in data["streams"]):
+                issues.append(issue("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN", pointer,
+                                    "File narasi memiliki stream tambahan yang belum dapat diisolasi."))
+                continue
         if source == "background":
             # The JSON audio_policy=MUTE is only intent, NOT actual proof.
             # A background MP4 with linked audio (or an unfamiliar stream)
@@ -132,6 +194,12 @@ def inspect_ffprobe(
             issues.append(issue("E_FFPROBE_STREAM_MISSING", pointer,
                                 "Stream wajib tidak ditemukan."))
             continue
+        # Never silently pick the first of several narration audio streams:
+        # Premiere selection is not established by metadata order.
+        if source == "audio" and len(tracks) != 1:
+            issues.append(issue("E_AUDIO_STREAM_AMBIGUOUS", pointer,
+                                "File narasi memiliki beberapa audio stream; pilihan sumber belum terverifikasi."))
+            continue
         stream = tracks[0]
         codec = stream.get("codec_name")
         if not isinstance(codec, str) or not codec or len(codec) > 50:
@@ -152,23 +220,55 @@ def inspect_ffprobe(
                 continue
         else:
             sample_rate = stream.get("sample_rate")
-            if (not isinstance(sample_rate, str) or not sample_rate.isdecimal()
+            if (type(sample_rate) is not str or
+                    not 1 <= len(sample_rate) <= 6 or
+                    not sample_rate.isascii() or not sample_rate.isdecimal()
                     or not 1 <= int(sample_rate) <= 384000):
                 issues.append(issue("E_FFPROBE_SAMPLE_RATE", pointer,
                                     "Sample rate audio tidak valid."))
                 continue
+            # If FFprobe returns channel count, it must describe an actual
+            # audio stream. A zero/non-integer value must not be treated as
+            # usable A1 narration merely because its sample rate is valid.
+            # Older FFprobe metadata without this optional field retains the
+            # existing unverified, non-authorizing offline behavior.
+            if ("channels" in stream and
+                    (type(stream["channels"]) is not int or
+                     stream["channels"] < 1)):
+                issues.append(issue("E_FFPROBE_CHANNELS", pointer,
+                                    "Jumlah kanal narasi tidak valid."))
+                continue
         format_data = data.get("format")
-        duration = (_duration(format_data.get("duration"))
-                    if isinstance(format_data, dict) else None)
-        if duration is None:
-            duration = _duration(stream.get("duration"))
+        format_duration = (_duration(format_data.get("duration"))
+                           if isinstance(format_data, dict) else None)
+        stream_duration = _duration(stream.get("duration"))
+        # Source trim must refer to the selected stream, not an unrelated
+        # container timeline. A longer container duration can otherwise hide
+        # a short narration stream or make the background overrun its frames.
+        # Never guess which conflicting value Premiere will expose.
+        if (format_duration is not None and stream_duration is not None and
+                format_duration != stream_duration):
+            issues.append(issue("E_FFPROBE_DURATION_CONFLICT", pointer,
+                                "Durasi container dan stream berbeda; waktu sumber tidak terverifikasi."))
+            continue
+        duration = (stream_duration if stream_duration is not None
+                    else format_duration)
+        duration_ms = None
         if duration is None:
             issues.append(issue("E_FFPROBE_DURATION_UNVERIFIED", pointer,
                                 "Durasi aktual tidak ditemukan.", "REVIEW"))
+        else:
+            duration_ms, exact_millisecond = _exact_duration_milliseconds(duration)
+            # Never round away even a tiny narration tail. Background video
+            # remains conservatively floored to fully available milliseconds.
+            if source == "audio" and not exact_millisecond:
+                issues.append(issue("E_FFPROBE_DURATION_PRECISION_UNVERIFIED", pointer,
+                                    "Durasi narasi memiliki pecahan milidetik tanpa kebijakan potong terverifikasi."))
+                continue
         records.append({
             "pointer": pointer, "stream_kind": media_kind,
             "codec": codec,
-            "duration_ms": int(duration * 1000) if duration is not None else None,
+            "duration_ms": duration_ms,
             **({"width": stream["width"], "height": stream["height"]}
                if source == "background" else
                {"sample_rate": int(stream["sample_rate"])})

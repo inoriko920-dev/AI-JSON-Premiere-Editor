@@ -1,0 +1,56 @@
+name: STEP25 Native Fade vs Real FFmpeg Frame Parity (NO PNG or Host)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step25-*']
+    paths:
+      - 'core/fx_alpha_parity.py'
+      - 'tests/test_core_fx_alpha_parity.py'
+      - '.github/workflows/step25-fade-real-parity.yml'
+  pull_request:
+    paths:
+      - 'core/fx_alpha_parity.py'
+      - 'tests/test_core_fx_alpha_parity.py'
+      - '.github/workflows/step25-fade-real-parity.yml'
+jobs:
+  parity:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Require real FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (!(Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg -y --no-progress
+            $env:PATH = [Environment]::GetEnvironmentVariable('PATH','Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH','User') + ';' + $env:PATH
+          }
+          ffmpeg -version
+      - name: Require real FFmpeg (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version
+      - name: Native binary must exist (skipping real proof forbidden)
+        run: python -c "import shutil; assert shutil.which('ffmpeg'), 'STEP25 demands real FFmpeg'"
+      - name: Validate every decoded Fade alpha frame against native keyframe curve
+        run: python -m unittest tests.test_core_fx_alpha_parity -v
+      - name: Full Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full JavaScript/CEP ES3 regression
+        run: npm test
+      - name: Preserve frozen 21 effects and real-host gate
+        run: python -c "from core.fx_alpha_backend import backend_support; from pathlib import Path; assert backend_support()['coded_presets']==['FADE','WIPE']; assert backend_support()['unimplemented_presets']==19; assert backend_support()['actual_host_certified']==0; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in Path('CSXS/manifest.xml').read_text(); print('OFFLINE_PARITY_IS_NOT_PREMIERE_OR_CANVA_CERTIFICATION')"

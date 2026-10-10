@@ -1,0 +1,43 @@
+name: STEP22 Premiere Native Opacity Read-Only Host Inspection (NO HOST CERTIFICATION)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step22-*']
+    paths:
+      - 'host/native_opacity_inspector.jsx'
+      - 'core/fx_native_host_probe.py'
+      - 'tests/native_opacity_inspector.test.cjs'
+      - 'tests/test_core_fx_native_host_probe.py'
+      - '.github/workflows/step22-native-host-inspection.yml'
+  pull_request:
+    paths:
+      - 'host/native_opacity_inspector.jsx'
+      - 'core/fx_native_host_probe.py'
+      - 'tests/native_opacity_inspector.test.cjs'
+      - 'tests/test_core_fx_native_host_probe.py'
+      - '.github/workflows/step22-native-host-inspection.yml'
+jobs:
+  inspection:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Targeted ES3 read-only host inspection mock
+        run: node --test tests/native_opacity_inspector.test.cjs
+      - name: Targeted candidate-bound host diagnostics parser
+        run: python -m unittest tests.test_core_fx_native_host_probe -v
+      - name: Full Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full JavaScript and CEP regression
+        run: npm test
+      - name: Verify no host inspector attached to production CEP ScriptPath
+        run: python -c "from pathlib import Path; from core.fx_alpha_backend import backend_support; m=Path('CSXS/manifest.xml').read_text(); s=Path('host/native_opacity_inspector.jsx').read_text(); assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in m; assert 'native_opacity_inspector.jsx' not in m; assert 'actual_host_certified' in str(backend_support()); assert backend_support()['actual_host_certified']==0; print('HOST_DIAGNOSTIC_ONLY_NOT_PRODUCTION_WIRED')"

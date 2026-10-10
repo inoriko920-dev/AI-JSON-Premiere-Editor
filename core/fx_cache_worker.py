@@ -3,7 +3,7 @@
 Only FADE/WIPE filters from STEP16. The source is copied + SHA-256 pinned
 into a private cache work directory BEFORE FFmpeg reads it; user PNG is
 never edited. Candidate MOV is checked by actual FFprobe metadata. This
-is NOT full alpha pixel QA, Canva equivalence or Premiere host approval.
+is NOT Canva equivalence, whole-frame verification or Premiere host approval.
 """
 from __future__ import annotations
 
@@ -13,12 +13,14 @@ import os
 from pathlib import Path
 import secrets
 import shutil
+import stat
 import struct
 import subprocess
 from typing import Any, Callable
 
 from .fx_alpha_backend import compile_filter, build_ffmpeg_command, AlphaBackendError
 from .media import resolved_path
+from .fx_alpha_verify import verify_alpha_pixels, AlphaPixelError
 
 _SHA = frozenset("0123456789abcdef")
 _PNG = b"\x89PNG\r\n\x1a\n"
@@ -66,38 +68,62 @@ def _safe_png_header(header: bytes, max_pixels: int) -> tuple[int, int]:
 
 def _copy_pinned(source: Path, target: Path, expected_sha: str,
                  max_source_bytes: int, max_pixels: int) -> tuple[int, int, int]:
-    """Write only an exclusive private snapshot, fail on content/file races."""
-    before = source.stat()
-    if before.st_size < 33 or before.st_size > max_source_bytes:
-        raise AlphaCacheError("E_FX_SOURCE_LIMIT")
-    digest = hashlib.sha256()
-    count = 0
-    header = b""
-    # Exclusive file creation prevents accidental writes onto a pre-existing path.
-    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    with source.open("rb") as inp, os.fdopen(os.open(target, flags, 0o600), "wb") as out:
-        while True:
-            chunk = inp.read(1024 * 1024)
-            if not chunk:
-                break
-            count += len(chunk)
-            if count > max_source_bytes:
-                raise AlphaCacheError("E_FX_SOURCE_LIMIT")
-            if len(header) < 33:
-                header = (header + chunk)[:33]
-            digest.update(chunk)
-            out.write(chunk)
-        out.flush()
-        os.fsync(out.fileno())
-        after_fd = os.fstat(inp.fileno())
-    after = source.stat()
-    if (count != before.st_size or count != after.st_size or
-            before.st_mtime_ns != after.st_mtime_ns or
-            before.st_ino != after.st_ino or
-            after_fd.st_size != after.st_size or
-            after_fd.st_mtime_ns != after.st_mtime_ns):
+    """Copy the owner-existing PNG into an exclusive private staging file.
+
+    Pin the opened source FD to its path throughout the copy, not just its
+    size and mtime. A same-byte/same-mtime inode substitution is NOT a valid
+    identity match even though the SHA might still be equal.
+    """
+    try:
+        before = source.stat()
+        if not stat.S_ISREG(before.st_mode):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        if before.st_size < 33 or before.st_size > max_source_bytes:
+            raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+        digest = hashlib.sha256()
+        count = 0
+        header = b""
+        source_flags = os.O_RDONLY
+        if hasattr(os, "O_BINARY"):
+            source_flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            source_flags |= os.O_NOFOLLOW
+        target_flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+        if hasattr(os, "O_BINARY"):
+            target_flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            target_flags |= os.O_NOFOLLOW
+        # O_EXCL prevents overwriting a pre-existing staged or user file.
+        with os.fdopen(os.open(source, source_flags), "rb") as inp, os.fdopen(
+                os.open(target, target_flags, 0o600), "wb") as out:
+            opened = os.fstat(inp.fileno())
+            if not stat.S_ISREG(opened.st_mode):
+                raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+            while True:
+                chunk = inp.read(1024 * 1024)
+                if not chunk:
+                    break
+                count += len(chunk)
+                if count > max_source_bytes:
+                    raise AlphaCacheError("E_FX_SOURCE_LIMIT")
+                if len(header) < 33:
+                    header = (header + chunk)[:33]
+                digest.update(chunk)
+                out.write(chunk)
+            out.flush()
+            os.fsync(out.fileno())
+            end_fd = os.fstat(inp.fileno())
+        after = source.stat()
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_SOURCE_CHANGED") from error
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or count != before.st_size or
+            not (identity(before) == identity(opened) ==
+                 identity(end_fd) == identity(after))):
         raise AlphaCacheError("E_FX_SOURCE_CHANGED")
     if digest.hexdigest() != expected_sha:
         raise AlphaCacheError("E_FX_SOURCE_HASH")
@@ -106,9 +132,11 @@ def _copy_pinned(source: Path, target: Path, expected_sha: str,
 
 def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
            runner: Callable[..., Any], timeout_seconds: int) -> None:
-    argv = [str(probe), "-v", "error", "-select_streams", "v:0",
+    # Inspect ALL streams. A first-video-only probe could silently accept
+    # an extra audio/data/video stream in a tampered published cache entry.
+    argv = [str(probe), "-v", "error",
             "-count_frames", "-show_entries",
-            "stream=codec_name,pix_fmt,width,height,nb_read_frames,r_frame_rate",
+            "stream=codec_type,codec_name,pix_fmt,width,height,nb_read_frames,r_frame_rate",
             "-of", "json", str(result)]
     try:
         call = runner(argv, shell=False, capture_output=True,
@@ -126,12 +154,231 @@ def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
             len(info["streams"]) != 1):
         raise AlphaCacheError("E_FX_PROBE_FAILED")
     v = info["streams"][0]
-    if (type(v) is not dict or v.get("codec_name") != "qtrle" or
+    if (type(v) is not dict or v.get("codec_type") != "video" or
+            v.get("codec_name") != "qtrle" or
             v.get("pix_fmt") != "argb" or v.get("width") != width or
             v.get("height") != height or
             v.get("r_frame_rate") != "30/1" or
             v.get("nb_read_frames") != str(frames)):
         raise AlphaCacheError("E_FX_PROBE_MISMATCH")
+
+
+
+
+def _hash_stable_mov(path: Path) -> tuple[str, os.stat_result]:
+    """Hash only a stable regular MOV, refusing symlink and inode swapping.
+
+    Used before and after no-overwrite publication. We deliberately keep an
+    interrupted/tampered published file for owner reconciliation; the caller
+    MUST NOT mark the render successful after any integrity error.
+    """
+    try:
+        original = path.lstat()
+        if not stat.S_ISREG(original.st_mode) or original.st_size < 1:
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
+        flags = os.O_RDONLY
+        if hasattr(os, "O_BINARY"):
+            flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        digest = hashlib.sha256()
+        with os.fdopen(os.open(path, flags), "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino) !=
+                    (original.st_dev, original.st_ino)):
+                raise AlphaCacheError("E_FX_CACHE_CHANGED")
+            total = 0
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                total += len(chunk)
+                digest.update(chunk)
+            read_end = os.fstat(stream.fileno())
+        after = path.lstat()
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_CHANGED") from error
+    before_state = (original.st_dev, original.st_ino, original.st_size,
+                    original.st_mtime_ns, original.st_ctime_ns)
+    opened_state = (opened.st_dev, opened.st_ino, opened.st_size,
+                    opened.st_mtime_ns, opened.st_ctime_ns)
+    read_state = (read_end.st_dev, read_end.st_ino, read_end.st_size,
+                  read_end.st_mtime_ns, read_end.st_ctime_ns)
+    end_state = (after.st_dev, after.st_ino, after.st_size,
+                 after.st_mtime_ns, after.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or
+            total != original.st_size or
+            not (before_state == opened_state == read_state == end_state)):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    return digest.hexdigest(), after
+
+
+def _hash_owner_png(path: Path) -> tuple[str, os.stat_result]:
+    """Map missing/changed owner source to a SOURCE error, not cache damage."""
+    try:
+        return _hash_stable_mov(path)
+    except AlphaCacheError as error:
+        raise AlphaCacheError("E_FX_SOURCE_CHANGED") from error
+
+
+def verify_cached_report(
+    report: dict[str, Any], *, cache_root: Path, ffprobe_exe: Path,
+    max_cached_bytes: int, timeout_seconds: int,
+    runner: Callable[..., Any] = subprocess.run
+) -> dict[str, Any]:
+    """Read-only restart audit for a previously published alpha cache MOV.
+
+    The expected SHA and key must come from a trusted prior render report.
+    No stale or tampered file is removed/replaced, and this does not re-prove
+    per-pixel alpha, Canva fidelity, or Premiere host compatibility.
+    """
+    if (type(report) is not dict or
+            report.get("schema_version") != "alpha-cache-render-report-v1" or
+            report.get("status") !=
+                "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED" or
+            report.get("alpha_pixels_verified") is not True or
+            report.get("can_assemble") is not False or
+            report.get("host_verified") is not False or
+            report.get("whole_frame_verified") is not False or
+            report.get("canva_fidelity_verified") is not False or
+            not _is_hash(report.get("cache_key_sha256")) or
+            not _is_hash(report.get("output_sha256")) or
+            type(report.get("frames")) is not int or
+            report["frames"] < 1 or
+            type(report.get("size")) is not list or
+            len(report["size"]) != 2 or
+            any(type(n) is not int or n < 1 for n in report["size"])):
+        raise AlphaCacheError("E_FX_CACHE_REPORT_INVALID")
+    if (type(max_cached_bytes) is not int or max_cached_bytes < 1 or
+            type(timeout_seconds) is not int or timeout_seconds < 1):
+        raise AlphaCacheError("E_FX_RESOURCE_LIMIT_UNVERIFIED")
+    cache = _root(cache_root)
+    ffprobe = _binary(ffprobe_exe, "ffprobe")
+    final = cache / ("fx_" + report["cache_key_sha256"] + ".mov")
+    try:
+        original = final.lstat()
+    except FileNotFoundError as error:
+        raise AlphaCacheError("E_FX_CACHE_MISSING") from error
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE") from error
+    if not stat.S_ISREG(original.st_mode):
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE")
+    if original.st_size < 1 or original.st_size > max_cached_bytes:
+        raise AlphaCacheError("E_FX_CACHE_RESOURCE_LIMIT")
+
+    # Refuse symlink substitution and detect file changes during SHA and probe.
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    digest = hashlib.sha256()
+    try:
+        with os.fdopen(os.open(final, flags), "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino) !=
+                    (original.st_dev, original.st_ino)):
+                raise AlphaCacheError("E_FX_CACHE_CHANGED")
+            total = 0
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                total += len(chunk)
+                if total > max_cached_bytes:
+                    raise AlphaCacheError("E_FX_CACHE_RESOURCE_LIMIT")
+                digest.update(chunk)
+            endfd = os.fstat(stream.fileno())
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE") from error
+    if total != original.st_size or (
+            original.st_size, original.st_mtime_ns, original.st_ctime_ns) != (
+            endfd.st_size, endfd.st_mtime_ns, endfd.st_ctime_ns):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    if digest.hexdigest() != report["output_sha256"]:
+        raise AlphaCacheError("E_FX_CACHE_HASH_MISMATCH")
+    _probe(ffprobe, final, *report["size"], report["frames"],
+           runner, timeout_seconds)
+    try:
+        after = final.lstat()
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_CHANGED") from error
+    if (not stat.S_ISREG(after.st_mode) or
+            (after.st_dev, after.st_ino, after.st_size,
+             after.st_mtime_ns, after.st_ctime_ns) !=
+            (original.st_dev, original.st_ino, original.st_size,
+             original.st_mtime_ns, original.st_ctime_ns)):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    return {
+        "cache_integrity": "SHA256_AND_METADATA_CHECKED",
+        "cache_key_sha256": report["cache_key_sha256"],
+        "output_sha256": report["output_sha256"],
+        "host_verified": False, "can_assemble": False,
+        "alpha_pixels_reverified": False,
+        "whole_frame_verified": False,
+        "canva_fidelity_verified": False
+    }
+
+def verify_cache_for_candidate(
+    report: dict[str, Any], item: dict[str, Any], *,
+    expected_source_sha256: str, expected_source_dimensions: tuple[int, int],
+    cache_root: Path, ffprobe_exe: Path, max_cached_bytes: int,
+    timeout_seconds: int,
+    runner: Callable[..., Any] = subprocess.run
+) -> dict[str, Any]:
+    """Read-only cache use preflight tied to one approved animation and source.
+
+    STEP20 verified the integrity of the MOV named by a *trusted* report.
+    It did not ensure the report belongs to the currently requested source,
+    preset/direction or timing. This extra preflight rejects that confusion
+    BEFORE launching ffprobe or returning any positive metadata.
+    """
+    if (not _is_hash(expected_source_sha256) or
+            type(expected_source_dimensions) is not tuple or
+            len(expected_source_dimensions) != 2 or
+            any(type(n) is not int or n < 1 for n in
+                expected_source_dimensions)):
+        raise AlphaCacheError("E_FX_CACHE_INPUT_UNPINNED")
+    try:
+        compiled = compile_filter(item)
+    except AlphaBackendError as error:
+        raise AlphaCacheError(error.code) from error
+    if (type(report) is not dict or
+            report.get("preset") != compiled["preset"] or
+            type(report.get("frames")) is not int or
+            report["frames"] != compiled["frames"] or
+            report.get("size") != list(expected_source_dimensions) or
+            report.get("cache_key_sha256") !=
+                _cache_key(compiled, expected_source_sha256)):
+        raise AlphaCacheError("E_FX_CACHE_CANDIDATE_MISMATCH")
+    audited = verify_cached_report(
+        report, cache_root=cache_root, ffprobe_exe=ffprobe_exe,
+        max_cached_bytes=max_cached_bytes,
+        timeout_seconds=timeout_seconds, runner=runner)
+    return {
+        **audited,
+        "cache_input_binding":
+            "DECLARED_SOURCE_SHA_EFFECT_TIMING_AND_SIZE_MATCHED",
+        "candidate_preset": compiled["preset"],
+        "candidate_direction": compiled["direction"],
+        "source_bytes_reverified": False,
+        "alpha_pixels_reverified": False,
+        "host_verified": False,
+        "can_assemble": False,
+    }
+
+
+def _cache_key(compiled: dict[str, Any], source_sha256: str) -> str:
+    # One canonical cache-key algorithm for initial render and reuse check.
+    material = {
+        "version": "fx-alpha-cache-v2-alpha-sampled",
+        "source_sha256": source_sha256, "preset": compiled["preset"],
+        "direction": compiled["direction"], "frames": compiled["frames"],
+        "filtergraph": compiled["filtergraph"], "codec": compiled["codec"],
+    }
+    return hashlib.sha256(json.dumps(
+        material, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()).hexdigest()
 
 
 def render_candidate(
@@ -170,14 +417,7 @@ def render_candidate(
     if source.suffix.lower() != ".png":
         raise AlphaCacheError("E_FX_SOURCE_PATH")
 
-    material = {
-        "version": "fx-alpha-cache-v1",
-        "source_sha256": expected_sha256, "preset": compiled["preset"],
-        "direction": compiled["direction"], "frames": compiled["frames"],
-        "filtergraph": compiled["filtergraph"], "codec": compiled["codec"]
-    }
-    key = hashlib.sha256(json.dumps(material, sort_keys=True,
-        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    key = _cache_key(compiled, expected_sha256)
     final = cache / ("fx_" + key + ".mov")
     if final.exists() or final.is_symlink():
         raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE")
@@ -191,6 +431,17 @@ def render_candidate(
         output = work / "derived.mov"
         width, height, _ = _copy_pinned(
             source, staged, expected_sha256, max_source_bytes, max_pixels)
+        staged_hash, staged_stat = _hash_stable_mov(staged)
+        if staged_hash != expected_sha256:
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        # STEP32: pin the *original* owner's pathname+inode after private
+        # staging. STEP31 pinned only the staged PNG; a user/other process
+        # could modify the original while FFmpeg works, making a successful
+        # render stale relative to the current source. Never write the owner
+        # file: these reads are immutable SHA/inode checks.
+        original_source_hash, original_source_stat = _hash_owner_png(source)
+        if original_source_hash != expected_sha256:
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         cmd = build_ffmpeg_command(compiled, ffmpeg, staged, output)
         try:
             call = runner(cmd, shell=False, capture_output=True,
@@ -202,28 +453,86 @@ def render_candidate(
         if (not output.is_file() or output.is_symlink() or
                 output.stat().st_size < 1):
             raise AlphaCacheError("E_FX_RENDER_EMPTY")
+        # Pin EXACT candidate bytes/inode before delegating to the two
+        # external decoder checks. STEP26 previously pinned only AFTER both:
+        # a swapped MOV between probe/pixel readback and initial hash could
+        # be published with a valid SHA but without validation of those bytes.
+        verified_input_hash, verified_input_stat = _hash_stable_mov(output)
         _probe(ffprobe, output, width, height, compiled["frames"],
                runner, timeout_seconds)
-        # Hard link is atomic and fails if destination exists; unlike replace()
-        # this cannot overwrite an existing cache file even with races.
+        # Metadata alone is insufficient. Source and output must both decode
+        # to expected RGBA alpha pixels before the MOV can enter the cache.
+        try:
+            alpha = verify_alpha_pixels(
+                ffmpeg_exe=ffmpeg, source_png=staged, output_mov=output,
+                width=width, height=height, frames=compiled["frames"],
+                in_frames=compiled["in_frames"], out_frames=compiled["out_frames"],
+                preset=compiled["preset"], direction=compiled["direction"],
+                timeout_seconds=timeout_seconds, runner=runner)
+        except AlphaPixelError as error:
+            raise AlphaCacheError(error.code) from error
+        if alpha.get("pixel_alpha_checked") is not True:
+            raise AlphaCacheError("E_FX_ALPHA_UNVERIFIED")
+        # FFmpeg consumes the private PNG over multiple processes (render,
+        # probe, pixel readback). Refuse any change to that staged source
+        # across the whole validation interval, including same-byte inode
+        # substitution. Do not publish a MOV based on a stale image proof.
+        end_staged_hash, end_staged_stat = _hash_stable_mov(staged)
+        if (end_staged_hash != staged_hash or
+                (end_staged_stat.st_dev, end_staged_stat.st_ino) !=
+                (staged_stat.st_dev, staged_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        # Recheck the owner's *original* file, not only our private PNG.
+        # A changed owner file during render/FFprobe/alpha readback invalidates
+        # this candidate even if the staged copy is still intact.
+        final_source_hash, final_source_stat = _hash_owner_png(source)
+        if (final_source_hash != original_source_hash or
+                (final_source_stat.st_dev, final_source_stat.st_ino) !=
+                (original_source_stat.st_dev, original_source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
+        # Hash a stable, regular, non-symlink candidate BEFORE publication.
+        # Metadata+alpha checks are not enough if a local process replaces the
+        # staged MOV between validation and the no-overwrite hard link.
+        original_hash, source_stat = _hash_stable_mov(output)
+        if (original_hash != verified_input_hash or
+                (source_stat.st_dev, source_stat.st_ino) !=
+                (verified_input_stat.st_dev, verified_input_stat.st_ino)):
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
+        # Hard link atomically publishes a NEW name only, never replaces cache.
         try:
             os.link(output, final)
         except FileExistsError as error:
             raise AlphaCacheError("E_FX_CACHE_EXISTS_NO_OVERWRITE") from error
         except OSError as error:
             raise AlphaCacheError("E_FX_CACHE_COMMIT_FAILED") from error
-        output_hash = hashlib.sha256()
-        with final.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024*1024), b""):
-                output_hash.update(chunk)
+        # SHA on the final path detects mutation between the first digest
+        # and publication. Any mismatch FAILS CLOSED and preserves the file
+        # for manual reconciliation instead of deleting linked/user data.
+        published_hash, published_stat = _hash_stable_mov(final)
+        if (published_hash != original_hash or
+                (published_stat.st_dev, published_stat.st_ino) !=
+                (source_stat.st_dev, source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_CACHE_CHANGED")
+        # Protect the final publication window as well. If the original
+        # changes during os.link/final MOV verification, do not issue any
+        # successful report. The published MOV remains for reconciliation.
+        published_source_hash, published_source_stat = _hash_owner_png(source)
+        if (published_source_hash != original_source_hash or
+                (published_source_stat.st_dev, published_source_stat.st_ino) !=
+                (original_source_stat.st_dev, original_source_stat.st_ino)):
+            raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         return {
             "schema_version": "alpha-cache-render-report-v1",
-            "status": "RENDERED_METADATA_CHECKED_NOT_HOST_OR_ALPHA_CERTIFIED",
+            "status": "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED",
             "preset": compiled["preset"], "frames": compiled["frames"],
             "size": [width, height], "cache_key_sha256": key,
-            "output_sha256": output_hash.hexdigest(),
+            "output_sha256": published_hash,
             "can_assemble": False, "host_verified": False,
-            "alpha_pixels_verified": False, "canva_fidelity_verified": False
+            "alpha_pixels_verified": True,
+            "alpha_sampled_frames": alpha["sampled_frames"],
+            "alpha_checked_samples": alpha["checked_alpha_samples"],
+            "whole_frame_verified": False,
+            "canva_fidelity_verified": False
         }
     finally:
         # Only our unique private work directory is removed; source and any

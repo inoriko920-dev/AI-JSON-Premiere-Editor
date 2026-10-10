@@ -100,6 +100,62 @@ class FFProbeTests(unittest.TestCase):
             r = self.inspect(payload=data, code=rc)
             self.assertIn("E_FFPROBE_BAD_RESPONSE", codes(r))
 
+    def test_duplicate_ffprobe_json_members_fail_closed_for_both_sources(self):
+        # Unlike json.loads' default last-value-wins behavior, ambiguous
+        # FFprobe duration and topology must never produce usable metadata.
+        cases = (
+            ("streams", '"format":', '"streams": [], "format":'),
+            ("duration", '"duration": "11.000"',
+             '"duration": "11.000", "duration": "10.000"'),
+            ("codec_type", '"codec_type": "audio"',
+             '"codec_type": "audio", "codec_type": "video"'),
+        )
+        for role in ("audio", "background"):
+            for name, target, replacement in cases:
+                if role == "background" and name == "codec_type":
+                    target = '"codec_type": "video"'
+                    replacement = ('"codec_type": "video", '
+                                   '"codec_type": "audio"')
+                with self.subTest(role=role, duplicated_field=name):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        this_role = "audio" if is_audio else "background"
+                        stream = ({"codec_type":"audio",
+                                   "codec_name":"pcm_s16le",
+                                   "sample_rate":"48000"} if is_audio else
+                                  {"codec_type":"video",
+                                   "codec_name":"h264",
+                                   "width":1920,"height":1080})
+                        payload = json.dumps(
+                            {"streams":[stream],
+                             "format":{"duration":"11.000"}})
+                        if this_role == role:
+                            self.assertIn(target, payload)
+                            payload = payload.replace(target,replacement,1)
+                        return subprocess.CompletedProcess(
+                            argv,0,payload.encode("utf-8"),b"")
+                    report = inspect_ffprobe(
+                        self.edit,self.root,ffprobe_exe=self.ffprobe,
+                        runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(
+                        x["code"]=="E_FFPROBE_BAD_RESPONSE" and
+                        x["pointer"]=="/sources/"+role
+                        for x in report["issues"]),report["issues"])
+                    self.assertFalse(any(
+                        x["pointer"]=="/sources/"+role
+                        for x in report["streams"]))
+                    self.assertEqual(len(report["streams"]),1)
+
+    def test_same_json_member_names_in_different_objects_still_valid(self):
+        # Legitimate metadata naturally repeats names across different
+        # stream and format objects. Only duplicates *within* one map fail.
+        report=self.inspect()
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+        self.assertEqual(len(report["streams"]),2)
+
     def test_missing_audio_or_video_stream_fails(self):
         r = self.inspect(payload=fixture(audio=False))
         self.assertIn("E_FFPROBE_STREAM_MISSING", codes(r))
@@ -112,10 +168,24 @@ class FFProbeTests(unittest.TestCase):
         self.assertEqual(r["status"], "NEEDS_REVIEW")
 
     def test_background_linked_audio_is_a_hard_error(self):
-        mixed = fixture()
-        report = self.inspect(payload=mixed, include_linked=True)
+        # The narration source remains pure audio; ONLY the background MP4
+        # contains linked audio. Avoid injecting the unrelated background
+        # video into the narration fixture.
+        def runner(argv, **_kwargs):
+            audio = {"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000","channels":2}
+            video = {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080}
+            streams = ([audio] if str(argv[-1]).endswith(".wav")
+                       else [video,audio])
+            output = json.dumps({"streams":streams,
+                                 "format":{"duration":"11.500"}}).encode()
+            return subprocess.CompletedProcess(argv,0,output,b"")
+        report = inspect_ffprobe(self.edit,self.root,
+                                 ffprobe_exe=self.ffprobe,runner=runner)
         self.assertEqual(report["status"], "PREFLIGHT_FAIL")
         self.assertIn("E_BACKGROUND_AUDIO_NOT_ISOLATED", codes(report))
+        self.assertNotIn("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN",codes(report))
         self.assertFalse(report["can_assemble"])
         self.assertEqual(len(report["streams"]), 1)  # narration inspected
 
@@ -137,6 +207,94 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS",codes(report))
         self.assertFalse(report["can_assemble"])
 
+    def test_narration_with_auxiliary_stream_blocks_instead_of_ignoring_it(self):
+        for side in (
+            {"codec_type":"video","codec_name":"mjpeg",
+             "disposition":{"attached_pic":1}},
+            {"codec_type":"data","codec_name":"bin_data"},
+            {"codec_type":"subtitle","codec_name":"mov_text"},
+            {"codec_type":"unknown","codec_name":"unknown"},
+            None,
+        ):
+            with self.subTest(extra_stream=side):
+                def runner(argv, **kwargs):
+                    is_audio=str(argv[-1]).endswith(".wav")
+                    audio={"codec_type":"audio","codec_name":"pcm_s16le",
+                           "sample_rate":"48000"}
+                    video={"codec_type":"video","codec_name":"h264",
+                           "width":1920,"height":1080}
+                    streams=[audio,side] if is_audio else [video]
+                    payload={"streams":streams,"format":{"duration":"11.500"}}
+                    return subprocess.CompletedProcess(
+                        argv,0,json.dumps(payload).encode("utf-8"),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(
+                    x["code"]=="E_NARRATION_STREAM_TOPOLOGY_UNKNOWN" and
+                    x["pointer"]=="/sources/audio" and x["severity"]=="ERROR"
+                    for x in report["issues"]))
+                self.assertFalse(any(
+                    x["pointer"]=="/sources/audio" for x in report["streams"]))
+                self.assertTrue(any(
+                    x["pointer"]=="/sources/background" for x in report["streams"]))
+
+    def test_single_narration_audio_stream_still_accepted_for_offline_review(self):
+        report=self.inspect()
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN",codes(report))
+        self.assertEqual(len(report["streams"]),2)
+        self.assertFalse(report["can_assemble"])
+
+    def test_narration_multiple_audio_streams_never_silently_pick_first(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080})
+            payload = {"streams":[record,dict(record)] if audio else [record],
+                       "format":{"duration":"11.500"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_AUDIO_STREAM_AMBIGUOUS",codes(report))
+        self.assertEqual(len(report["streams"]),1)
+        self.assertFalse(report["can_assemble"])
+
+    def test_fractional_millisecond_narration_never_truncated_to_valid_timeline(self):
+        # STEP33 media metadata must not defeat FIX01's strict audio-tail gate.
+        for value in ("11.500001","11.499999"):
+            with self.subTest(audio_duration=value):
+                def runner(argv, **_kwargs):
+                    audio = str(argv[-1]).endswith(".wav")
+                    record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                               "sample_rate":"48000"} if audio else
+                              {"codec_type":"video","codec_name":"h264",
+                               "width":1920,"height":1080})
+                    payload = {"streams":[record],
+                               "format":{"duration":value if audio else "11.500"}}
+                    return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+                self.assertFalse(any(x["pointer"]=="/sources/audio"
+                                     for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_excessively_nested_ffprobe_output_returns_structured_failure(self):
+        nested = (b"[" * 6000) + b"0" + (b"]" * 6000)
+        self.assertLess(len(nested), 128*1024)
+        def runner(argv, **_kwargs):
+            raw = nested if str(argv[-1]).endswith(".wav") else fixture()
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+        self.assertFalse(report["can_assemble"])
+
     def test_background_video_only_remains_review_not_certified(self):
         # Runner fixture responses for both files are video-only: audio probe
         # correctly rejects missing narration, so test a video-only background
@@ -155,6 +313,131 @@ class FFProbeTests(unittest.TestCase):
         self.assertFalse(report["can_assemble"])
         self.assertEqual(len(report["streams"]),2)
 
+    def test_conflicting_container_and_selected_stream_durations_block(self):
+        # The container must not claim frames/audio beyond the selected stream.
+        for role in ("audio", "background"):
+            for container_seconds, stream_seconds in (
+                ("11.500", "10.500"),
+                ("10.500", "11.500"),
+                ("11.000", "11.00000000000000000000000000001"),
+            ):
+                with self.subTest(role=role, container=container_seconds,
+                                  stream=stream_seconds):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        kind = "audio" if is_audio else "background"
+                        record = (
+                            {"codec_type":"audio","codec_name":"pcm_s16le",
+                             "sample_rate":"48000"} if is_audio else
+                            {"codec_type":"video","codec_name":"h264",
+                             "width":1920,"height":1080})
+                        if kind == role:
+                            record["duration"] = stream_seconds
+                        data = {"streams":[record],
+                                "format":{"duration":container_seconds
+                                          if kind == role else "11.500"}}
+                        return subprocess.CompletedProcess(
+                            argv, 0, json.dumps(data).encode(), b"")
+                    report = inspect_ffprobe(self.edit, self.root,
+                                             ffprobe_exe=self.ffprobe,runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(
+                        x["code"]=="E_FFPROBE_DURATION_CONFLICT" and
+                        x["pointer"]=="/sources/"+role
+                        for x in report["issues"]))
+                    self.assertFalse(any(
+                        x["pointer"]=="/sources/"+role
+                        for x in report["streams"]))
+
+    def test_equal_container_stream_duration_with_extra_zeroes_stays_valid(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000","duration":"11.500000000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080,"duration":"11.5"})
+            data = {"streams":[record],"format":{"duration":"11.500"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_DURATION_CONFLICT",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11500,11500])
+        self.assertFalse(report["can_assemble"])
+
+    def test_stream_only_duration_still_available_when_container_missing(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000","duration":"11.000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080,"duration":"6.000"})
+            data = {"streams":[record],"format":{"duration":"N/A"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_DURATION_CONFLICT",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,6000])
+        self.assertFalse(report["can_assemble"])
+
+    def test_numeric_json_duration_preserves_submillisecond_narration_tail(self):
+        # JSON numeric 11.000...01 is rounded to float(11.0) by json.loads
+        # unless parse_float=Decimal; this must not defeat strict audio timing.
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.500"}}).encode()
+            if audio:
+                raw=raw.replace(b'"duration": "11.500"',
+                                b'"duration": 11.00000000000000000000000000001')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertFalse(any(x["pointer"]=="/sources/audio" for x in report["streams"]))
+        self.assertFalse(report["can_assemble"])
+
+    def test_numeric_json_duration_conflicts_with_selected_stream(self):
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000","duration":"11.000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.000"}}).encode()
+            if audio:
+                raw=raw.replace(b'"format": {"duration": "11.000"}',
+                                b'"format": {"duration": 11.00000000000000000000000000001}')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertTrue(any(x["code"]=="E_FFPROBE_DURATION_CONFLICT" and
+                            x["pointer"]=="/sources/audio" for x in report["issues"]))
+        self.assertFalse(report["can_assemble"])
+
+    def test_numeric_json_background_duration_floors_without_float_rounding(self):
+        def runner(argv, **_kwargs):
+            audio=str(argv[-1]).endswith(".wav")
+            stream=({"codec_type":"audio","codec_name":"pcm_s16le",
+                     "sample_rate":"48000"} if audio else
+                    {"codec_type":"video","codec_name":"h264",
+                     "width":1920,"height":1080})
+            raw=json.dumps({"streams":[stream],
+                            "format":{"duration":"11.000"}}).encode()
+            if not audio:
+                raw=raw.replace(b'"duration": "11.000"',
+                                b'"duration": 10.9999999999999999999999999999')
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,10999])
+        self.assertFalse(report["can_assemble"])
+
     def test_missing_duration_requires_review(self):
         body = fixture().decode().replace('"11.500"', '"N/A"')
         r = self.inspect(payload=body.encode())
@@ -166,11 +449,150 @@ class FFProbeTests(unittest.TestCase):
         r = self.inspect(payload=body.encode())
         self.assertIn("E_FFPROBE_DURATION_UNVERIFIED", codes(r))
 
+    def test_narration_precision_beyond_decimal_context_is_not_rounded_off(self):
+        # Decimal's default 28 digits would turn this into exactly 11000 ms.
+        for value in ("11.00000000000000000000000000001",
+                      "10.9999999999999999999999999999",
+                      "0.00000000000000000000000000001"):
+            with self.subTest(duration=value):
+                def runner(argv, **_kwargs):
+                    audio = str(argv[-1]).endswith(".wav")
+                    record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                               "sample_rate":"48000"} if audio else
+                              {"codec_type":"video","codec_name":"h264",
+                               "width":1920,"height":1080})
+                    data = {"streams":[record],
+                            "format":{"duration":value if audio else "11.500"}}
+                    return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+                self.assertFalse(any(x["pointer"]=="/sources/audio"
+                                     for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_background_fraction_beyond_decimal_context_never_rounds_up(self):
+        # Background policy is floor-to-available milliseconds. Near a
+        # frame edge, Decimal * 1000 previously rounded 10999.999... to 11000.
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080})
+            value = "11.000" if audio else "10.9999999999999999999999999999"
+            data={"streams":[record],"format":{"duration":value}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,10999])
+        self.assertFalse(report["can_assemble"])
+
+    def test_millisecond_trailing_zeros_remain_valid_and_unchanged(self):
+        value="11.00000000000000000000000000000"
+        report=self.inspect(payload=fixture().decode().replace(
+            '"11.500"','"'+value+'"').encode())
+        self.assertNotIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,11000])
+
+    def test_extremely_long_sample_rate_returns_error_without_int_crash(self):
+        # Python 3.11 rejects int() of thousands of digits; never let
+        # malicious metadata escape the structured FFprobe issue protocol.
+        raw = fixture().decode().replace('"48000"', '"' + '9'*10000 + '"')
+        self.assertLess(len(raw), 128*1024)
+        report = self.inspect(payload=raw.encode())
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_SAMPLE_RATE", codes(report))
+        self.assertFalse(report["can_assemble"])
+
+    def test_unrepresentable_json_decimal_exponent_is_structured_failure(self):
+        # parse_float=Decimal raises decimal.InvalidOperation (not ValueError)
+        # for exponent magnitudes beyond Decimal's supported representation.
+        for role in ("audio", "background"):
+            for exponent in ("1e99999999999999999999999999999",
+                             "1e-99999999999999999999999999999"):
+                with self.subTest(role=role, exponent=exponent):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        kind = "audio" if is_audio else "background"
+                        stream = (
+                            {"codec_type":"audio","codec_name":"pcm_s16le",
+                             "sample_rate":"48000"} if is_audio else
+                            {"codec_type":"video","codec_name":"h264",
+                             "width":1920,"height":1080})
+                        payload = json.dumps({"streams":[stream],
+                                              "format":{"duration":"11.500"}}).encode()
+                        if kind == role:
+                            payload = payload.replace(b'"duration": "11.500"',
+                                                      b'"duration": ' + exponent.encode())
+                        return subprocess.CompletedProcess(argv,0,payload,b"")
+                    report=inspect_ffprobe(self.edit,self.root,
+                                           ffprobe_exe=self.ffprobe,runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(x["code"]=="E_FFPROBE_BAD_RESPONSE" and
+                                        x["pointer"]=="/sources/"+role
+                                        for x in report["issues"]))
+                    self.assertFalse(any(x["pointer"]=="/sources/"+role
+                                         for x in report["streams"]))
+
+    def test_extreme_decimal_exponent_duration_fails_closed(self):
+        # Decimal('1e999999999') is finite but converting it to integer
+        # milliseconds is not safe. Do not advertise a usable duration.
+        for value in ("1e999999999", "1e308"):
+            with self.subTest(value=value):
+                raw = fixture().decode().replace('"11.500"', '"'+value+'"')
+                report = self.inspect(payload=raw.encode())
+                self.assertIn("E_FFPROBE_DURATION_UNVERIFIED", codes(report))
+                self.assertTrue(all(x["duration_ms"] is None
+                                    for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_supported_sample_rate_and_duration_unchanged(self):
+        report = self.inspect()
+        self.assertNotIn("E_FFPROBE_SAMPLE_RATE", codes(report))
+        self.assertNotIn("E_FFPROBE_DURATION_UNVERIFIED", codes(report))
+        self.assertEqual(report["streams"][0]["sample_rate"], 48000)
+        self.assertEqual(report["streams"][0]["duration_ms"], 11500)
+
     def test_absent_media_raises_structured_not_host_status(self):
         (self.root / "background.mp4").unlink()
         r = self.inspect()
         self.assertIn("E_MEDIA_MISSING", codes(r))
         self.assertEqual(r["status"], "PREFLIGHT_FAIL")
+
+    def test_declared_narration_channels_must_be_positive_integer(self):
+        # These metadata values cannot describe a usable narration stream.
+        # The current preflight must not build a candidate from them.
+        for invalid in (0, -1, None, False, True, "2", 2.5, [], {}):
+            with self.subTest(channels=invalid):
+                body=json.loads(fixture())
+                body["streams"][0]["channels"]=invalid
+                report=self.inspect(payload=json.dumps(body).encode())
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(
+                    entry["code"]=="E_FFPROBE_CHANNELS" and
+                    entry["pointer"]=="/sources/audio"
+                    for entry in report["issues"]))
+                self.assertFalse(any(
+                    item["pointer"]=="/sources/audio"
+                    for item in report["streams"]))
+
+    def test_valid_or_absent_narration_channels_preserve_existing_behavior(self):
+        for channels in (1, 2, 6, "absent"):
+            with self.subTest(channels=channels):
+                body=json.loads(fixture())
+                if channels=="absent":
+                    body["streams"][0].pop("channels")
+                else:
+                    body["streams"][0]["channels"]=channels
+                report=self.inspect(payload=json.dumps(body).encode())
+                self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+                self.assertNotIn("E_FFPROBE_CHANNELS",codes(report))
+                self.assertEqual(len(report["streams"]),2)
+                self.assertFalse(report["can_assemble"])
 
     def test_dimensions_or_sample_rate_invalid(self):
         bad = fixture().decode().replace('"width": 1920', '"width": 0')

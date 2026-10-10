@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from core.media import inspect_media, parse_srt, resolved_path
 
@@ -18,12 +19,13 @@ MP4_HEADER = b"\x00\x00\x00\x18ftypisom"+b"\x00"*20
 
 def cases():
     return {
+      "canvas":{"fps_num":30,"fps_den":1},
       "sources":{
         "srt":{"path":"sub/narasi.srt"},
         "audio":{"path":"audio/narasi.wav"},
         "background":{"path":"video/background.mp4","required":True,"audio_policy":"MUTE"}},
       "assets":{"A001":{"path":"assets/A001.png"}},
-      "scenes":[{"assets":[{"asset_id":"A001","entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}]
+      "scenes":[{"assets":[{"asset_id":"A001","start_frame":0,"entry_evidence":{"accuracy":"EXACT_CUE","cue_id":1}}]}]
     }
 
 
@@ -62,6 +64,115 @@ class MediaTests(unittest.TestCase):
         self.assertIn("E_MEDIA_DECODE_UNVERIFIED",codes(report))
         self.assertEqual(report["files"][-1]["width"],1280)
 
+    def test_media_hash_read_requests_respect_small_byte_cap(self):
+        from core.media import _bounded_hash
+        path=self.root/"audio/narasi.wav"
+        budget=len(WAV_HEADER)+3
+        calls=[]
+        real_fdopen=os.fdopen
+
+        class BoundedStream:
+            def __init__(self, stream):
+                self.stream=stream
+            def __enter__(self):
+                self.stream.__enter__()
+                return self
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+            def fileno(self):
+                return self.stream.fileno()
+            def read(self, count):
+                calls.append(count)
+                test_case.assertLessEqual(count,budget+1)
+                return self.stream.read(count)
+
+        test_case=self
+        with patch("core.media.os.fdopen",side_effect=lambda fd,mode:
+                   BoundedStream(real_fdopen(fd,mode))):
+            sha,size,first=_bounded_hash(path,budget)
+        self.assertEqual(size,len(WAV_HEADER))
+        self.assertEqual(sha,hashlib.sha256(WAV_HEADER).hexdigest())
+        self.assertEqual(first[:4],b"RIFF")
+        self.assertTrue(calls)
+
+    def test_media_hash_growth_after_initial_stat_is_fail_closed(self):
+        from core.media import _bounded_hash
+        path=self.root/"audio/narasi.wav"
+        cap=len(WAV_HEADER)+2
+        original_open=os.open
+        changed=[False]
+        def grow_at_open(target, flags, *args, **kwargs):
+            if Path(target)==path and not changed[0]:
+                changed[0]=True
+                path.write_bytes(WAV_HEADER+b"x"*(cap+10))
+            return original_open(target,flags,*args,**kwargs)
+        with patch("core.media.os.open",side_effect=grow_at_open):
+            with self.assertRaisesRegex(ValueError,"E_RESOURCE_LIMIT"):
+                _bounded_hash(path,cap)
+        self.assertTrue(changed[0])
+
+    def test_same_bytes_inode_swap_during_media_hash_is_rejected(self):
+        # A same-byte replacement must not pass merely because SHA matches.
+        audio=self.root/"audio/narasi.wav"
+        replacement=self.root/"audio/replacement.wav"
+        replacement.write_bytes(audio.read_bytes())
+        original_open=os.open
+        swapped=False
+
+        def swap_before_open(path,flags,*args,**kwargs):
+            nonlocal swapped
+            if not swapped and Path(path).name == "narasi.wav":
+                os.replace(replacement,audio)
+                swapped=True
+            return original_open(path,flags,*args,**kwargs)
+
+        with patch("core.media.os.open",side_effect=swap_before_open):
+            report=self.inspect()
+        self.assertTrue(swapped)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_MEDIA_CHANGED",codes(report))
+        self.assertFalse(report["can_assemble"])
+        self.assertEqual(audio.read_bytes(),WAV_HEADER)
+
+    def test_srt_modified_after_hash_cannot_certify_old_exact_cue(self):
+        from core.media import _bounded_hash
+        srt=self.root/"sub/narasi.srt"
+        changed=SRT.replace(b"00:00:00,000",b"00:00:01,000",1)
+        self.assertEqual(len(changed),len(SRT))
+        mutated=False
+        def swap_after_hash(path,limit):
+            nonlocal mutated
+            result=_bounded_hash(path,limit)
+            if path.name == "narasi.srt":
+                srt.write_bytes(changed)
+                mutated=True
+            return result
+        with patch("core.media._bounded_hash",side_effect=swap_after_hash):
+            report=self.inspect()
+        self.assertTrue(mutated,"SRT mutation fixture must run on Windows too")
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_MEDIA_CHANGED",codes(report))
+        self.assertFalse(report["can_assemble"])
+
+    def test_srt_growth_after_hash_stays_within_read_budget(self):
+        from core.media import _bounded_hash
+        srt=self.root/"sub/narasi.srt"
+        max_bytes=8192
+        mutated=False
+        def grow_after_hash(path,limit):
+            nonlocal mutated
+            result=_bounded_hash(path,limit)
+            if path.name == "narasi.srt":
+                srt.write_bytes(SRT+b"x"*(max_bytes+1))
+                mutated=True
+            return result
+        with patch("core.media._bounded_hash",side_effect=grow_after_hash):
+            report=self.inspect(max_bytes=max_bytes)
+        self.assertTrue(mutated,"SRT growth fixture must run on Windows too")
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_RESOURCE_LIMIT",codes(report))
+        self.assertFalse(report["can_assemble"])
+
     def test_utf8_bom_multiline_srt(self):
         cues=parse_srt(SRT,max_cues=10)
         self.assertEqual(len(cues),2)
@@ -86,6 +197,42 @@ class MediaTests(unittest.TestCase):
     def test_missing_media_blocks(self):
         (self.root/"audio/narasi.wav").unlink()
         self.assertIn("E_MEDIA_MISSING",codes(self.inspect()))
+
+    def test_missing_or_malformed_required_source_declaration_blocks(self):
+        # Direct media audit must fail closed even without the JSON validator.
+        for malformed in (None, "audio/narasi.wav", [], 7):
+            with self.subTest(declaration=malformed):
+                self.edit["sources"]["audio"] = malformed
+                report = self.inspect()
+                self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                                    x["pointer"] == "/sources/audio"
+                                    for x in report["issues"]))
+        del self.edit["sources"]["audio"]
+        report = self.inspect()
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertTrue(any(x["pointer"] == "/sources/audio" and
+                            x["severity"] == "ERROR"
+                            for x in report["issues"]))
+
+    def test_malformed_visual_asset_declaration_never_disappears(self):
+        self.edit["assets"]["A001"] = None
+        report = self.inspect()
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertFalse(report["can_assemble"])
+        self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                            x["pointer"] == "/assets/A001" for x in report["issues"]))
+
+    def test_missing_or_invalid_asset_collection_fails_closed(self):
+        for invalid in (None, [], "not an asset map", {}):
+            with self.subTest(assets=invalid):
+                self.edit["assets"] = invalid
+                report = self.inspect()
+                self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                                    x["pointer"] == "/assets" for x in report["issues"]))
 
     def test_hash_mismatch_blocks(self):
         self.edit["sources"]["audio"]["sha256"]="f"*64

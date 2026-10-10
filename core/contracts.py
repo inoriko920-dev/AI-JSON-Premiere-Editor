@@ -54,8 +54,12 @@ def loads_strict(raw: str | bytes) -> Any:
         raise TypeError("JSON input must be UTF-8 text or bytes")
     if raw.startswith("\ufeff"):
         raw = raw[1:]
-    return json.loads(raw, object_pairs_hook=_pairs_unique,
-                      parse_constant=invalid_float)
+    try:
+        return json.loads(raw, object_pairs_hook=_pairs_unique,
+                          parse_constant=invalid_float)
+    except RecursionError as exc:
+        # Deliberately do not raise global recursion limits for untrusted JSON.
+        raise ValueError("E_JSON_NESTING_LIMIT") from exc
 
 
 def _is_int(v: Any, minimum: int = 0) -> bool:
@@ -222,6 +226,11 @@ def _structure_and_pairs(edit: dict, anim: dict, issues: list[dict[str, str]]):
                        "start_frame", "end_frame", "assets", "transition_policy",
                        "semantic_relation", "locked"}, issues, p,
                forbidden=DISALLOWED_SPLIT)
+        # Contract currently supports CUT only. Unknown transitions must
+        # never compile as an implicit CUT (nor share its review digest).
+        if type(scene.get("transition_policy")) is not str or scene["transition_policy"] != "CUT":
+            _issue(issues, "E_JSON_SCHEMA", f"{p}/transition_policy",
+                   "Kebijakan transisi tidak didukung; hanya CUT yang disetujui.")
         sid = scene.get("scene_id")
         if not _is_name(sid) or sid in seen_scenes:
             _issue(issues, "E_PLAN_PAIR", f"{p}/scene_id",

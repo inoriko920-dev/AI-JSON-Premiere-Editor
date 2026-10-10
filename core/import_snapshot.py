@@ -9,17 +9,71 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import stat
 from pathlib import Path
 from typing import Any
 
-from .media import _bounded_hash, _format_supported, resolved_path
+from .media import _format_supported, resolved_path
 
 
 class ImportSnapshotError(ValueError):
     def __init__(self, code: str):
         self.code = code
         super().__init__(code)
+
+
+def _stable_media_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes, os.stat_result]:
+    """SHA bytes through one descriptor and prove the resolved path did not swap.
+
+    Previous path.stat -> separate open -> path.stat allowed an outside writer
+    to substitute another file while source inventory was being hashed.
+    Check descriptor identity/size/ctime/mtime before/after, and the path
+    identity after closing. No file mutation, no images generated.
+    """
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+    if before.st_size > max_bytes:
+        raise ValueError("E_RESOURCE_LIMIT")
+    hasher = hashlib.sha256()
+    size = 0
+    first = b""
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+        while True:
+            # Bound each read to the remaining caller budget plus one byte,
+            # so concurrent file growth cannot trigger a 1-MiB over-read.
+            chunk = stream.read(min(1024 * 1024, max_bytes - size + 1))
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > max_bytes:
+                raise ValueError("E_RESOURCE_LIMIT")
+            if not first:
+                first = chunk[:32]
+            hasher.update(chunk)
+        descriptor_end = os.fstat(stream.fileno())
+    after = path.stat()
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+    if (not stat.S_ISREG(after.st_mode) or
+            size != before.st_size or
+            not (identity(before) == identity(opened) ==
+                 identity(descriptor_end) == identity(after))):
+        raise ValueError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+    return hasher.hexdigest(), size, first, after
 
 
 def prepare_media_snapshot(
@@ -39,6 +93,11 @@ def prepare_media_snapshot(
     sources, assets = edit.get("sources"), edit.get("assets")
     if type(sources) is not dict or type(assets) is not dict or not assets:
         raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
+    # SRT is inspected but never imported; narration and background always
+    # consume the two fixed import slots. Reject excessive asset collections
+    # before sorting keys or allocating a queue for every asset.
+    if len(assets) + 2 > max_import_items:
+        raise ImportSnapshotError("E_RESOURCE_LIMIT")
     try:
         root = Path(media_root).resolve(strict=True)
         if not root.is_dir():
@@ -52,17 +111,22 @@ def prepare_media_snapshot(
         if type(info) is not dict:
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append((f"SOURCE_{label.upper()}", label, info, label != "srt"))
+    # Check key types BEFORE sorting: JSON-like direct callers may provide
+    # mixed str/non-str keys and sorted(assets) would raise raw TypeError.
+    if any(type(asset_id) is not str or
+           re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", asset_id) is None
+           for asset_id in assets):
+        raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
     for asset_id in sorted(assets):
         info = assets[asset_id]
-        if (type(asset_id) is not str or
-                re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", asset_id) is None or
-                type(info) is not dict):
+        if type(info) is not dict:
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append(("ASSET_" + asset_id, "png", info, True))
-    if len(jobs) - 1 > max_import_items:  # subtract SRT (not imported)
-        raise ImportSnapshotError("E_RESOURCE_LIMIT")
-
     seen: set[str] = set()
+    # Two different paths may still name the exact same file via hard links.
+    # A source must have an unambiguous identity before creating its
+    # non-authorizing inventory, not merely a unique spelled pathname.
+    seen_file_ids: set[tuple[int, int]] = set()
     inventory: list[dict[str, Any]] = []
     for item_id, kind, info, imported in jobs:
         relative = info.get("path")
@@ -83,21 +147,22 @@ def prepare_media_snapshot(
             if identity in seen:
                 raise ImportSnapshotError("E_MEDIA_ALIAS_AMBIGUOUS")
             seen.add(identity)
-            before = absolute.stat()
-            actual, count, header = _bounded_hash(absolute, max_file_bytes)
-            after = absolute.stat()
+            actual, count, header, after = _stable_media_hash(
+                absolute, max_file_bytes)
         except ImportSnapshotError:
             raise
         except ValueError as ex:
-            if str(ex) == "E_RESOURCE_LIMIT":
-                raise ImportSnapshotError("E_RESOURCE_LIMIT") from ex
+            if str(ex) in ("E_RESOURCE_LIMIT", "E_MEDIA_CHANGED_DURING_SNAPSHOT"):
+                raise ImportSnapshotError(str(ex)) from ex
             raise ImportSnapshotError("E_MEDIA_PATH") from ex
         except (OSError, RuntimeError) as ex:
             raise ImportSnapshotError("E_MEDIA_MISSING") from ex
-        if (before.st_size != after.st_size or
-                before.st_mtime_ns != after.st_mtime_ns or
-                count != after.st_size):
+        if count != after.st_size:
             raise ImportSnapshotError("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+        file_id = (after.st_dev, after.st_ino)
+        if file_id in seen_file_ids:
+            raise ImportSnapshotError("E_MEDIA_ALIAS_AMBIGUOUS")
+        seen_file_ids.add(file_id)
         if actual.lower() != expected.lower():
             raise ImportSnapshotError("E_MEDIA_HASH")
         matches, _ = _format_supported(relative, header)
@@ -109,6 +174,10 @@ def prepare_media_snapshot(
             "absolute_path": str(absolute),
             "sha256": actual, "byte_size": count,
             "mtime_ns": after.st_mtime_ns,
+            # A same-byte replacement with restored mtime is still a new
+            # source file. Bind the snapshot to its original file identity.
+            "device_id": after.st_dev, "file_id": after.st_ino,
+            "ctime_ns": after.st_ctime_ns,
         })
     # This string is an integrity fingerprint, not cryptographic approval.
     canonical = json.dumps(inventory, sort_keys=True, ensure_ascii=False,
@@ -140,28 +209,79 @@ def recheck_media_snapshot(snapshot: dict[str, Any], *,
     """
     if (type(snapshot) is not dict or
             snapshot.get("schema_version") != "verified-media-snapshot-v1" or
+            snapshot.get("status") != "CANDIDATE_NOT_AUTHORIZED" or
             snapshot.get("can_import") is not False or
+            snapshot.get("can_assemble") is not False or
             type(max_file_bytes) is not int or max_file_bytes <= 0 or
             type(snapshot.get("items")) is not list):
         return False
     items = snapshot["items"]
-    if snapshot.get("item_count") != len(items) or not items:
+    if (type(snapshot.get("item_count")) is not int or
+            snapshot["item_count"] != len(items) or not items or
+            type(snapshot.get("import_count")) is not int):
         return False
     try:
         canonical = json.dumps(items, sort_keys=True, ensure_ascii=False,
                                separators=(",", ":"), allow_nan=False).encode("utf-8")
         if hashlib.sha256(canonical).hexdigest() != snapshot["inventory_sha256"]:
             return False
+        # Inventory role and import-count declarations are part of the
+        # immutable read-only contract. A recomputed digest cannot promote
+        # source-only SRT to an importable Premiere clip.
+        required_sources = {
+            "SOURCE_SRT": ("srt", False),
+            "SOURCE_AUDIO": ("audio", True),
+            "SOURCE_BACKGROUND": ("background", True),
+        }
+        seen_ids: set[str] = set()
+        seen_file_ids: set[tuple[int, int]] = set()
+        import_total = 0
         for item in items:
+            if type(item) is not dict:
+                return False
+            item_id = item.get("item_id")
+            kind = item.get("kind")
+            imported = item.get("import_to_premiere")
+            if (type(item_id) is not str or item_id in seen_ids or
+                    type(imported) is not bool):
+                return False
+            seen_ids.add(item_id)
+            file_device, file_inode = item.get("device_id"), item.get("file_id")
+            if (type(file_device) is not int or file_device < 0 or
+                    type(file_inode) is not int or file_inode < 0 or
+                    (file_device, file_inode) in seen_file_ids):
+                return False
+            seen_file_ids.add((file_device, file_inode))
+            if item_id in required_sources:
+                if (kind, imported) != required_sources[item_id]:
+                    return False
+            elif not (item_id.startswith("ASSET_") and
+                      re.fullmatch(r"ASSET_[A-Za-z0-9][A-Za-z0-9_.-]*", item_id)
+                      and kind == "png" and imported is True):
+                return False
+            import_total += int(imported)
+        if (not set(required_sources).issubset(seen_ids) or
+                len(seen_ids) <= len(required_sources) or
+                import_total != snapshot["import_count"]):
+            return False
+        for item in items:
+            # Snapshot versions without immutable file identity metadata
+            # cannot certify continued identity, even if the SHA still fits.
+            if (type(item) is not dict or
+                    any(type(item.get(k)) is not int or item[k] < 0 for k in
+                        ("device_id", "file_id", "ctime_ns"))):
+                return False
             path = resolved_path(Path(snapshot["media_root"]), item["relative_path"])
             if str(path) != item["absolute_path"]:
                 return False
-            before = path.stat()
-            digest, size, _ = _bounded_hash(path, max_file_bytes)
-            after = path.stat()
+            digest, size, _, after = _stable_media_hash(
+                path, max_file_bytes)
             if (digest != item["sha256"] or size != item["byte_size"]
-                    or size != after.st_size or before.st_mtime_ns != after.st_mtime_ns
-                    or after.st_mtime_ns != item["mtime_ns"]):
+                    or size != after.st_size
+                    or after.st_mtime_ns != item["mtime_ns"]
+                    or after.st_dev != item["device_id"]
+                    or after.st_ino != item["file_id"]
+                    or after.st_ctime_ns != item["ctime_ns"]):
                 return False
     except (OSError, KeyError, TypeError, ValueError, RuntimeError):
         return False

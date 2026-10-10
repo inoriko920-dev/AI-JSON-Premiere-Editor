@@ -7,6 +7,7 @@ All paths must stay inside explicit project media root, including symlinks.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import struct
 from pathlib import Path, PureWindowsPath
@@ -46,16 +47,41 @@ def resolved_path(root: Path, relative: str) -> Path:
 
 
 def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
-    if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes <= 0:
+    """Hash the opened regular file and reject path/descriptor substitutions.
+
+    Unlike a stat-then-separate-open hash, this pins the same file identity
+    from before opening to after reading; caller media remains read-only.
+    """
+    import stat
+    if type(max_bytes) is not int or max_bytes <= 0:
         raise ValueError("E_CONFIG_LIMITS_UNVERIFIED")
-    if path.stat().st_size > max_bytes:
+
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError("E_MEDIA_CHANGED")
+    if before.st_size > max_bytes:
         raise ValueError("E_RESOURCE_LIMIT")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+
     hasher = hashlib.sha256()
     total = 0
     first = b""
-    with path.open("rb") as f:
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("E_MEDIA_CHANGED")
         while True:
-            data = f.read(1024*1024)
+            # Never request a larger read than the caller's remaining
+            # byte budget plus one detection byte, even if media grows.
+            data = stream.read(min(1024*1024, max_bytes - total + 1))
             if not data:
                 break
             total += len(data)
@@ -64,7 +90,39 @@ def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
             if not first:
                 first = data[:32]
             hasher.update(data)
+        read_end = os.fstat(stream.fileno())
+    after = path.stat()
+    if (total != before.st_size or not stat.S_ISREG(after.st_mode) or
+            not (identity(before) == identity(opened) ==
+                 identity(read_end) == identity(after))):
+        raise ValueError("E_MEDIA_CHANGED")
     return hasher.hexdigest(), total, first
+
+
+def _read_pinned_srt(path: Path, max_bytes: int, sha256: str, size: int,
+                     pre_hash_stat: os.stat_result) -> bytes:
+    """Bound and pin SRT bytes used for EXACT_CUE timing to the hashed file.
+
+    A second unrestricted read_bytes() after a successful SHA audit is unsafe:
+    the source may be replaced or enlarged between hash and cue parsing.
+    """
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+
+    with path.open("rb") as source:
+        opened = os.fstat(source.fileno())
+        blob = source.read(max_bytes + 1)
+        closed = os.fstat(source.fileno())
+    post_read_stat = path.stat()
+    if len(blob) > max_bytes:
+        raise ValueError("E_RESOURCE_LIMIT")
+    if (len(blob) != size or hashlib.sha256(blob).hexdigest() != sha256 or
+            identity(pre_hash_stat) != identity(opened) or
+            identity(opened) != identity(closed) or
+            identity(closed) != identity(post_read_stat)):
+        raise ValueError("E_MEDIA_CHANGED")
+    return blob
 
 
 def _milliseconds(groups: tuple[str,...]) -> int:
@@ -151,13 +209,28 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
     queue: list[tuple[str,str,dict[str,Any]]] = []
     sources = edit.get("sources",{}) if type(edit) is dict else {}
     for key in ("srt","audio","background"):
-        doc=sources.get(key,{}) if type(sources) is dict else {}
-        if type(doc) is dict:
-            queue.append((f"/sources/{key}", key, doc))
-    for aid, doc in (edit.get("assets",{}) if type(edit) is dict and type(edit.get("assets")) is dict else {}).items():
-        if type(doc) is dict:
-            queue.append((f"/assets/{aid}", "asset",doc))
-    cue_ids: set[int] = set()
+        pointer = f"/sources/{key}"
+        doc = sources.get(key) if type(sources) is dict else None
+        if type(doc) is not dict:
+            # A missing or malformed mandatory source must not disappear from
+            # the queue and leave a misleading all-good read-only audit.
+            errors.append(issue("E_MEDIA_MISSING",pointer,
+                                "Deklarasi sumber media wajib hilang atau tidak valid."))
+            continue
+        queue.append((pointer, key, doc))
+    assets = edit.get("assets") if type(edit) is dict else None
+    if type(assets) is not dict or not assets:
+        errors.append(issue("E_MEDIA_MISSING","/assets",
+                            "Deklarasi aset gambar wajib hilang atau tidak valid."))
+    else:
+        for aid, doc in assets.items():
+            pointer = f"/assets/{aid}"
+            if type(doc) is not dict:
+                errors.append(issue("E_MEDIA_MISSING",pointer,
+                                    "Deklarasi aset gambar wajib tidak valid."))
+                continue
+            queue.append((pointer, "asset",doc))
+    cue_times: dict[int, tuple[int, int]] = {}
     for pointer,category,record in queue:
         rel=record.get("path")
         if not isinstance(rel,str):
@@ -165,6 +238,7 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             continue
         try:
             path=resolved_path(root,rel)
+            srt_before_hash=path.stat() if category=="srt" else None
             digest,count,first=_bounded_hash(path,max_file_bytes)
             good,meta=_format_supported(rel,first)
             if not good:
@@ -180,19 +254,21 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
                                     "Hash asli belum disertakan dalam JSON.","REVIEW"))
             if category=="srt" and good:
                 try:
-                    if count>max_file_bytes:
-                        raise ValueError("E_RESOURCE_LIMIT")
-                    cues=parse_srt(path.read_bytes(),max_cues=max_srt_cues)
-                    cue_ids={c["cue_id"] for c in cues}
-                except (ValueError,UnicodeError):
-                    errors.append(issue("E_SRT_MALFORMED",pointer,
-                                        "Cue SRT tidak dapat diverifikasi."))
+                    raw=_read_pinned_srt(path,max_file_bytes,digest,count,
+                                         srt_before_hash)
+                    cues=parse_srt(raw,max_cues=max_srt_cues)
+                    cue_times={c["cue_id"]: (c["start_ms"], c["end_ms"]) for c in cues}
+                except (ValueError,UnicodeError) as e:
+                    code=str(e) if str(e) in ("E_MEDIA_CHANGED","E_RESOURCE_LIMIT") else "E_SRT_MALFORMED"
+                    errors.append(issue(code,pointer,
+                                        "Cue SRT tidak dapat diverifikasi dari file yang di-hash."))
             item={"pointer":pointer,"bytes":count,"sha256":digest,"header_ok":good}
             if meta:
                 item.update(meta)
             inventory.append(item)
         except (OSError,ValueError,RuntimeError) as e:
             code=str(e) if str(e) in ("E_RESOURCE_LIMIT","E_MEDIA_PATH",
+                                       "E_MEDIA_CHANGED",
                                        "E_CONFIG_LIMITS_UNVERIFIED") else "E_MEDIA_MISSING"
             errors.append(issue(code,pointer,
                                 "File wajib hilang, tidak dapat dibaca, di luar root, atau terlalu besar."))
@@ -206,9 +282,33 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             if not isinstance(evidence,dict) or evidence.get("accuracy") != "EXACT_CUE":
                 continue
             cue = evidence.get("cue_id")
-            if type(cue) is not int or cue not in cue_ids:
-                errors.append(issue("E_SRT_AMBIGUOUS",f"/scenes/{i}/assets/{j}/entry_evidence",
+            pointer=f"/scenes/{i}/assets/{j}/entry_evidence"
+            if type(cue) is not int or cue not in cue_times:
+                errors.append(issue("E_SRT_AMBIGUOUS",pointer,
                                     "cue_id tidak ditemukan dalam SRT yang dibaca."))
+                continue
+            # EXACT_CUE certifies the cue ENTRY only; asset exit can differ.
+            # Use integer rational round_half_up, no float ms conversion.
+            canvas=edit.get("canvas",{})
+            fps_num=canvas.get("fps_num") if type(canvas) is dict else None
+            fps_den=canvas.get("fps_den") if type(canvas) is dict else None
+            if (type(fps_num) is not int or fps_num<=0 or
+                    type(fps_den) is not int or fps_den<=0):
+                errors.append(issue("E_SRT_TIMEBASE_UNVERIFIED",pointer,
+                                    "Frame rate cue tidak tersedia atau tidak valid."))
+                continue
+            # A declared stagger is not an approved EXACT_CUE offset policy.
+            # Never infer one or shift a cue to make the evidence pass.
+            stagger=ins.get("stagger_frames",0)
+            if type(stagger) is not int or stagger!=0:
+                errors.append(issue("E_SRT_CUE_OFFSET_UNVERIFIED",pointer,
+                                    "Offset cue belum memiliki kebijakan timing terverifikasi."))
+                continue
+            cue_start_ms=cue_times[cue][0]
+            rounded_start=(2*cue_start_ms*fps_num+1000*fps_den)//(2000*fps_den)
+            if type(ins.get("start_frame")) is not int or ins["start_frame"]!=rounded_start:
+                errors.append(issue("E_SRT_CUE_FRAME_MISMATCH",pointer,
+                                    "Waktu awal instance tidak cocok dengan awal cue SRT."))
     errors.append(issue("E_MEDIA_DECODE_UNVERIFIED","/media",
                         "Header PNG/audio/MP4 bukan bukti FFprobe, decode dan alpha Premiere.",
                         "REVIEW"))
@@ -217,4 +317,4 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
                         "REVIEW"))
     status="PREFLIGHT_FAIL" if any(e["severity"]=="ERROR" for e in errors) else "NEEDS_REVIEW"
     return {"status":status,"can_assemble":False,"files":inventory,"issues":errors,
-            "cue_count":len(cue_ids)}
+            "cue_count":len(cue_times)}

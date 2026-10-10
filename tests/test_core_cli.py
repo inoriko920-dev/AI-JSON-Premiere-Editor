@@ -1,12 +1,18 @@
 """CLI read-only process smoke cases, no real Premiere."""
 import hashlib
+import io
 import json
+import os
+from contextlib import redirect_stdout
 from pathlib import Path
 import runpy
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from core.validate_cli import read_json, run as validate_run
 
 ROOT=Path(__file__).resolve().parents[1]
 demo=runpy.run_path(str(ROOT/"tests/test_core_contracts.py"))["demo"]
@@ -38,7 +44,7 @@ class CoreCLIProcessTests(unittest.TestCase):
         from tests.test_core_import_snapshot import PNG, WAV, MP4
         edit=json.loads(self.edit.read_text(encoding="utf-8"))
         sources={
-            "srt": b"1\\n00:00:00,000 --> 00:00:01,000\\nFirst\\n\\n2\\n00:00:01,000 --> 00:00:02,000\\nSecond\\n\\n3\\n00:00:02,000 --> 00:00:03,000\\nThird\\n",
+            "srt": b"1\\n00:00:00,000 --> 00:00:05,000\\nFirst\\n\\n2\\n00:00:05,000 --> 00:00:06,400\\nSecond\\n\\n3\\n00:00:06,400 --> 00:00:11,000\\nThird\\n",
             "audio": WAV,
             "background": MP4,
         }
@@ -56,6 +62,75 @@ class CoreCLIProcessTests(unittest.TestCase):
             path.write_bytes(PNG)
             record["sha256"]=hashlib.sha256(PNG).hexdigest()
         self.edit.write_text(json.dumps(edit),encoding="utf-8")
+
+    def test_json_input_same_bytes_replacement_during_open_rejected(self):
+        # Even an identical SHA does not excuse a different open file ID.
+        alt=self.root/"same_bytes_replacement.json"
+        alt.write_bytes(self.edit.read_bytes())
+        original_open=os.open
+        replacements=0
+
+        def swap_before_open(path,flags,*args,**kwargs):
+            nonlocal replacements
+            if Path(path).name=="edit.json":
+                os.replace(alt,self.edit)
+                replacements+=1
+            return original_open(path,flags,*args,**kwargs)
+
+        with patch("core.validate_cli.os.open",side_effect=swap_before_open):
+            with self.assertRaisesRegex(ValueError,"E_JSON_INPUT_CHANGED"):
+                read_json(self.edit,100000)
+        self.assertEqual(replacements,1)
+        self.assertFalse(alt.exists())
+
+    def test_json_input_growth_after_stat_cannot_bypass_byte_cap(self):
+        alt=self.root/"grown_input.json"
+        alt.write_bytes(self.edit.read_bytes()+b"x"*100001)
+        original_open=os.open
+        replacements=0
+
+        def grow_before_open(path,flags,*args,**kwargs):
+            nonlocal replacements
+            if Path(path).name=="edit.json":
+                os.replace(alt,self.edit)
+                replacements+=1
+            return original_open(path,flags,*args,**kwargs)
+
+        with patch("core.validate_cli.os.open",side_effect=grow_before_open):
+            with self.assertRaisesRegex(ValueError,"E_RESOURCE_LIMIT"):
+                read_json(self.edit,100000)
+        self.assertEqual(replacements,1)
+
+    def test_json_input_swap_cli_is_sanitized_fail_closed(self):
+        old=self.edit.read_bytes()
+        altered=old.replace(b"DEMO_001",b"DEMO_002")
+        self.assertNotEqual(old,altered)
+        self.assertEqual(len(old),len(altered))
+        alt=self.root/"changed_input.json"
+        alt.write_bytes(altered)
+        original_open=os.open
+        swaps=0
+
+        def swap_before_open(path,flags,*args,**kwargs):
+            nonlocal swaps
+            if Path(path).name=="edit.json":
+                os.replace(alt,self.edit)
+                swaps+=1
+            return original_open(path,flags,*args,**kwargs)
+
+        stdout=io.StringIO()
+        with patch("core.validate_cli.os.open",side_effect=swap_before_open), \
+             redirect_stdout(stdout):
+            rc=validate_run(["--edit",str(self.edit),"--animation",str(self.anim),
+                             "--max-json-bytes","100000"])
+        report=json.loads(stdout.getvalue())
+        self.assertEqual(swaps,1)
+        self.assertEqual(rc,2)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertFalse(report["can_assemble"])
+        self.assertIn("E_JSON_INPUT_CHANGED",[x["code"] for x in report["issues"]])
+        self.assertNotIn(str(self.root),stdout.getvalue())
+        self.assertNotIn("DEMO_001",stdout.getvalue())
 
     def test_import_snapshot_cli_returns_only_non_authorizing_counts(self):
         self._create_real_import_fixture()

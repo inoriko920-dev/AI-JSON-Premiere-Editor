@@ -52,7 +52,7 @@ $._AIJSON_PLACEMENT_V1=(function(){
             Math.floor(plan.total_frames)!==plan.total_frames ||
             plan.total_frames<1 || plan.total_frames>10000000 ||
             !(Object.prototype.toString.call(plan.placements)==="[object Array]") ||
-            plan.placements.length<4 || plan.placements.length>10000){
+            plan.placements.length<3 || plan.placements.length>10000){
             return false;
         }
         var seen={},spans={V1:[],V2:[],V3:[],A1:[]},expected={V1:0,V2:1,V3:2,A1:0};
@@ -92,7 +92,7 @@ $._AIJSON_PLACEMENT_V1=(function(){
         for(var track in spans){
             if(!spans.hasOwnProperty(track)){continue;}
             var group=spans[track];
-            if(group.length===0){return false;}
+            if(group.length===0){if(track==="V3"){continue;}return false;}
             group.sort(function(a,b){return a.start_frame-b.start_frame;});
             for(var j=1;j<group.length;j++){
                 if(group[j].start_frame<group[j-1].end_frame){return false;}
