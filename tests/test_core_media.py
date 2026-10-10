@@ -151,6 +151,42 @@ class MediaTests(unittest.TestCase):
         (self.root/"audio/narasi.wav").unlink()
         self.assertIn("E_MEDIA_MISSING",codes(self.inspect()))
 
+    def test_missing_or_malformed_required_source_declaration_blocks(self):
+        # Direct media audit must fail closed even without the JSON validator.
+        for malformed in (None, "audio/narasi.wav", [], 7):
+            with self.subTest(declaration=malformed):
+                self.edit["sources"]["audio"] = malformed
+                report = self.inspect()
+                self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                                    x["pointer"] == "/sources/audio"
+                                    for x in report["issues"]))
+        del self.edit["sources"]["audio"]
+        report = self.inspect()
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertTrue(any(x["pointer"] == "/sources/audio" and
+                            x["severity"] == "ERROR"
+                            for x in report["issues"]))
+
+    def test_malformed_visual_asset_declaration_never_disappears(self):
+        self.edit["assets"]["A001"] = None
+        report = self.inspect()
+        self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+        self.assertFalse(report["can_assemble"])
+        self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                            x["pointer"] == "/assets/A001" for x in report["issues"]))
+
+    def test_missing_or_invalid_asset_collection_fails_closed(self):
+        for invalid in (None, [], "not an asset map", {}):
+            with self.subTest(assets=invalid):
+                self.edit["assets"] = invalid
+                report = self.inspect()
+                self.assertEqual(report["status"], "PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(x["code"] == "E_MEDIA_MISSING" and
+                                    x["pointer"] == "/assets" for x in report["issues"]))
+
     def test_hash_mismatch_blocks(self):
         self.edit["sources"]["audio"]["sha256"]="f"*64
         self.assertIn("E_MEDIA_HASH",codes(self.inspect()))
