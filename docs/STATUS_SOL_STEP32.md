@@ -8,7 +8,7 @@ STEP31 verifies the owner PNG identity during the initial copy and rehashes the 
 
 ## Code changes
 
-`core/fx_cache_worker.py` now reads the owner source again using the existing stable regular-file `_hash_stable_mov` check after the private copy and before FFmpeg starts. It requires source SHA to still equal the independently pinned expected original SHA. It then compares original source SHA plus device/inode **again after** FFprobe and sampled alpha-pixel verification, before cache publication. Finally, after the no-overwrite MOV hard link and published MOV SHA/inode verification, it compares the original file a third time before returning a success report. Source changes raise `E_FX_SOURCE_CHANGED`. The code only reads original owner media; it never modifies it.
+`core/fx_cache_worker.py` now reads the owner source again using the existing stable regular-file `_hash_stable_mov` check after the private copy and before FFmpeg starts. It requires source SHA to still equal the independently pinned expected original SHA. It then compares original source SHA plus device/inode **again after** FFprobe and sampled alpha-pixel verification, before cache publication. Finally, after the no-overwrite MOV hard link and published MOV SHA/inode verification, it compares the original file a third time before returning a success report. Source changes raise `E_FX_SOURCE_CHANGED`. A dedicated read-only helper also maps missing/unreadable source-path exceptions to that source-specific error, rather than misreporting damaged cache bytes. The code only reads original owner media; it never modifies it.
 
 The publication window remains fundamentally non-atomic across distinct user-media and cache directories, so this is a **bounded freshness check**, not a guarantee against concurrent change after the final read. If the original changes after the cache MOV has been published but before the report can succeed, the new MOV remains for reconciliation. On subsequent same-key attempts the existing no-overwrite rule raises `E_FX_CACHE_EXISTS_NO_OVERWRITE`, rather than silently deleting/replacing potentially valuable evidence.
 
@@ -16,10 +16,11 @@ STEP31's staged-source and STEP30/26's private/published MOV consistency checks 
 
 ## Regression tests / CI
 
-Three tests added in `tests/test_core_fx_cache_worker.py`, using only previously existing tiny mock bytes and temporary paths (no new PNG graphic, logo or source artwork):
+Four tests added in `tests/test_core_fx_cache_worker.py`, using only previously existing tiny mock bytes and temporary paths (no new PNG graphic, logo or source artwork):
 1. Another process modifies original owner PNG after FFprobe has read the private MOV → no MOV published and no success report.
-2. Another process replaces owner PNG with a same-byte new-inode file during alpha readback → invalidates candidate despite unchanged SHA.
-3. Original PNG changes at the final MOV publication step → no successful report; published MOV is **preserved** and next same-key render refuses overwrite.
+2. Original owner PNG disappears during external alpha verification → `E_FX_SOURCE_CHANGED` (never misclassified as MOV cache damage), no output published.
+3. Another process replaces owner PNG with a same-byte new-inode file during alpha readback → invalidates candidate despite unchanged SHA.
+4. Original PNG changes at the final MOV publication step → no successful report; published MOV is **preserved** and next same-key render refuses overwrite.
 
 `.github/workflows/step32-source-freshness.yml`: focused cache tests, full Python security tests and complete CEP ES3/JS regression on Windows and Ubuntu. STEP19 actual FFmpeg cache and STEP25 real opacity parity checks remain independent exact-head prerequisites.
 
