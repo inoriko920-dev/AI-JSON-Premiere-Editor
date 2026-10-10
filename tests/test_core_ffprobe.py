@@ -203,6 +203,73 @@ class FFProbeTests(unittest.TestCase):
         self.assertFalse(report["can_assemble"])
         self.assertEqual(len(report["streams"]),2)
 
+    def test_conflicting_container_and_selected_stream_durations_block(self):
+        # The container must not claim frames/audio beyond the selected stream.
+        for role in ("audio", "background"):
+            for container_seconds, stream_seconds in (
+                ("11.500", "10.500"),
+                ("10.500", "11.500"),
+                ("11.000", "11.00000000000000000000000000001"),
+            ):
+                with self.subTest(role=role, container=container_seconds,
+                                  stream=stream_seconds):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        kind = "audio" if is_audio else "background"
+                        record = (
+                            {"codec_type":"audio","codec_name":"pcm_s16le",
+                             "sample_rate":"48000"} if is_audio else
+                            {"codec_type":"video","codec_name":"h264",
+                             "width":1920,"height":1080})
+                        if kind == role:
+                            record["duration"] = stream_seconds
+                        data = {"streams":[record],
+                                "format":{"duration":container_seconds
+                                          if kind == role else "11.500"}}
+                        return subprocess.CompletedProcess(
+                            argv, 0, json.dumps(data).encode(), b"")
+                    report = inspect_ffprobe(self.edit, self.root,
+                                             ffprobe_exe=self.ffprobe,runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(
+                        x["code"]=="E_FFPROBE_DURATION_CONFLICT" and
+                        x["pointer"]=="/sources/"+role
+                        for x in report["issues"]))
+                    self.assertFalse(any(
+                        x["pointer"]=="/sources/"+role
+                        for x in report["streams"]))
+
+    def test_equal_container_stream_duration_with_extra_zeroes_stays_valid(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000","duration":"11.500000000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080,"duration":"11.5"})
+            data = {"streams":[record],"format":{"duration":"11.500"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_DURATION_CONFLICT",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11500,11500])
+        self.assertFalse(report["can_assemble"])
+
+    def test_stream_only_duration_still_available_when_container_missing(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000","duration":"11.000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080,"duration":"6.000"})
+            data = {"streams":[record],"format":{"duration":"N/A"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(data).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertNotIn("E_FFPROBE_DURATION_CONFLICT",codes(report))
+        self.assertEqual([x["duration_ms"] for x in report["streams"]],[11000,6000])
+        self.assertFalse(report["can_assemble"])
+
     def test_missing_duration_requires_review(self):
         body = fixture().decode().replace('"11.500"', '"N/A"')
         r = self.inspect(payload=body.encode())
