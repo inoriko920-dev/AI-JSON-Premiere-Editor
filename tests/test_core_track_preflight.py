@@ -355,6 +355,29 @@ class TrackPreflightTests(unittest.TestCase):
         self.assertIsNone(report["track_candidate"])
         self.assertFalse(report["can_assemble"])
 
+    def test_duplicate_ffprobe_duration_member_blocks_four_track(self):
+        original=self.runner
+        for suffix in (".wav", ".mp4"):
+            with self.subTest(source_suffix=suffix):
+                def ambiguous(args,**kwargs):
+                    response=original(args,**kwargs)
+                    if Path(args[-1]).suffix.lower()==suffix:
+                        value=(b'"duration": "11.000"' if suffix==".wav"
+                               else b'"duration": "6.000"')
+                        changed=response.stdout.replace(
+                            value,value[:-1]+b', "duration": "1.000"')
+                        self.assertNotEqual(changed,response.stdout)
+                        return subprocess.CompletedProcess(args,0,changed,b"")
+                    return response
+                self.runner=ambiguous
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_import"])
+                self.assertFalse(report["can_assemble"])
+                self.runner=original
+
     def test_container_stream_duration_conflict_blocks_track_candidate(self):
         original=self.runner
         for extension in (".wav", ".mp4"):
