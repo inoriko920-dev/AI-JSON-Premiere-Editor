@@ -135,6 +135,16 @@ def inspect_ffprobe(
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "Informasi stream tidak tersedia."))
             continue
+        if source == "audio":
+            # A1 is narration-only. Even one valid audio stream is not enough
+            # when an MP3/WAV also contains a cover-art video, subtitle, data
+            # or unknown side stream. Premiere's linked import behavior is
+            # not certified, so do not invent a safe stream-selection policy.
+            if any(type(s) is not dict or s.get("codec_type") != "audio"
+                   for s in data["streams"]):
+                issues.append(issue("E_NARRATION_STREAM_TOPOLOGY_UNKNOWN", pointer,
+                                    "File narasi memiliki stream tambahan yang belum dapat diisolasi."))
+                continue
         if source == "background":
             # The JSON audio_policy=MUTE is only intent, NOT actual proof.
             # A background MP4 with linked audio (or an unfamiliar stream)
