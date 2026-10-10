@@ -233,6 +233,42 @@ class TrackPreflightTests(unittest.TestCase):
                           "E_FFPROBE_DURATION_UNVERIFIED")
                 self.assertIn(expected,codes(report))
 
+    def test_background_just_short_of_11_seconds_requires_two_real_source_loops(self):
+        # 10.999999999... seconds cannot supply 330 whole frames at 30fps;
+        # rounding to 11000 ms would silently request a nonexistent frame.
+        original=self.runner
+        def near_boundary(args,**kwargs):
+            output=original(args,**kwargs)
+            if Path(args[-1]).suffix.lower()==".mp4":
+                data=json.loads(output.stdout)
+                data["format"]["duration"]="10.9999999999999999999999999999"
+                return subprocess.CompletedProcess(
+                    args,0,json.dumps(data).encode("utf-8"),b"")
+            return output
+        self.runner=near_boundary
+        report=self.check()
+        self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+        self.assertEqual(report["error_count"],0)
+        self.assertEqual(report["track_candidate"]["track_counts"]["V1"],2)
+        self.assertFalse(report["can_assemble"])
+
+    def test_audio_microtail_never_reaches_four_track_candidate(self):
+        original=self.runner
+        def microtail(args,**kwargs):
+            output=original(args,**kwargs)
+            if Path(args[-1]).suffix.lower()==".wav":
+                data=json.loads(output.stdout)
+                data["format"]["duration"]="11.00000000000000000000000000001"
+                return subprocess.CompletedProcess(
+                    args,0,json.dumps(data).encode("utf-8"),b"")
+            return output
+        self.runner=microtail
+        report=self.check()
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+        self.assertIsNone(report["track_candidate"])
+        self.assertFalse(report["can_assemble"])
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
