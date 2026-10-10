@@ -4,9 +4,8 @@ from pathlib import Path
 import runpy
 import tempfile
 import unittest
-from unittest.mock import patch
-
 from core.media import inspect_media
+from tests.test_core_media import PNG_HEADER, WAV_HEADER, MP4_HEADER
 from core.track_plan import TrackPlanError, compile_four_track_candidate
 
 demo = runpy.run_path(str(Path(__file__).with_name("test_core_contracts.py")))["demo"]
@@ -47,27 +46,26 @@ class AstraFix01Tests(unittest.TestCase):
         edit, _ = demo()
         edit["scenes"] = edit["scenes"][:1]
         edit["scenes"][0]["assets"][0]["start_frame"] = instance_start_frame
-        raw = ("1\n00:00:{:02d},{:03d} --> 00:00:10,000\nExisting cue\n".format(
-            cue_start_ms // 1000, cue_start_ms % 1000)).encode()
+        raw = ("1\\n00:00:{:02d},{:03d} --> 00:00:10,000\\nExisting cue\\n".format(
+            cue_start_ms // 1000, cue_start_ms % 1000)).encode().replace(b"\\n", b"\n")
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            srt = root/"sub.srt"
-            srt.write_bytes(raw)
             edit["sources"]["srt"]["path"] = "sub.srt"
-            edit["sources"]["srt"]["sha256"] = hashlib.sha256(raw).hexdigest()
-
-            def resolve(_root, rel):
-                return srt if rel == "sub.srt" else root/rel
-
-            def bounded(path, _limit):
-                return ((hashlib.sha256(raw).hexdigest(), len(raw), raw[:32])
-                        if path == srt else ("a"*64, 32, b"header"))
-
-            with patch("core.media.resolved_path", side_effect=resolve), \
-                 patch("core.media._bounded_hash", side_effect=bounded), \
-                 patch("core.media._format_supported", return_value=(True, None)):
-                return inspect_media(edit, root, max_file_bytes=4096,
-                                     max_srt_cues=10)
+            source_data = {"srt": raw, "audio": WAV_HEADER,
+                           "background": MP4_HEADER}
+            for kind, blob in source_data.items():
+                record = edit["sources"][kind]
+                target = root / record["path"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(blob)
+                record["sha256"] = hashlib.sha256(blob).hexdigest()
+            for record in edit["assets"].values():
+                target = root / record["path"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(PNG_HEADER)
+                record["sha256"] = hashlib.sha256(PNG_HEADER).hexdigest()
+            return inspect_media(edit, root, max_file_bytes=4096,
+                                 max_srt_cues=10)
 
     def test_exact_cue_must_match_instance_entry(self):
         report = self.inspect_with_cue(9000, 0)
