@@ -13,7 +13,9 @@ import runpy
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
+from core.import_snapshot import prepare_media_snapshot
 from core.track_preflight import prepare_track_preflight
 
 
@@ -142,6 +144,26 @@ class TrackPreflightTests(unittest.TestCase):
         report=self.check(ticks="0")
         self.assertIn("E_TRACK_CANDIDATE_REJECTED",codes(report))
         self.assertIsNone(report["track_candidate"])
+
+    def test_snapshot_authority_tampering_blocks_before_ffprobe(self):
+        original=prepare_media_snapshot(
+            self.edit,self.root,max_file_bytes=100000,
+            max_import_items=20)
+        for key,value in (("status","READY"),
+                          ("can_assemble",True),
+                          ("can_import",True),
+                          ("import_count",0)):
+            with self.subTest(field=key):
+                forged=dict(original)
+                forged[key]=value
+                with patch("core.track_preflight.prepare_media_snapshot",
+                           return_value=forged):
+                    report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_MEDIA_SNAPSHOT_STALE",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_assemble"])
+                self.assertEqual(self.probe_calls,0)
 
     def test_snapshot_mutation_during_ffprobe_blocks_candidate(self):
         path=self.root/self.edit["assets"]["A001"]["path"]
