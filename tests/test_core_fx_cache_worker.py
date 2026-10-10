@@ -148,6 +148,13 @@ class AlphaCacheTests(unittest.TestCase):
             self.go(**overrides)
         self.assertEqual(ctx.exception.code,code)
 
+    def test_alpha_leak_readback_failure_never_publishes_mov(self):
+        self.alpha_checker.side_effect=AlphaPixelError("E_FX_ALPHA_PIXELS_MISMATCH")
+        self.assert_code("E_FX_ALPHA_PIXELS_MISMATCH")
+        self.assertEqual(list(self.cache.glob("fx_*.mov")), [])
+        self.assertFalse(list(self.cache.glob(".fx_work_*")))
+        self.assertEqual(self.source.read_bytes(), HEADER)
+
     def test_successful_mock_render_is_cache_only_and_not_certified(self):
         r=self.go()
         self.assertEqual(r["status"],
