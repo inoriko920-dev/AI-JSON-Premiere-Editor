@@ -375,6 +375,19 @@ class AlphaCacheTests(unittest.TestCase):
         self.assertFalse(list(self.cache.iterdir()))
         self.assertEqual(self.source.read_bytes(), HEADER + b"outside owner change")
 
+    def test_missing_owner_png_during_alpha_is_source_error_not_cache_error(self):
+        original = self.alpha_checker.return_value
+        def remove_owner_during_external_validation(*args, **kwargs):
+            # Simulates a separate external actor; production never deletes
+            # owner PNG and must not publish or misclassify this as cache.
+            self.source.unlink()
+            return original
+        self.alpha_checker.side_effect = remove_owner_during_external_validation
+        self.assert_code("E_FX_SOURCE_CHANGED")
+        self.assertFalse(self.source.exists())
+        self.assertFalse(list(self.cache.iterdir()))
+        self.alpha_checker.assert_called_once()
+
     def test_owner_png_replaced_same_bytes_during_alpha_is_rejected(self):
         original = self.alpha_checker.return_value
         def replace_owner(*args, **kwargs):
