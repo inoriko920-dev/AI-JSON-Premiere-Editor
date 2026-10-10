@@ -33,3 +33,8 @@ This internal QA does not approve source/Canva fidelity, Premiere Opacity matchN
 Continue approved integration/stabilization. In particular, audit media digest consistency and cache publication/inspection against actual source time-of-check/time-of-use races, without changing approved UI or motion values or requiring owner-generated test art.
 
 CI PASS must be grounded in **all applicable Windows/Linux jobs on exact final commit SHA**.
+
+
+## Additional CI regression fixed in the same STEP
+
+A broader PR check exposed a **stale test expectation** in `.github/workflows/step07-track-mock.yml`: its Windows P0 ZIP assertion still demanded `P0_FILES=24` and `P0_SHA256_ENTRIES=23`. The **current approved package generator** `tools/build_p0_pilot.py` and the strict Windows inspector `tools/windows/P0_Windows_Pilot.ps1` both explicitly require **26 ZIP entries** and **25 SHA records**. The workflow assertion is now updated to the exact current numbers. No ZIP content, allowed-file set, signature, or safety-validation policy was changed. The `Test_P0_Negative.ps1` adversarial checks remain mandatory (tamper, missing, duplicate, unexpected, traversal, oversize, wrong external digest). This repairs a *false-negative CI gate*, not a source-code failure or a relaxation of security checks.
