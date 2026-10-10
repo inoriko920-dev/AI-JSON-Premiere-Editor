@@ -1,4 +1,4 @@
-# Mulai di sini — AI-JSON-Premiere-Editor
+> **Status pengembangan per 10 Oktober 2026:** Implementasi telah melampaui STEP03 hingga STEP32 di Draft PR #22 dan SOL sedang menutup enam cacat ASTRA. Baca [STATUS.md](STATUS.md). G3 Premiere tetap NOT_VERIFIED; audit CI bugfix belum dinyatakan PASS; jangan merge/rilis atau buat aset UI sendiri. Isi di bawah adalah handoff UI historis 9 Oktober, bukan status kode terbaru.\n\n# Mulai di sini — AI-JSON-Premiere-Editor
 
 **G1A SPEC PASS, G2 UI FINAL PASS.** All final UI artwork owner-approved and archived on GitHub: [12 PNG + UI_REFERENCE_FINAL.docx](ui/final/README.md), [G2 pass evidence](ui/ASTRA_STEP02_G2_APPROVAL_AND_BINARY_ARCHIVE_GATE_2026-10-09.md) and [SHA/git-blob check](ui/final/STEP02_G2_GITHUB_BIN_INTEGRITY_2026-10-09.csv).
 
