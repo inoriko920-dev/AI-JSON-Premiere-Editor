@@ -209,6 +209,30 @@ class TrackPreflightTests(unittest.TestCase):
                 self.assertIsNone(report["track_candidate"])
                 self.assertFalse(report["can_assemble"])
 
+    def test_invalid_large_ffprobe_numbers_cannot_create_track_candidate(self):
+        original=self.runner
+        for kind in ("sample_rate", "duration"):
+            with self.subTest(kind=kind):
+                def hostile(args,**options):
+                    output=original(args,**options)
+                    if Path(args[-1]).suffix.lower()==".wav":
+                        payload=json.loads(output.stdout)
+                        if kind=="sample_rate":
+                            payload["streams"][0]["sample_rate"]="9"*10000
+                        else:
+                            payload["format"]["duration"]="1e999999999"
+                        return subprocess.CompletedProcess(
+                            args,0,json.dumps(payload).encode("utf-8"),b"")
+                    return output
+                self.runner=hostile
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_assemble"])
+                expected=("E_FFPROBE_SAMPLE_RATE" if kind=="sample_rate" else
+                          "E_FFPROBE_DURATION_UNVERIFIED")
+                self.assertIn(expected,codes(report))
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
