@@ -38,7 +38,7 @@ class CoreCLIProcessTests(unittest.TestCase):
         from tests.test_core_import_snapshot import PNG, WAV, MP4
         edit=json.loads(self.edit.read_text(encoding="utf-8"))
         sources={
-            "srt": b"1\\n00:00:00,000 --> 00:00:01,000\\nFirst\\n\\n2\\n00:00:01,000 --> 00:00:02,000\\nSecond\\n\\n3\\n00:00:02,000 --> 00:00:03,000\\nThird\\n",
+            "srt": b"1\\n00:00:00,000 --> 00:00:05,000\\nFirst\\n\\n2\\n00:00:05,000 --> 00:00:06,400\\nSecond\\n\\n3\\n00:00:06,400 --> 00:00:11,000\\nThird\\n",
             "audio": WAV,
             "background": MP4,
         }
