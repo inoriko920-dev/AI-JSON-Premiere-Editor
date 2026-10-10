@@ -175,6 +175,40 @@ class TrackPreflightTests(unittest.TestCase):
 
 
 
+    def test_multiple_narration_streams_block_track_before_timeline_candidate(self):
+        original=self.runner
+        def ambiguous(args,**options):
+            output=original(args,**options)
+            if Path(args[-1]).suffix.lower()==".wav":
+                body=json.loads(output.stdout)
+                body["streams"].append(dict(body["streams"][0]))
+                output=subprocess.CompletedProcess(args,0,json.dumps(body).encode(),b"")
+            return output
+        self.runner=ambiguous
+        report=self.check()
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_AUDIO_STREAM_AMBIGUOUS",codes(report))
+        self.assertIsNone(report["track_candidate"])
+        self.assertFalse(report["can_assemble"])
+
+    def test_fractional_millisecond_narration_blocks_track_candidate(self):
+        original=self.runner
+        for value in ("11.000001","10.999999"):
+            with self.subTest(duration_seconds=value):
+                def fractional(args,**options):
+                    output=original(args,**options)
+                    if Path(args[-1]).suffix.lower()==".wav":
+                        body=json.loads(output.stdout)
+                        body["format"]["duration"]=value
+                        output=subprocess.CompletedProcess(args,0,json.dumps(body).encode(),b"")
+                    return output
+                self.runner=fractional
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_assemble"])
+
     def test_audio_bearing_background_never_yields_timeline_candidate(self):
         original=self.runner
         def with_linked_audio(argv,**kwargs):
