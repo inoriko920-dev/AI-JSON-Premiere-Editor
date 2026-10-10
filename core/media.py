@@ -207,12 +207,27 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
     queue: list[tuple[str,str,dict[str,Any]]] = []
     sources = edit.get("sources",{}) if type(edit) is dict else {}
     for key in ("srt","audio","background"):
-        doc=sources.get(key,{}) if type(sources) is dict else {}
-        if type(doc) is dict:
-            queue.append((f"/sources/{key}", key, doc))
-    for aid, doc in (edit.get("assets",{}) if type(edit) is dict and type(edit.get("assets")) is dict else {}).items():
-        if type(doc) is dict:
-            queue.append((f"/assets/{aid}", "asset",doc))
+        pointer = f"/sources/{key}"
+        doc = sources.get(key) if type(sources) is dict else None
+        if type(doc) is not dict:
+            # A missing or malformed mandatory source must not disappear from
+            # the queue and leave a misleading all-good read-only audit.
+            errors.append(issue("E_MEDIA_MISSING",pointer,
+                                "Deklarasi sumber media wajib hilang atau tidak valid."))
+            continue
+        queue.append((pointer, key, doc))
+    assets = edit.get("assets") if type(edit) is dict else None
+    if type(assets) is not dict or not assets:
+        errors.append(issue("E_MEDIA_MISSING","/assets",
+                            "Deklarasi aset gambar wajib hilang atau tidak valid."))
+    else:
+        for aid, doc in assets.items():
+            pointer = f"/assets/{aid}"
+            if type(doc) is not dict:
+                errors.append(issue("E_MEDIA_MISSING",pointer,
+                                    "Deklarasi aset gambar wajib tidak valid."))
+                continue
+            queue.append((pointer, "asset",doc))
     cue_times: dict[int, tuple[int, int]] = {}
     for pointer,category,record in queue:
         rel=record.get("path")
