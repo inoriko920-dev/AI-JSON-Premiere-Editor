@@ -450,6 +450,37 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_FFPROBE_SAMPLE_RATE", codes(report))
         self.assertFalse(report["can_assemble"])
 
+    def test_unrepresentable_json_decimal_exponent_is_structured_failure(self):
+        # parse_float=Decimal raises decimal.InvalidOperation (not ValueError)
+        # for exponent magnitudes beyond Decimal's supported representation.
+        for role in ("audio", "background"):
+            for exponent in ("1e99999999999999999999999999999",
+                             "1e-99999999999999999999999999999"):
+                with self.subTest(role=role, exponent=exponent):
+                    def runner(argv, **_kwargs):
+                        is_audio = str(argv[-1]).endswith(".wav")
+                        kind = "audio" if is_audio else "background"
+                        stream = (
+                            {"codec_type":"audio","codec_name":"pcm_s16le",
+                             "sample_rate":"48000"} if is_audio else
+                            {"codec_type":"video","codec_name":"h264",
+                             "width":1920,"height":1080})
+                        payload = json.dumps({"streams":[stream],
+                                              "format":{"duration":"11.500"}}).encode()
+                        if kind == role:
+                            payload = payload.replace(b'"duration": "11.500"',
+                                                      b'"duration": ' + exponent.encode())
+                        return subprocess.CompletedProcess(argv,0,payload,b"")
+                    report=inspect_ffprobe(self.edit,self.root,
+                                           ffprobe_exe=self.ffprobe,runner=runner)
+                    self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                    self.assertFalse(report["can_assemble"])
+                    self.assertTrue(any(x["code"]=="E_FFPROBE_BAD_RESPONSE" and
+                                        x["pointer"]=="/sources/"+role
+                                        for x in report["issues"]))
+                    self.assertFalse(any(x["pointer"]=="/sources/"+role
+                                         for x in report["streams"]))
+
     def test_extreme_decimal_exponent_duration_fails_closed(self):
         # Decimal('1e999999999') is finite but converting it to integer
         # milliseconds is not safe. Do not advertise a usable duration.
