@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from core.media import inspect_media, parse_srt, resolved_path
 
@@ -62,6 +63,37 @@ class MediaTests(unittest.TestCase):
         self.assertFalse(report["can_assemble"])
         self.assertIn("E_MEDIA_DECODE_UNVERIFIED",codes(report))
         self.assertEqual(report["files"][-1]["width"],1280)
+
+    def test_srt_modified_after_hash_cannot_certify_old_exact_cue(self):
+        from core.media import _bounded_hash
+        srt=self.root/"sub/narasi.srt"
+        changed=SRT.replace(b"00:00:00,000",b"00:00:01,000",1)
+        self.assertEqual(len(changed),len(SRT))
+        def swap_after_hash(path,limit):
+            result=_bounded_hash(path,limit)
+            if path==srt:
+                srt.write_bytes(changed)
+            return result
+        with patch("core.media._bounded_hash",side_effect=swap_after_hash):
+            report=self.inspect()
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_MEDIA_CHANGED",codes(report))
+        self.assertFalse(report["can_assemble"])
+
+    def test_srt_growth_after_hash_stays_within_read_budget(self):
+        from core.media import _bounded_hash
+        srt=self.root/"sub/narasi.srt"
+        max_bytes=8192
+        def grow_after_hash(path,limit):
+            result=_bounded_hash(path,limit)
+            if path==srt:
+                srt.write_bytes(SRT+b"x"*(max_bytes+1))
+            return result
+        with patch("core.media._bounded_hash",side_effect=grow_after_hash):
+            report=self.inspect(max_bytes=max_bytes)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_RESOURCE_LIMIT",codes(report))
+        self.assertFalse(report["can_assemble"])
 
     def test_utf8_bom_multiline_srt(self):
         cues=parse_srt(SRT,max_cues=10)
