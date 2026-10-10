@@ -1,0 +1,37 @@
+name: STEP32 Owner PNG Freshness Through MOV Publication (NO Host)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step32-*']
+    paths:
+      - 'core/fx_cache_worker.py'
+      - 'tests/test_core_fx_cache_worker.py'
+      - '.github/workflows/step32-source-freshness.yml'
+  pull_request:
+    paths:
+      - 'core/fx_cache_worker.py'
+      - 'tests/test_core_fx_cache_worker.py'
+      - '.github/workflows/step32-source-freshness.yml'
+jobs:
+  source-freshness:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate owner original PNG identity across FFprobe, alpha and cache link
+        run: python -m unittest tests.test_core_fx_cache_worker -v
+      - name: Full Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full JavaScript and CEP ES3 regression
+        run: npm test
+      - name: Preserve frozen preset and host proof boundaries
+        run: python -c "from core.fx_alpha_backend import backend_support; from pathlib import Path; b=backend_support(); assert b['coded_presets']==['FADE','WIPE'] and b['unimplemented_presets']==19 and b['actual_host_certified']==0; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in Path('CSXS/manifest.xml').read_text(); print('STEP32_SOURCE_RECHECK_NOT_PREMIERE_CERTIFICATION')"
