@@ -95,7 +95,7 @@ def inspect_ffprobe(
         try:
             data = json.loads(output, parse_constant=lambda name: (_ for _ in ()).throw(
                 ValueError("nonfinite numeric constant")))
-        except (UnicodeError, ValueError, TypeError):
+        except (UnicodeError, ValueError, TypeError, RecursionError):
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "FFprobe mengembalikan JSON rusak."))
             continue
@@ -132,6 +132,12 @@ def inspect_ffprobe(
             issues.append(issue("E_FFPROBE_STREAM_MISSING", pointer,
                                 "Stream wajib tidak ditemukan."))
             continue
+        # Never silently pick the first of several narration audio streams:
+        # Premiere selection is not established by metadata order.
+        if source == "audio" and len(tracks) != 1:
+            issues.append(issue("E_AUDIO_STREAM_AMBIGUOUS", pointer,
+                                "File narasi memiliki beberapa audio stream; pilihan sumber belum terverifikasi."))
+            continue
         stream = tracks[0]
         codec = stream.get("codec_name")
         if not isinstance(codec, str) or not codec or len(codec) > 50:
@@ -165,6 +171,15 @@ def inspect_ffprobe(
         if duration is None:
             issues.append(issue("E_FFPROBE_DURATION_UNVERIFIED", pointer,
                                 "Durasi aktual tidak ditemukan.", "REVIEW"))
+        # Narration must match the full timeline exactly. Truncating an
+        # FFprobe duration such as 11.000001 seconds to 11000 ms would
+        # bypass the strict tail guard in STEP34's existing track planner.
+        if source == "audio" and duration is not None:
+            exact_ms = duration * 1000
+            if exact_ms != exact_ms.to_integral_value():
+                issues.append(issue("E_FFPROBE_DURATION_PRECISION_UNVERIFIED", pointer,
+                                    "Durasi narasi memiliki pecahan milidetik tanpa kebijakan potong terverifikasi."))
+                continue
         records.append({
             "pointer": pointer, "stream_kind": media_kind,
             "codec": codec,
