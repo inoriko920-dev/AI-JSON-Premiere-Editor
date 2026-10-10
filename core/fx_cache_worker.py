@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import secrets
 import shutil
+import stat
 import struct
 import subprocess
 from typing import Any, Callable
@@ -107,9 +108,11 @@ def _copy_pinned(source: Path, target: Path, expected_sha: str,
 
 def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
            runner: Callable[..., Any], timeout_seconds: int) -> None:
-    argv = [str(probe), "-v", "error", "-select_streams", "v:0",
+    # Inspect ALL streams. A first-video-only probe could silently accept
+    # an extra audio/data/video stream in a tampered published cache entry.
+    argv = [str(probe), "-v", "error",
             "-count_frames", "-show_entries",
-            "stream=codec_name,pix_fmt,width,height,nb_read_frames,r_frame_rate",
+            "stream=codec_type,codec_name,pix_fmt,width,height,nb_read_frames,r_frame_rate",
             "-of", "json", str(result)]
     try:
         call = runner(argv, shell=False, capture_output=True,
@@ -127,13 +130,113 @@ def _probe(probe: Path, result: Path, width: int, height: int, frames: int,
             len(info["streams"]) != 1):
         raise AlphaCacheError("E_FX_PROBE_FAILED")
     v = info["streams"][0]
-    if (type(v) is not dict or v.get("codec_name") != "qtrle" or
+    if (type(v) is not dict or v.get("codec_type") != "video" or
+            v.get("codec_name") != "qtrle" or
             v.get("pix_fmt") != "argb" or v.get("width") != width or
             v.get("height") != height or
             v.get("r_frame_rate") != "30/1" or
             v.get("nb_read_frames") != str(frames)):
         raise AlphaCacheError("E_FX_PROBE_MISMATCH")
 
+
+
+def verify_cached_report(
+    report: dict[str, Any], *, cache_root: Path, ffprobe_exe: Path,
+    max_cached_bytes: int, timeout_seconds: int,
+    runner: Callable[..., Any] = subprocess.run
+) -> dict[str, Any]:
+    """Read-only restart audit for a previously published alpha cache MOV.
+
+    The expected SHA and key must come from a trusted prior render report.
+    No stale or tampered file is removed/replaced, and this does not re-prove
+    per-pixel alpha, Canva fidelity, or Premiere host compatibility.
+    """
+    if (type(report) is not dict or
+            report.get("schema_version") != "alpha-cache-render-report-v1" or
+            report.get("status") !=
+                "RENDERED_SAMPLED_ALPHA_VERIFIED_NOT_HOST_CERTIFIED" or
+            report.get("alpha_pixels_verified") is not True or
+            report.get("can_assemble") is not False or
+            report.get("host_verified") is not False or
+            report.get("whole_frame_verified") is not False or
+            report.get("canva_fidelity_verified") is not False or
+            not _is_hash(report.get("cache_key_sha256")) or
+            not _is_hash(report.get("output_sha256")) or
+            type(report.get("frames")) is not int or
+            report["frames"] < 1 or
+            type(report.get("size")) is not list or
+            len(report["size"]) != 2 or
+            any(type(n) is not int or n < 1 for n in report["size"])):
+        raise AlphaCacheError("E_FX_CACHE_REPORT_INVALID")
+    if (type(max_cached_bytes) is not int or max_cached_bytes < 1 or
+            type(timeout_seconds) is not int or timeout_seconds < 1):
+        raise AlphaCacheError("E_FX_RESOURCE_LIMIT_UNVERIFIED")
+    cache = _root(cache_root)
+    ffprobe = _binary(ffprobe_exe, "ffprobe")
+    final = cache / ("fx_" + report["cache_key_sha256"] + ".mov")
+    try:
+        original = final.lstat()
+    except FileNotFoundError as error:
+        raise AlphaCacheError("E_FX_CACHE_MISSING") from error
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE") from error
+    if not stat.S_ISREG(original.st_mode):
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE")
+    if original.st_size < 1 or original.st_size > max_cached_bytes:
+        raise AlphaCacheError("E_FX_CACHE_RESOURCE_LIMIT")
+
+    # Refuse symlink substitution and detect file changes during SHA and probe.
+    flags = os.O_RDONLY
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    digest = hashlib.sha256()
+    try:
+        with os.fdopen(os.open(final, flags), "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino) !=
+                    (original.st_dev, original.st_ino)):
+                raise AlphaCacheError("E_FX_CACHE_CHANGED")
+            total = 0
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                total += len(chunk)
+                if total > max_cached_bytes:
+                    raise AlphaCacheError("E_FX_CACHE_RESOURCE_LIMIT")
+                digest.update(chunk)
+            endfd = os.fstat(stream.fileno())
+    except AlphaCacheError:
+        raise
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_UNSAFE") from error
+    if total != original.st_size or (
+            original.st_size, original.st_mtime_ns, original.st_ctime_ns) != (
+            endfd.st_size, endfd.st_mtime_ns, endfd.st_ctime_ns):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    if digest.hexdigest() != report["output_sha256"]:
+        raise AlphaCacheError("E_FX_CACHE_HASH_MISMATCH")
+    _probe(ffprobe, final, *report["size"], report["frames"],
+           runner, timeout_seconds)
+    try:
+        after = final.lstat()
+    except OSError as error:
+        raise AlphaCacheError("E_FX_CACHE_CHANGED") from error
+    if (not stat.S_ISREG(after.st_mode) or
+            (after.st_dev, after.st_ino, after.st_size,
+             after.st_mtime_ns, after.st_ctime_ns) !=
+            (original.st_dev, original.st_ino, original.st_size,
+             original.st_mtime_ns, original.st_ctime_ns)):
+        raise AlphaCacheError("E_FX_CACHE_CHANGED")
+    return {
+        "cache_integrity": "SHA256_AND_METADATA_CHECKED",
+        "cache_key_sha256": report["cache_key_sha256"],
+        "output_sha256": report["output_sha256"],
+        "host_verified": False, "can_assemble": False,
+        "alpha_pixels_reverified": False,
+        "whole_frame_verified": False,
+        "canva_fidelity_verified": False
+    }
 
 def render_candidate(
     item: dict[str, Any], *, source_png: Path, media_root: Path,
