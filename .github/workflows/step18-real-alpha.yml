@@ -1,0 +1,57 @@
+name: STEP18 Real FFmpeg Alpha MOV Roundtrip (NO UI Images or Premiere Host)
+on:
+  push:
+    branches: ['sol/step18-*']
+  pull_request:
+    paths:
+      - 'core/fx_alpha_backend.py'
+      - 'tests/test_core_fx_real_alpha_readback.py'
+      - '.github/workflows/step18-real-alpha.yml'
+jobs:
+  real-alpha:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Ensure real FFmpeg and FFprobe (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (!(Get-Command ffmpeg -ErrorAction SilentlyContinue) -or !(Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg -y --no-progress
+            $env:PATH = [Environment]::GetEnvironmentVariable('PATH','Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH','User') + ';' + $env:PATH
+          }
+          ffmpeg -version
+          ffprobe -version
+      - name: Ensure real FFmpeg and FFprobe (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
+      - name: Assert binaries really exist (skip is forbidden in CI)
+        run: python -c "import shutil; assert shutil.which('ffmpeg') and shutil.which('ffprobe'), 'STEP18 requires native binaries'"
+      - name: Test real MOV codec and decoded alpha pixels (no PNG generated)
+        run: python -m unittest tests.test_core_fx_real_alpha_readback -v
+      - name: Test compiled filtergraphs and cache mocks
+        run: python -m unittest tests.test_core_fx_alpha_backend tests.test_core_fx_cache_worker -v
+      - name: Full Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full JavaScript CEP and ES3 regression
+        run: npm test
+      - name: Retain host safety and no user UI mutation
+        run: python -c "from core.fx_alpha_backend import backend_support; assert backend_support()['actual_host_certified']==0; assert backend_support()['unimplemented_presets']==19; print('STEP18_REAL_ALPHA_IS_NOT_PREMIERE_HOST_CERTIFICATION=PASS')"
