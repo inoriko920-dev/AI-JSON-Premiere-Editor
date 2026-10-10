@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 import tempfile
 import unittest
 
@@ -73,6 +76,44 @@ class ImportSnapshotTests(unittest.TestCase):
         a, b = self.snapshot(), self.snapshot()
         self.assertEqual(a["inventory_sha256"], b["inventory_sha256"])
         self.assertEqual(a["items"], b["items"])
+
+    def test_descriptor_inode_replacement_mid_hash_rejected_at_source(self):
+        # Simulated inode swap (same content/size/mtime) via one fstat result.
+        # Uses existing WAV fixture; no new PNG or visual is generated.
+        original=os.fstat
+        calls=[0]
+        def swapped_fstat(fd):
+            result=original(fd)
+            calls[0]+=1
+            if calls[0] == 2:
+                return SimpleNamespace(
+                    st_mode=result.st_mode,st_dev=result.st_dev,
+                    st_ino=result.st_ino+1,st_size=result.st_size,
+                    st_mtime_ns=result.st_mtime_ns,
+                    st_ctime_ns=result.st_ctime_ns)
+            return result
+        with patch("core.import_snapshot.os.fstat",side_effect=swapped_fstat):
+            self.assert_code("E_MEDIA_CHANGED_DURING_SNAPSHOT")
+        self.assertGreaterEqual(calls[0],2)
+
+    def test_recheck_fails_closed_on_inode_swap_during_read(self):
+        r=self.snapshot()
+        original=os.fstat
+        calls=[0]
+        def switched(fd):
+            result=original(fd)
+            calls[0]+=1
+            if calls[0]==2:
+                return SimpleNamespace(
+                    st_mode=result.st_mode,st_dev=result.st_dev,
+                    st_ino=result.st_ino+101,st_size=result.st_size,
+                    st_mtime_ns=result.st_mtime_ns,
+                    st_ctime_ns=result.st_ctime_ns)
+            return result
+        with patch("core.import_snapshot.os.fstat",side_effect=switched):
+            self.assertFalse(recheck_media_snapshot(r,max_file_bytes=100000))
+        self.assertGreaterEqual(calls[0],2)
+        self.assertTrue(recheck_media_snapshot(r,max_file_bytes=100000))
 
     def test_stale_file_rejected_even_same_length(self):
         r = self.snapshot()
