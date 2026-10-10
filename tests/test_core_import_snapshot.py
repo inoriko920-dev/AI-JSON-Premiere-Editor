@@ -312,6 +312,32 @@ class ImportSnapshotTests(unittest.TestCase):
         self.edit["assets"]["A001"]["sha256"] = hashlib.sha256(bad).hexdigest()
         self.assert_code("E_MEDIA_FORMAT")
 
+    def test_import_budget_rejected_before_asset_sort_or_source_read(self):
+        # Two fixed import slots are audio and background; SRT is not
+        # imported. Any additional asset beyond the caller's item budget
+        # must fail before even sorting untrusted asset identifiers.
+        self.edit["assets"]["A003"] = {"path": "missing-extra.png",
+                                        "sha256": "0"*64}
+        with patch("builtins.sorted", side_effect=AssertionError(
+                "asset list must never be sorted past resource cap")), \
+             patch("core.import_snapshot._stable_media_hash", side_effect=AssertionError(
+                 "files must never be hashed past resource cap")):
+            with self.assertRaises(ImportSnapshotError) as error:
+                prepare_media_snapshot(
+                    self.edit, self.root, max_file_bytes=100000,
+                    max_import_items=4)
+        self.assertEqual(error.exception.code, "E_RESOURCE_LIMIT")
+
+    def test_exact_import_budget_still_accepts_two_assets_and_two_sources(self):
+        snapshot=prepare_media_snapshot(
+            self.edit, self.root, max_file_bytes=100000,
+            max_import_items=4)
+        self.assertEqual(snapshot["import_count"], 4)
+        self.assertEqual(snapshot["item_count"], 5)
+        self.assertFalse(snapshot["can_import"])
+        self.assertFalse(snapshot["can_assemble"])
+        self.assertTrue(recheck_media_snapshot(snapshot,max_file_bytes=100000))
+
     def test_resource_limits_are_developer_explicit(self):
         with self.assertRaises(ImportSnapshotError) as ex:
             prepare_media_snapshot(self.edit, self.root, max_file_bytes=10,
