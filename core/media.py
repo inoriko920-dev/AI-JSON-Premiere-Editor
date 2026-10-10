@@ -7,6 +7,7 @@ All paths must stay inside explicit project media root, including symlinks.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import struct
 from pathlib import Path, PureWindowsPath
@@ -65,6 +66,32 @@ def _bounded_hash(path: Path, max_bytes: int) -> tuple[str, int, bytes]:
                 first = data[:32]
             hasher.update(data)
     return hasher.hexdigest(), total, first
+
+
+def _read_pinned_srt(path: Path, max_bytes: int, sha256: str, size: int,
+                     pre_hash_stat: os.stat_result) -> bytes:
+    """Bound and pin SRT bytes used for EXACT_CUE timing to the hashed file.
+
+    A second unrestricted read_bytes() after a successful SHA audit is unsafe:
+    the source may be replaced or enlarged between hash and cue parsing.
+    """
+    def identity(meta: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (meta.st_dev, meta.st_ino, meta.st_size,
+                meta.st_mtime_ns, meta.st_ctime_ns)
+
+    with path.open("rb") as source:
+        opened = os.fstat(source.fileno())
+        blob = source.read(max_bytes + 1)
+        closed = os.fstat(source.fileno())
+    post_read_stat = path.stat()
+    if len(blob) > max_bytes:
+        raise ValueError("E_RESOURCE_LIMIT")
+    if (len(blob) != size or hashlib.sha256(blob).hexdigest() != sha256 or
+            identity(pre_hash_stat) != identity(opened) or
+            identity(opened) != identity(closed) or
+            identity(closed) != identity(post_read_stat)):
+        raise ValueError("E_MEDIA_CHANGED")
+    return blob
 
 
 def _milliseconds(groups: tuple[str,...]) -> int:
@@ -165,6 +192,7 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
             continue
         try:
             path=resolved_path(root,rel)
+            srt_before_hash=path.stat() if category=="srt" else None
             digest,count,first=_bounded_hash(path,max_file_bytes)
             good,meta=_format_supported(rel,first)
             if not good:
@@ -180,13 +208,14 @@ def inspect_media(edit: dict, root: Path, *, max_file_bytes: int,
                                     "Hash asli belum disertakan dalam JSON.","REVIEW"))
             if category=="srt" and good:
                 try:
-                    if count>max_file_bytes:
-                        raise ValueError("E_RESOURCE_LIMIT")
-                    cues=parse_srt(path.read_bytes(),max_cues=max_srt_cues)
+                    raw=_read_pinned_srt(path,max_file_bytes,digest,count,
+                                         srt_before_hash)
+                    cues=parse_srt(raw,max_cues=max_srt_cues)
                     cue_times={c["cue_id"]: (c["start_ms"], c["end_ms"]) for c in cues}
-                except (ValueError,UnicodeError):
-                    errors.append(issue("E_SRT_MALFORMED",pointer,
-                                        "Cue SRT tidak dapat diverifikasi."))
+                except (ValueError,UnicodeError) as e:
+                    code=str(e) if str(e) in ("E_MEDIA_CHANGED","E_RESOURCE_LIMIT") else "E_SRT_MALFORMED"
+                    errors.append(issue(code,pointer,
+                                        "Cue SRT tidak dapat diverifikasi dari file yang di-hash."))
             item={"pointer":pointer,"bytes":count,"sha256":digest,"header_ok":good}
             if meta:
                 item.update(meta)
