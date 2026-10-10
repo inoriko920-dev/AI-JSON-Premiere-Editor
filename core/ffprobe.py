@@ -211,6 +211,17 @@ def inspect_ffprobe(
                 issues.append(issue("E_FFPROBE_SAMPLE_RATE", pointer,
                                     "Sample rate audio tidak valid."))
                 continue
+            # If FFprobe returns channel count, it must describe an actual
+            # audio stream. A zero/non-integer value must not be treated as
+            # usable A1 narration merely because its sample rate is valid.
+            # Older FFprobe metadata without this optional field retains the
+            # existing unverified, non-authorizing offline behavior.
+            if ("channels" in stream and
+                    (type(stream["channels"]) is not int or
+                     stream["channels"] < 1)):
+                issues.append(issue("E_FFPROBE_CHANNELS", pointer,
+                                    "Jumlah kanal narasi tidak valid."))
+                continue
         format_data = data.get("format")
         format_duration = (_duration(format_data.get("duration"))
                            if isinstance(format_data, dict) else None)
