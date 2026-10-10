@@ -127,7 +127,11 @@ def inspect_ffprobe(
             data = json.loads(output, parse_float=Decimal,
                               parse_constant=lambda name: (_ for _ in ()).throw(
                                   ValueError("nonfinite numeric constant")))
-        except (UnicodeError, ValueError, TypeError, RecursionError):
+        except (UnicodeError, ValueError, TypeError, RecursionError, InvalidOperation):
+            # json.loads(parse_float=Decimal) raises InvalidOperation (not
+            # ValueError) for numeric exponent magnitudes beyond Decimal's
+            # representable range. Never let untrusted FFprobe JSON crash
+            # the four-track preflight.
             issues.append(issue("E_FFPROBE_BAD_RESPONSE", pointer,
                                 "FFprobe mengembalikan JSON rusak."))
             continue
