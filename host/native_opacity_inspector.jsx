@@ -17,6 +17,9 @@ $._AIJSON_NATIVE_OPACITY_INSPECT_V1=(function () {
     function ticks(s){
         return typeof s==="string" && /^(0|[1-9][0-9]{0,25})$/.test(s);
     }
+    function earlier(a,b){
+        return a.length<b.length || (a.length===b.length && a<b);
+    }
     function safeName(s){
         return typeof s==="string" && s.length>0 && s.length<=80 &&
                !/[\u0000-\u001f\u007f]/.test(s);
@@ -29,7 +32,7 @@ $._AIJSON_NATIVE_OPACITY_INSPECT_V1=(function () {
         if(!c || !finiteInteger(c.numTracks,1,32)){return -1;}
         return c.numTracks;
     }
-    function inspect(sequenceId, trackName, startTicks, sourceNodeId){
+    function inspect(sequenceId, trackName, startTicks, sourceNodeId, endTicks){
         try {
             if (typeof app==="undefined" || !app || !app.project) {
                 return "S22|1|BLOCKED|NO_HOST_PROJECT";
@@ -41,7 +44,8 @@ $._AIJSON_NATIVE_OPACITY_INSPECT_V1=(function () {
             if(typeof sequenceId!=="string" ||
                !/^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/.test(sequenceId) ||
                (trackName!=="V2" && trackName!=="V3") ||
-               !ticks(startTicks) ||
+               !ticks(startTicks) || !ticks(endTicks) ||
+               !earlier(startTicks,endTicks) ||
                !safeName(sourceNodeId) ||
                !/^[A-Za-z0-9_.-]+$/.test(sourceNodeId)){
                 return "S22|1|BLOCKED|SELECTOR_INVALID";
@@ -74,6 +78,12 @@ $._AIJSON_NATIVE_OPACITY_INSPECT_V1=(function () {
             if(hits!==1){
                 return hits===0?"S22|1|BLOCKED|CLIP_NOT_FOUND":
                                 "S22|1|BLOCKED|CLIP_AMBIGUOUS";
+            }
+            // Source+start can match a clip that was shortened, extended
+            // or manually trimmed. Reject changed duration before returning
+            // any component inventory; do not modify the user timeline.
+            if(!selected.end || String(selected.end.ticks||"")!==endTicks){
+                return "S22|1|BLOCKED|CLIP_END_MISMATCH";
             }
             // Candidate output only: the host's Opacity effect/component
             // matchName, locale-specific labels, numeric units and time
