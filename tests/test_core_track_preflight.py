@@ -223,6 +223,26 @@ class TrackPreflightTests(unittest.TestCase):
 
 
 
+    def test_invalid_narration_channels_block_four_track_candidate(self):
+        original=self.runner
+        for channels in (0, -1, False, "2"):
+            with self.subTest(channels=channels):
+                def with_invalid_channels(args,**kwargs):
+                    response=original(args,**kwargs)
+                    if Path(args[-1]).suffix.lower()==".wav":
+                        payload=json.loads(response.stdout)
+                        payload["streams"][0]["channels"]=channels
+                        return subprocess.CompletedProcess(
+                            args,0,json.dumps(payload).encode("utf-8"),b"")
+                    return response
+                self.runner=with_invalid_channels
+                report=self.check()
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_CHANNELS",codes(report))
+                self.assertIsNone(report["track_candidate"])
+                self.assertFalse(report["can_import"])
+                self.assertFalse(report["can_assemble"])
+
     def test_multiple_narration_streams_block_track_before_timeline_candidate(self):
         original=self.runner
         def ambiguous(args,**options):
