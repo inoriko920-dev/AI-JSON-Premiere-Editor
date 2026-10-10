@@ -100,6 +100,45 @@ class AlphaPixelTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code,"E_FX_ALPHA_POLICY_INVALID")
                 self.assertFalse(self.calls)
 
+    def test_transparent_and_low_alpha_pixels_must_not_leak(self):
+        indices=[0,7,14,143,147,149]
+        for low in (0, 1, 15):
+            with self.subTest(source_alpha=low):
+                def pixels(argv, **_):
+                    if argv[argv.index("-i")+1]==str(_PNG):
+                        raw=bytes((210,10,10,255))+bytes((0,0,0,low))*63
+                    else:
+                        raw=b""
+                        for n in indices:
+                            raw+=bytes((210,10,10,round(255*_progress(n,150,15,7))))
+                            raw+=bytes((0,0,0,255))*63
+                    return subprocess.CompletedProcess(argv,0,raw,b"")
+                with self.assertRaises(AlphaPixelError) as caught:
+                    self.check(runner=pixels)
+                self.assertEqual(caught.exception.code,"E_FX_ALPHA_PIXELS_MISMATCH")
+
+    def test_valid_wipe_still_preserves_transparent_samples(self):
+        indices=[0,7,14,143,147,149]
+        for direction in ("LEFT_TO_RIGHT","RIGHT_TO_LEFT",
+                          "TOP_TO_BOTTOM","BOTTOM_TO_TOP"):
+            with self.subTest(direction=direction):
+                def pixels(argv, **_):
+                    if argv[argv.index("-i")+1]==str(_PNG):
+                        raw=bytes((210,10,10,255))*64
+                    else:
+                        raw=bytearray()
+                        for n in indices:
+                            p=_progress(n,150,15,7)
+                            for y in range(8):
+                                for x in range(8):
+                                    visible,_boundary=_spatial(direction,x,y,p)
+                                    raw+=bytes((210,10,10,255 if visible else 0))
+                        raw=bytes(raw)
+                    return subprocess.CompletedProcess(argv,0,raw,b"")
+                result=self.check(preset="WIPE",direction=direction,runner=pixels)
+                self.assertTrue(result["pixel_alpha_checked"])
+                self.assertFalse(result["whole_frame_verified"])
+
     def test_direction_masks_cannot_all_be_identical(self):
         masks=set()
         for direction in ("LEFT_TO_RIGHT","RIGHT_TO_LEFT",
