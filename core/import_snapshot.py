@@ -91,6 +91,11 @@ def prepare_media_snapshot(
     sources, assets = edit.get("sources"), edit.get("assets")
     if type(sources) is not dict or type(assets) is not dict or not assets:
         raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
+    # SRT is inspected but never imported; narration and background always
+    # consume the two fixed import slots. Reject excessive asset collections
+    # before sorting keys or allocating a queue for every asset.
+    if len(assets) + 2 > max_import_items:
+        raise ImportSnapshotError("E_RESOURCE_LIMIT")
     try:
         root = Path(media_root).resolve(strict=True)
         if not root.is_dir():
@@ -115,9 +120,6 @@ def prepare_media_snapshot(
         if type(info) is not dict:
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append(("ASSET_" + asset_id, "png", info, True))
-    if len(jobs) - 1 > max_import_items:  # subtract SRT (not imported)
-        raise ImportSnapshotError("E_RESOURCE_LIMIT")
-
     seen: set[str] = set()
     # Two different paths may still name the exact same file via hard links.
     # A source must have an unambiguous identity before creating its
