@@ -506,6 +506,38 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_MEDIA_MISSING", codes(r))
         self.assertEqual(r["status"], "PREFLIGHT_FAIL")
 
+    def test_declared_narration_channels_must_be_positive_integer(self):
+        # These metadata values cannot describe a usable narration stream.
+        # The current preflight must not build a candidate from them.
+        for invalid in (0, -1, None, False, True, "2", 2.5, [], {}):
+            with self.subTest(channels=invalid):
+                body=json.loads(fixture())
+                body["streams"][0]["channels"]=invalid
+                report=self.inspect(payload=json.dumps(body).encode())
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertFalse(report["can_assemble"])
+                self.assertTrue(any(
+                    entry["code"]=="E_FFPROBE_CHANNELS" and
+                    entry["pointer"]=="/sources/audio"
+                    for entry in report["issues"]))
+                self.assertFalse(any(
+                    item["pointer"]=="/sources/audio"
+                    for item in report["streams"]))
+
+    def test_valid_or_absent_narration_channels_preserve_existing_behavior(self):
+        for channels in (1, 2, 6, "absent"):
+            with self.subTest(channels=channels):
+                body=json.loads(fixture())
+                if channels=="absent":
+                    body["streams"][0].pop("channels")
+                else:
+                    body["streams"][0]["channels"]=channels
+                report=self.inspect(payload=json.dumps(body).encode())
+                self.assertEqual(report["status"],"NEEDS_REVIEW",report["issues"])
+                self.assertNotIn("E_FFPROBE_CHANNELS",codes(report))
+                self.assertEqual(len(report["streams"]),2)
+                self.assertFalse(report["can_assemble"])
+
     def test_dimensions_or_sample_rate_invalid(self):
         bad = fixture().decode().replace('"width": 1920', '"width": 0')
         self.assertIn("E_FFPROBE_DIMENSIONS",
