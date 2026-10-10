@@ -213,6 +213,14 @@ def _hash_stable_mov(path: Path) -> tuple[str, os.stat_result]:
     return digest.hexdigest(), after
 
 
+def _hash_owner_png(path: Path) -> tuple[str, os.stat_result]:
+    """Map missing/changed owner source to a SOURCE error, not cache damage."""
+    try:
+        return _hash_stable_mov(path)
+    except AlphaCacheError as error:
+        raise AlphaCacheError("E_FX_SOURCE_CHANGED") from error
+
+
 def verify_cached_report(
     report: dict[str, Any], *, cache_root: Path, ffprobe_exe: Path,
     max_cached_bytes: int, timeout_seconds: int,
@@ -431,7 +439,7 @@ def render_candidate(
         # could modify the original while FFmpeg works, making a successful
         # render stale relative to the current source. Never write the owner
         # file: these reads are immutable SHA/inode checks.
-        original_source_hash, original_source_stat = _hash_stable_mov(source)
+        original_source_hash, original_source_stat = _hash_owner_png(source)
         if original_source_hash != expected_sha256:
             raise AlphaCacheError("E_FX_SOURCE_CHANGED")
         cmd = build_ffmpeg_command(compiled, ffmpeg, staged, output)
@@ -477,7 +485,7 @@ def render_candidate(
         # Recheck the owner's *original* file, not only our private PNG.
         # A changed owner file during render/FFprobe/alpha readback invalidates
         # this candidate even if the staged copy is still intact.
-        final_source_hash, final_source_stat = _hash_stable_mov(source)
+        final_source_hash, final_source_stat = _hash_owner_png(source)
         if (final_source_hash != original_source_hash or
                 (final_source_stat.st_dev, final_source_stat.st_ino) !=
                 (original_source_stat.st_dev, original_source_stat.st_ino)):
@@ -508,7 +516,7 @@ def render_candidate(
         # Protect the final publication window as well. If the original
         # changes during os.link/final MOV verification, do not issue any
         # successful report. The published MOV remains for reconciliation.
-        published_source_hash, published_source_stat = _hash_stable_mov(source)
+        published_source_hash, published_source_stat = _hash_owner_png(source)
         if (published_source_hash != original_source_hash or
                 (published_source_stat.st_dev, published_source_stat.st_ino) !=
                 (original_source_stat.st_dev, original_source_stat.st_ino)):
