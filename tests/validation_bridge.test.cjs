@@ -227,3 +227,20 @@ test("BOTH phases display is only sanitized reference, never render or host writ
    assert.equal(result.code,"VALIDATOR_RESPONSE_INVALID");
  }
 });
+
+test("SINGLE-only summary may have no RIGHT placements on V3",()=>{
+ const track={status:"CANDIDATE_NOT_EXECUTABLE",can_assemble:false,
+   total_frames:150,track_counts:{V1:1,V2:1,V3:0,A1:1},
+   operation_sha256:"a".repeat(64)};
+ const result=api.parseReport(JSON.stringify({...VALID,track_candidate:track}));
+ assert.equal(result.status,"NEEDS_REVIEW");
+ assert.equal(result.track_candidate.counts.V3,0);
+ assert.equal(result.track_candidate.can_assemble,false);
+ for(const bad of [{V1:1,V2:0,V3:0,A1:1},
+                   {V1:1,V2:1,V3:-1,A1:1}]) {
+   assert.equal(api.parseReport(JSON.stringify({...VALID,
+     track_candidate:{...track,track_counts:bad}})).code,
+     "VALIDATOR_RESPONSE_INVALID");
+ }
+});
+
