@@ -22,6 +22,7 @@ from core.fx_alpha_verify import verify_alpha_pixels
 
 ROOT = Path(__file__).resolve().parents[1]
 UI = ROOT / "docs" / "ui" / "final"
+OWNER_ALPHA = ROOT / "docs" / "testing" / "assets" / "OWNER_ALPHA_TEST.png"
 _demo = runpy.run_path(str(ROOT / "tests/test_core_contracts.py"))["demo"]
 FFMPEG = shutil.which("ffmpeg")
 FFPROBE = shutil.which("ffprobe")
@@ -29,7 +30,9 @@ FFPROBE = shutil.which("ffprobe")
 
 def approved_existing_alpha_png():
     """Choose already-approved repository artwork, without creating any."""
-    for path in sorted(UI.glob("UI*.png")):
+    # Explicit owner-supplied alpha QA asset is preferred. Never synthesize it.
+    files=[OWNER_ALPHA] if OWNER_ALPHA.is_file() else sorted(UI.glob("UI*.png"))
+    for path in files:
         with path.open("rb") as f:
             head = f.read(33)
         if len(head) != 33 or head[:8] != b"\x89PNG\r\n\x1a\n":
@@ -106,7 +109,7 @@ class ApprovedPNGReadonlyIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="step19_cache_") as cache:
             report = render_candidate(
                 item(), source_png=Path(source.name),
-                media_root=UI.resolve(), cache_root=Path(cache).resolve(),
+                media_root=source.parent.resolve(), cache_root=Path(cache).resolve(),
                 expected_sha256=original_sha, ffmpeg_exe=Path(FFMPEG).resolve(),
                 ffprobe_exe=Path(FFPROBE).resolve(),
                 max_source_bytes=10_000_000, max_pixels=10_000_000,
