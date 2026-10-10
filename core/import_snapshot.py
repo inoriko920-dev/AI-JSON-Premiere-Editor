@@ -104,11 +104,15 @@ def prepare_media_snapshot(
         if type(info) is not dict:
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append((f"SOURCE_{label.upper()}", label, info, label != "srt"))
+    # Check key types BEFORE sorting: JSON-like direct callers may provide
+    # mixed str/non-str keys and sorted(assets) would raise raw TypeError.
+    if any(type(asset_id) is not str or
+           re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", asset_id) is None
+           for asset_id in assets):
+        raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
     for asset_id in sorted(assets):
         info = assets[asset_id]
-        if (type(asset_id) is not str or
-                re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", asset_id) is None or
-                type(info) is not dict):
+        if type(info) is not dict:
             raise ImportSnapshotError("E_IMPORT_CONTRACT_INVALID")
         jobs.append(("ASSET_" + asset_id, "png", info, True))
     if len(jobs) - 1 > max_import_items:  # subtract SRT (not imported)
