@@ -1,0 +1,41 @@
+name: STEP29 Stable Owner Media Hash and Post-FFprobe Recheck (NO Host)
+on:
+  push:
+    branches: ['sol/step19-*', 'sol/step29-*']
+    paths:
+      - 'core/import_snapshot.py'
+      - 'core/fx_media_cache_track_preflight.py'
+      - 'tests/test_core_import_snapshot.py'
+      - 'tests/test_core_fx_media_cache_track_preflight.py'
+      - '.github/workflows/step29-media-toctou.yml'
+  pull_request:
+    paths:
+      - 'core/import_snapshot.py'
+      - 'core/fx_media_cache_track_preflight.py'
+      - 'tests/test_core_import_snapshot.py'
+      - 'tests/test_core_fx_media_cache_track_preflight.py'
+      - '.github/workflows/step29-media-toctou.yml'
+jobs:
+  source-integrity:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Media file identity and source-to-cache time-of-check regression
+        run: python -m unittest tests.test_core_import_snapshot tests.test_core_fx_media_cache_track_preflight -v
+      - name: Full Python regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Full CEP JavaScript regression
+        run: npm test
+      - name: Assert host and approved animation scope remain locked
+        run: python -c "from core.fx_alpha_backend import backend_support; from pathlib import Path; b=backend_support(); assert b['coded_presets']==['FADE','WIPE'] and b['unimplemented_presets']==19 and b['actual_host_certified']==0; assert '<ScriptPath>./host/step03.jsx</ScriptPath>' in Path('CSXS/manifest.xml').read_text(); print('STEP29_NOT_HOST_CERTIFIED')"
