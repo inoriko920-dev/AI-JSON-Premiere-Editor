@@ -137,6 +137,54 @@ class FFProbeTests(unittest.TestCase):
         self.assertIn("E_BACKGROUND_VIDEO_STREAM_AMBIGUOUS",codes(report))
         self.assertFalse(report["can_assemble"])
 
+    def test_narration_multiple_audio_streams_never_silently_pick_first(self):
+        def runner(argv, **_kwargs):
+            audio = str(argv[-1]).endswith(".wav")
+            record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                       "sample_rate":"48000"} if audio else
+                      {"codec_type":"video","codec_name":"h264",
+                       "width":1920,"height":1080})
+            payload = {"streams":[record,dict(record)] if audio else [record],
+                       "format":{"duration":"11.500"}}
+            return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_AUDIO_STREAM_AMBIGUOUS",codes(report))
+        self.assertEqual(len(report["streams"]),1)
+        self.assertFalse(report["can_assemble"])
+
+    def test_fractional_millisecond_narration_never_truncated_to_valid_timeline(self):
+        # STEP33 media metadata must not defeat FIX01's strict audio-tail gate.
+        for value in ("11.500001","11.499999"):
+            with self.subTest(audio_duration=value):
+                def runner(argv, **_kwargs):
+                    audio = str(argv[-1]).endswith(".wav")
+                    record = ({"codec_type":"audio","codec_name":"pcm_s16le",
+                               "sample_rate":"48000"} if audio else
+                              {"codec_type":"video","codec_name":"h264",
+                               "width":1920,"height":1080})
+                    payload = {"streams":[record],
+                               "format":{"duration":value if audio else "11.500"}}
+                    return subprocess.CompletedProcess(argv,0,json.dumps(payload).encode(),b"")
+                report=inspect_ffprobe(self.edit,self.root,
+                                       ffprobe_exe=self.ffprobe,runner=runner)
+                self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+                self.assertIn("E_FFPROBE_DURATION_PRECISION_UNVERIFIED",codes(report))
+                self.assertFalse(any(x["pointer"]=="/sources/audio"
+                                     for x in report["streams"]))
+                self.assertFalse(report["can_assemble"])
+
+    def test_excessively_nested_ffprobe_output_returns_structured_failure(self):
+        nested = (b"[" * 6000) + b"0" + (b"]" * 6000)
+        self.assertLess(len(nested), 128*1024)
+        def runner(argv, **_kwargs):
+            raw = nested if str(argv[-1]).endswith(".wav") else fixture()
+            return subprocess.CompletedProcess(argv,0,raw,b"")
+        report=inspect_ffprobe(self.edit,self.root,ffprobe_exe=self.ffprobe,runner=runner)
+        self.assertEqual(report["status"],"PREFLIGHT_FAIL")
+        self.assertIn("E_FFPROBE_BAD_RESPONSE",codes(report))
+        self.assertFalse(report["can_assemble"])
+
     def test_background_video_only_remains_review_not_certified(self):
         # Runner fixture responses for both files are video-only: audio probe
         # correctly rejects missing narration, so test a video-only background
