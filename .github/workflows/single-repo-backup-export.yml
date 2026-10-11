@@ -1,0 +1,55 @@
+name: Single Repository Disaster Recovery Export
+on:
+  push:
+    branches:
+      - backup/export-20261011-docs-ui
+permissions:
+  contents: read
+jobs:
+  export-repository:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Collect complete source and Git history (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package/GIT package/SOURCE_ALL_BRANCHES package/METADATA
+          git clone --mirror "https://github.com/$GITHUB_REPOSITORY.git" backup-repo.git
+          git -C backup-repo.git fsck --full --no-reflogs
+          git --git-dir=backup-repo.git bundle create "$PWD/package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle" --all
+          git -C backup-repo.git bundle verify "$PWD/package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle" > package/METADATA/BUNDLE_VERIFY.txt 2>&1
+          git -C backup-repo.git for-each-ref --format='%(refname) %(objectname)' > package/METADATA/ALL_REFS.txt
+          git -C backup-repo.git for-each-ref --format='%(refname:short) %(objectname)' refs/heads > package/METADATA/BRANCHES.txt
+          git -C backup-repo.git for-each-ref --format='%(refname:short) %(objectname)' refs/tags > package/METADATA/TAGS.txt
+          git -C backup-repo.git log --all --format='%H %aI %s' > package/METADATA/COMMIT_HISTORY.txt
+          git --git-dir=backup-repo.git archive --format=zip -o "$PWD/package/SOURCE-MAIN.zip" refs/heads/main
+          git -C backup-repo.git for-each-ref --format='%(refname)' refs/heads | while IFS= read -r ref; do
+            safe="${ref#refs/heads/}"
+            safe="${safe//\//__}"
+            git --git-dir=backup-repo.git archive --format=zip -o "$PWD/package/SOURCE_ALL_BRANCHES/$safe.zip" "$ref"
+          done
+          {
+            printf 'Repo=%s\n' "$GITHUB_REPOSITORY"
+            printf 'UTC='
+            date -u +%FT%TZ
+            printf 'WIB='
+            TZ=Asia/Jakarta date +%Y-%m-%dT%H:%M:%S%z
+            printf 'MAIN='
+            git --git-dir=backup-repo.git rev-parse refs/heads/main
+            printf 'HEADS='
+            git -C backup-repo.git for-each-ref refs/heads | wc -l
+            printf 'TAGS='
+            git -C backup-repo.git for-each-ref refs/tags | wc -l
+          } > package/METADATA/EXPORT_INFO.txt
+          (cd package && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+          test -s package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle
+          test -s package/SOURCE-MAIN.zip
+      - name: Upload verified backup payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-JSON-Premiere-Editor-GIT-SOURCE-20261011
+          path: package/
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
