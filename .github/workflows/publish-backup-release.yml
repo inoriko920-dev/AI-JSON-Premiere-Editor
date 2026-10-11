@@ -1,0 +1,82 @@
+name: Publish GitHub Disaster Recovery ZIP
+on:
+  push:
+    branches: [backup/export-20261011-docs-ui]
+permissions:
+  contents: write
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ai-json-premiere-backup-20261011-wib
+      ASSET_NAME: AI-JSON-Premiere-Editor-Git-DOCX-UI-Backup-20261011-WIB.zip
+    steps:
+      - name: Build verified Git backup ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p restore_package/GIT restore_package/SOURCE restore_package/METADATA
+          git clone --mirror "https://github.com/${GITHUB_REPOSITORY}.git" repo_mirror.git
+          git -C repo_mirror.git fsck --full --no-reflogs
+          git --git-dir=repo_mirror.git bundle create "$PWD/restore_package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle" --all
+          git -C repo_mirror.git bundle verify "$PWD/restore_package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle" > restore_package/METADATA/BUNDLE_VERIFY.txt 2>&1
+          git -C repo_mirror.git for-each-ref --format='%(refname) %(objectname)' > restore_package/METADATA/ALL_REFS.txt
+          git -C repo_mirror.git for-each-ref --format='%(refname:short) %(objectname)' refs/heads > restore_package/METADATA/BRANCHES.txt
+          git -C repo_mirror.git for-each-ref --format='%(refname:short) %(objectname)' refs/tags > restore_package/METADATA/TAGS.txt
+          git -C repo_mirror.git log --all --format='%H %aI %s' > restore_package/METADATA/COMMIT_HISTORY.txt
+          git --git-dir=repo_mirror.git archive --format=zip -o "$PWD/restore_package/SOURCE/MAIN.zip" refs/heads/main
+          git --git-dir=repo_mirror.git archive --format=zip -o "$PWD/restore_package/SOURCE/LATEST_DEVELOPMENT.zip" refs/heads/sol/step19-cache-alpha-readback-20261010
+          test -s restore_package/GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle
+          test -s restore_package/SOURCE/MAIN.zip
+          test -s restore_package/SOURCE/LATEST_DEVELOPMENT.zip
+          unzip -l restore_package/SOURCE/LATEST_DEVELOPMENT.zip | grep -F 'docs/ui/final/UI_REFERENCE_FINAL.docx'
+          for n in $(seq -w 1 12); do
+            unzip -l restore_package/SOURCE/LATEST_DEVELOPMENT.zip | grep -F "docs/ui/final/UI${n}.png"
+          done
+          cat > restore_package/00_README_PERTAMA.txt <<'EOF'
+          SINGLE REPOSITORY BACKUP
+          Repository: inoriko920-dev/AI-JSON-Premiere-Editor
+          Git Bundle: GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle
+          MAIN source: SOURCE/MAIN.zip
+          Latest development source: SOURCE/LATEST_DEVELOPMENT.zip
+          The LATEST_DEVELOPMENT.zip contains 12 UI PNG files under docs/ui/final,
+          the original UI_REFERENCE_FINAL.docx, ASTRA planning DOCX, and source code.
+          All remote branch and tag history lives in the Git Bundle (not in either source ZIP).
+          External ChatGPT-only attachments and historic GitHub Actions build artifacts
+          are not included. GitHub secrets, private account settings and PR discussions
+          are not backed up. No stable Windows build is claimed.
+          To restore: git clone GIT/AI-JSON-Premiere-Editor-COMPLETE.bundle restored
+          cd restored; git branch -a; git tag -l; git fsck --full
+          Create an empty repository on a new GitHub account.
+          Then: git remote remove origin
+          git remote add origin https://github.com/NEW_ACCOUNT/NEW_REPO.git
+          Check remote carefully, then explicitly push branch(es) and tags:
+          git push origin main
+          git push origin --all
+          git push origin --tags
+          Recreate secrets manually. Never commit API tokens to backups.
+          EOF
+          {
+            echo "REPOSITORY=$GITHUB_REPOSITORY"
+            echo "CREATED_UTC=$(date -u +%FT%TZ)"
+            echo "CREATED_WIB=$(TZ=Asia/Jakarta date +%Y-%m-%dT%H:%M:%S%z)"
+            echo "MAIN_COMMIT=$(git --git-dir=repo_mirror.git rev-parse refs/heads/main)"
+            echo "DEVELOPMENT_COMMIT=$(git --git-dir=repo_mirror.git rev-parse refs/heads/sol/step19-cache-alpha-readback-20261010)"
+            echo "BRANCH_COUNT=$(git -C repo_mirror.git for-each-ref --format='%(refname)' refs/heads | wc -l)"
+            echo "TAG_COUNT=$(git -C repo_mirror.git for-each-ref --format='%(refname)' refs/tags | wc -l)"
+          } > restore_package/METADATA/BACKUP_INFO.txt
+          (cd restore_package && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+          (cd restore_package && zip -q -0 -r "../$ASSET_NAME" .)
+          unzip -t "$ASSET_NAME" > /dev/null
+          sha256sum "$ASSET_NAME" > "$ASSET_NAME.sha256"
+      - name: Publish as durable GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$ASSET_NAME" "$ASSET_NAME.sha256" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" "$ASSET_NAME" "$ASSET_NAME.sha256" --repo "$GITHUB_REPOSITORY" --title "AI JSON Premiere Editor - Git, DOCX and 12 UI images backup (2026-10-11 WIB)" --notes "Single-repository disaster recovery backup with Git bundle, all accessible Git branches and commits, main/development source snapshots, and the original UI_REFERENCE_FINAL.docx and 12 final PNGs as contained in the development branch. Backup does NOT contain extra attachments held outside GitHub or GitHub account settings. Verify checksums before restoring." --target "$GITHUB_SHA"
+          fi
